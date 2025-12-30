@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "90061776156",
+    "project_id": "request-app-cd149",
+    "storage_bucket": "request-app-cd149.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:90061776156:android:9cf6e830c43f61eb1d06d9",
+        "android_client_info": {
+          "package_name": "com.nsc.requestapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAt7b8-YwURtx7wHXWfhJM-olIszX-JfX8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

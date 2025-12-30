@@ -1,0 +1,62 @@
+name: request_app
+description: Government Request Management System Mobile App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management & Routing
+  get: ^4.6.6
+  
+  # HTTP Client
+  dio: ^5.4.0
+  http: ^1.1.0
+  
+  # Storage
+  get_storage: ^2.1.1
+  flutter_secure_storage: ^9.0.0
+  
+  # Maps & Location
+  google_maps_flutter: ^2.5.0
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+  google_polyline_algorithm: ^3.1.0
+  
+  # WebSocket
+  socket_io_client: ^2.0.3
+  
+  # Notifications
+  flutter_local_notifications: ^16.3.0
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.9
+  
+  # QR Code
+  qr_flutter: ^4.1.0
+  qr_code_scanner: ^1.0.1
+  
+  # UI & Utils
+  cupertino_icons: ^1.0.6
+  intl: ^0.18.1
+  image_picker: ^1.0.7
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  flutter_advanced_drawer: ^1.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Assets (if needed)
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
+

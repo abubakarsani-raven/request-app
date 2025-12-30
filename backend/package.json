@@ -19,6 +19,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node -r tsconfig-paths/register src/seed.ts",
+    "fix-passwords": "ts-node -r tsconfig-paths/register src/fix-passwords.ts",
+    "test-login": "ts-node -r tsconfig-paths/register src/test-login.ts",
+    "verify-user": "ts-node -r tsconfig-paths/register src/verify-user.ts",
     "migrate:fulfilled-ict": "ts-node -r tsconfig-paths/register src/migrations/update-fulfilled-ict-requests.ts",
     "clean:ict-requests": "ts-node -r tsconfig-paths/register src/migrations/clean-ict-requests.ts"
   },

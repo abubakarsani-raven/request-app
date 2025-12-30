@@ -1,10 +1,11 @@
+import '../config/app_config.dart';
+
 class AppConstants {
   // API Configuration
-  // IMPORTANT: For physical Android devices, replace 'localhost' with your computer's local IP address
-  // Find your IP: macOS: ipconfig getifaddr en0 | Linux: hostname -I | Windows: ipconfig
-  // Example: 'http://192.168.1.185:4000'
-  static const String apiBaseUrl = 'http://192.168.1.185:4000'; // Change localhost to your computer's IP for physical devices
-  static const String wsBaseUrl = 'ws://192.168.1.185:4000'; // Change localhost to your computer's IP for physical devices
+  // Use --dart-define=ENV=production for Railway backend
+  // Use --dart-define=ENV=development for local backend
+  static String get apiBaseUrl => AppConfig.apiBaseUrl;
+  static String get wsBaseUrl => AppConfig.wsBaseUrl;
   static const Duration apiTimeout = Duration(seconds: 30);
   
   // Storage Keys

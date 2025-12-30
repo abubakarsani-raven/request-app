@@ -694,6 +694,7 @@ class StoreRequestDetailPage extends StatelessWidget {
     String requestId,
   ) {
     final commentController = TextEditingController();
+    bool isDisposed = false;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -741,7 +742,6 @@ class StoreRequestDetailPage extends StatelessWidget {
                   Expanded(
                     child: TextButton(
                       onPressed: () {
-                        commentController.dispose();
                         Get.back();
                       },
                       style: TextButton.styleFrom(
@@ -755,7 +755,6 @@ class StoreRequestDetailPage extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () async {
                         final comment = commentController.text.trim();
-                        commentController.dispose();
                         final success = await controller.approveRequest(
                           requestId,
                           comment: comment.isEmpty ? null : comment,
@@ -781,7 +780,13 @@ class StoreRequestDetailPage extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ).then((_) {
+      // Ensure controller is disposed only once when dialog is dismissed
+      if (!isDisposed) {
+        isDisposed = true;
+        commentController.dispose();
+      }
+    });
   }
 
   void _showRejectDialog(
@@ -790,6 +795,7 @@ class StoreRequestDetailPage extends StatelessWidget {
     String requestId,
   ) {
     final commentController = TextEditingController();
+    bool isDisposed = false;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -837,7 +843,6 @@ class StoreRequestDetailPage extends StatelessWidget {
                   Expanded(
                     child: TextButton(
                       onPressed: () {
-                        commentController.dispose();
                         Get.back();
                       },
                       style: TextButton.styleFrom(
@@ -855,7 +860,6 @@ class StoreRequestDetailPage extends StatelessWidget {
                           CustomToast.error('Please provide a reason for rejection');
                           return;
                         }
-                        commentController.dispose();
                         final success = await controller.rejectRequest(requestId, comment);
                         if (success) {
                           Get.back();
@@ -877,6 +881,12 @@ class StoreRequestDetailPage extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ).then((_) {
+      // Ensure controller is disposed only once when dialog is dismissed
+      if (!isDisposed) {
+        isDisposed = true;
+        commentController.dispose();
+      }
+    });
   }
 }

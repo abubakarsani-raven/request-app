@@ -922,6 +922,7 @@ class ICTRequestDetailPage extends StatelessWidget {
 
   void _showApproveDialog(BuildContext context, ICTRequestController controller, String requestId) {
     final commentController = TextEditingController();
+    bool isDisposed = false;
 
     Get.dialog(
       AlertDialog(
@@ -937,7 +938,6 @@ class ICTRequestDetailPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              commentController.dispose();
               Get.back();
             },
             child: const Text('Cancel'),
@@ -945,7 +945,6 @@ class ICTRequestDetailPage extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               final comment = commentController.text.isEmpty ? null : commentController.text;
-              commentController.dispose();
               // Check if we came from pending approvals page
               final cameFromPendingApprovals = source == RequestDetailSource.pendingApprovals;
               final success = await controller.approveRequest(
@@ -970,13 +969,17 @@ class ICTRequestDetailPage extends StatelessWidget {
         ],
       ),
     ).then((_) {
-      // Ensure controller is disposed even if dialog is dismissed
-      commentController.dispose();
+      // Ensure controller is disposed only once when dialog is dismissed
+      if (!isDisposed) {
+        isDisposed = true;
+        commentController.dispose();
+      }
     });
   }
 
   void _showRejectDialog(BuildContext context, ICTRequestController controller, String requestId) {
     final commentController = TextEditingController();
+    bool isDisposed = false;
 
     Get.dialog(
       AlertDialog(
@@ -992,7 +995,6 @@ class ICTRequestDetailPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              commentController.dispose();
               Get.back();
             },
             child: const Text('Cancel'),
@@ -1004,7 +1006,6 @@ class ICTRequestDetailPage extends StatelessWidget {
                 return;
               }
               final comment = commentController.text;
-              commentController.dispose();
               final success = await controller.rejectRequest(requestId, comment);
               if (success) {
                 Get.back();
@@ -1023,13 +1024,17 @@ class ICTRequestDetailPage extends StatelessWidget {
         ],
       ),
     ).then((_) {
-      // Ensure controller is disposed even if dialog is dismissed
-      commentController.dispose();
+      // Ensure controller is disposed only once when dialog is dismissed
+      if (!isDisposed) {
+        isDisposed = true;
+        commentController.dispose();
+      }
     });
   }
 
   void _showNotifyDialog(BuildContext context, ICTRequestController controller, String requestId) {
     final messageController = TextEditingController();
+    bool isDisposed = false;
 
     Get.dialog(
       AlertDialog(
@@ -1057,7 +1062,6 @@ class ICTRequestDetailPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              messageController.dispose();
               Get.back();
             },
             child: const Text('Cancel'),
@@ -1065,7 +1069,6 @@ class ICTRequestDetailPage extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               final message = messageController.text.isEmpty ? null : messageController.text;
-              messageController.dispose();
               final success = await controller.notifyRequester(
                 requestId,
                 message: message,
@@ -1085,7 +1088,13 @@ class ICTRequestDetailPage extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      // Ensure controller is disposed only once when dialog is dismissed
+      if (!isDisposed) {
+        isDisposed = true;
+        messageController.dispose();
+      }
+    });
   }
 
   Widget _buildQuantityChangesSection(BuildContext context, ICTRequestModel request) {
@@ -1233,6 +1242,7 @@ class ICTRequestDetailPage extends StatelessWidget {
     ICTRequestModel request,
   ) {
     final quantityControllers = <String, TextEditingController>{};
+    bool areDisposed = false;
     for (var item in request.items) {
       // Use approvedQuantity if exists, otherwise requestedQuantity
       final currentQuantity = item.approvedQuantity ?? item.requestedQuantity;
@@ -1448,10 +1458,6 @@ class ICTRequestDetailPage extends StatelessWidget {
                     Expanded(
                       child: TextButton(
                         onPressed: () {
-                          // Dispose all controllers
-                          for (var controller in quantityControllers.values) {
-                            controller.dispose();
-                          }
                           Get.back();
                         },
                         style: TextButton.styleFrom(
@@ -1474,11 +1480,6 @@ class ICTRequestDetailPage extends StatelessWidget {
                               return;
                             }
                             itemsData[entry.key] = qty;
-                          }
-
-                          // Dispose all controllers before async operation
-                          for (var controller in quantityControllers.values) {
-                            controller.dispose();
                           }
 
                           final success = await controller.updateRequestItems(request.id, itemsData);
@@ -1505,9 +1506,12 @@ class ICTRequestDetailPage extends StatelessWidget {
         ),
       ),
     ).then((_) {
-      // Ensure all controllers are disposed even if dialog is dismissed
-      for (var controller in quantityControllers.values) {
-        controller.dispose();
+      // Ensure all controllers are disposed only once when dialog is dismissed
+      if (!areDisposed) {
+        areDisposed = true;
+        for (var controller in quantityControllers.values) {
+          controller.dispose();
+        }
       }
     });
   }

@@ -1,8 +1,10 @@
+import '../config/app_config.dart';
+
 class ApiConstants {
-  // IMPORTANT: For physical Android devices, replace 'localhost' with your computer's local IP address
-  // Find your IP: macOS: ipconfig getifaddr en0 | Linux: hostname -I | Windows: ipconfig
-  // Example: 'http://192.168.1.185:4000'
-  static const String baseUrl = 'http://192.168.1.185:4000'; // Change localhost to your computer's IP for physical devices
+  // API Base URL - automatically switches between production and development
+  // Use --dart-define=ENV=production for Railway backend
+  // Use --dart-define=ENV=development for local backend
+  static String get baseUrl => AppConfig.apiBaseUrl;
   static const String loginEndpoint = '/auth/login';
   static const String refreshEndpoint = '/auth/refresh';
   static const String profileEndpoint = '/users/profile';

@@ -912,6 +912,7 @@ class RequestDetailPage extends StatelessWidget {
 
   void _showApproveDialog(BuildContext context, String requestId) {
     final commentController = TextEditingController();
+    bool isDisposed = false;
     final requestController = Get.find<RequestController>();
 
     Get.dialog(
@@ -954,11 +955,18 @@ class RequestDetailPage extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      // Ensure controller is disposed only once when dialog is dismissed
+      if (!isDisposed) {
+        isDisposed = true;
+        commentController.dispose();
+      }
+    });
   }
 
   void _showRejectDialog(BuildContext context, String requestId) {
     final commentController = TextEditingController();
+    bool isDisposed = false;
     if (!Get.isRegistered<RequestController>()) {
       Get.put(RequestController());
     }
@@ -978,7 +986,6 @@ class RequestDetailPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              commentController.dispose();
               Get.back();
             },
             style: TextButton.styleFrom(
@@ -993,7 +1000,6 @@ class RequestDetailPage extends StatelessWidget {
                 return;
               }
               final comment = commentController.text;
-              commentController.dispose();
               final success = await requestController.rejectRequest(
                 requestId,
                 comment,
@@ -1013,7 +1019,13 @@ class RequestDetailPage extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ).then((_) {
+      // Ensure controller is disposed only once when dialog is dismissed
+      if (!isDisposed) {
+        isDisposed = true;
+        commentController.dispose();
+      }
+    });
   }
 
 }

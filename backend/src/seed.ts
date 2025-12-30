@@ -837,11 +837,16 @@ async function bootstrap() {
     console.log('✨ Seed process completed successfully!');
   } catch (error) {
     console.error('❌ Error during seed process:', error);
-    process.exit(1);
+    throw error;
   } finally {
     await app.close();
   }
 }
 
-bootstrap();
+// Only run if executed directly (not imported)
+if (require.main === module) {
+  runSeed()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
 

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { UsersService } from './users/users.service';
 import * as os from 'os';
 
 async function bootstrap() {
@@ -10,6 +11,23 @@ async function bootstrap() {
   });
   
   const logger = new Logger('Bootstrap');
+
+  // Auto-seed database if empty (for Railway/production deployments)
+  try {
+    const usersService = app.get(UsersService);
+    const users = await usersService.findAll();
+    if (users.length === 0) {
+      logger.log('🌱 No users found. Auto-seeding database...');
+      // Import and run seed
+      const { runSeed } = await import('./seed');
+      await runSeed();
+      logger.log('✅ Database seeded successfully');
+    } else {
+      logger.log(`✅ Database already has ${users.length} users`);
+    }
+  } catch (error: any) {
+    logger.warn(`⚠️  Auto-seed check failed: ${error.message}. Continuing startup...`);
+  }
   
   // Enable CORS for mobile and web clients
   app.enableCors({

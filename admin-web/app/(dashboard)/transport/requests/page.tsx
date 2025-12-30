@@ -246,13 +246,16 @@ export default function TransportRequestsPage() {
                       <Badge variant={getStatusVariant(r.status)}>{getStatusLabel(r.status)}</Badge>
                     </TableCell>
                     <TableCell>
-                      {(r.startDate || r.tripDate)
-                        ? new Date(r.startDate || r.tripDate).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })
-                        : "N/A"}
+                      {(() => {
+                        const dateValue = r.startDate || r.tripDate;
+                        return dateValue
+                          ? new Date(dateValue).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "N/A";
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,8 +71,13 @@ export default function ICTRequestDetailsPage() {
   const permissions = useAdminPermissions();
   const [fulfillDialog, setFulfillDialog] = useState(false);
   const [fulfillmentItems, setFulfillmentItems] = useState<Record<string, number>>({});
+  const [user, setUser] = useState<ReturnType<typeof getUserFromToken>>(null);
 
   const requestId = params.id as string;
+
+  useEffect(() => {
+    setUser(getUserFromToken());
+  }, []);
 
   const { data: request, isLoading } = useQuery<ICTRequestDetail>({
     queryKey: ["ict-request", requestId],
@@ -285,8 +290,7 @@ export default function ICTRequestDetailsPage() {
   }
 
   // Permission checks
-  const user = getUserFromToken();
-  const workflowStage = request.workflowStage || "SUBMITTED";
+  const workflowStage = request?.workflowStage || "SUBMITTED";
   const canFulfill = (user?.roles?.includes('SO') || permissions.canManageICT) && 
     workflowStage === "FULFILLMENT" &&
     (request.status === "APPROVED" || request.status === "PENDING");

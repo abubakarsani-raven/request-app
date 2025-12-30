@@ -34,7 +34,7 @@ export function DriverStatistics() {
 
   const drivers = users.filter((u) => {
     const roles = u.roles && u.roles.length > 0 ? u.roles : (u.role ? [u.role] : []);
-    return roles.some((r) => r.toLowerCase() === "driver");
+    return roles.some((r: string) => r.toLowerCase() === "driver");
   });
 
   const totalDrivers = drivers.length;

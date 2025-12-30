@@ -4,16 +4,17 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = request.cookies.get("access_token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const response = await fetch(`${API_BASE_URL}/store/inventory/${params.id}/history`, {
+    const response = await fetch(`${API_BASE_URL}/store/inventory/${id}/history`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",

@@ -73,7 +73,7 @@ export default function DriversPage() {
         // Handle both ObjectId and populated driverId with null safety
         let driverId: string | null = null;
         if (typeof assignment.driverId === "object" && assignment.driverId !== null) {
-          driverId = assignment.driverId._id || assignment.driverId.id || null;
+          driverId = assignment.driverId._id || (assignment.driverId as any)?.id || null;
         } else if (assignment.driverId) {
           driverId = assignment.driverId;
         }

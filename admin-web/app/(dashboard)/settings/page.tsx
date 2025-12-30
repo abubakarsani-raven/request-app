@@ -62,9 +62,13 @@ async function updateSettings(settings: Array<{ key: string; value: any }>): Pro
 export default function SettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const user = getUserFromToken();
+  const [user, setUser] = useState<ReturnType<typeof getUserFromToken>>(null);
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    setUser(getUserFromToken());
+  }, []);
 
   const { data: allSettings = [], isLoading } = useQuery<Setting[]>({
     queryKey: ["settings"],
@@ -85,7 +89,7 @@ export default function SettingsPage() {
       toast({
         title: "Error",
         description: error.message,
-        variant: "destructive",
+        variant: "error",
       });
     },
   });
@@ -123,6 +127,14 @@ export default function SettingsPage() {
   };
 
   const isAdmin = user?.roles?.includes("ADMIN");
+
+  if (user === null) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (

@@ -184,7 +184,7 @@ export default function VehiclesPage() {
   function closeDialog() {
     setShowCreate(false);
     setEditingVehicle(null);
-    setForm({ plateNumber: "", make: "", model: "", year: "", capacity: "", status: "available" });
+    setForm({ plateNumber: "", make: "", model: "", year: "", capacity: "", status: "available", office: "" });
   }
 
   async function updateStatus(id: string, status: string) {

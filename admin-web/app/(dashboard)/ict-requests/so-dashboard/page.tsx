@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -47,9 +47,14 @@ export default function SODashboardPage() {
   const { success, error } = useToast();
   const [notifyDialog, setNotifyDialog] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [notifyMessage, setNotifyMessage] = useState("");
+  const [user, setUser] = useState<ReturnType<typeof getUserFromToken>>(null);
+  const [isSO, setIsSO] = useState(false);
 
-  const user = getUserFromToken();
-  const isSO = user?.roles?.includes("SO");
+  useEffect(() => {
+    const currentUser = getUserFromToken();
+    setUser(currentUser);
+    setIsSO(currentUser?.roles?.includes("SO") || false);
+  }, []);
 
   const { data: requests = [], isLoading } = useQuery<ICTRequest[]>({
     queryKey: ["ict-requests-unfulfilled"],

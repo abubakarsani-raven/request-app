@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { SkeletonTableRows } from "@/components/ui/skeleton-variants";
 
 type ICTItem = {
-  _id: string;
+  _id?: string;
+  id?: string;
   name: string;
 };
 

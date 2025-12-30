@@ -4,8 +4,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const token = request.cookies.get("access_token")?.value;
 
@@ -14,7 +15,6 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { id } = await params;
 
     const response = await fetch(`${API_BASE_URL}/users/${id}/reset-password`, {
       method: "POST",

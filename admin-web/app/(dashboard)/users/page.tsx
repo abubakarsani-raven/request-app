@@ -285,137 +285,138 @@ export default function UsersPage() {
                 </Button>
               )}
               <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
-              <DialogTrigger asChild>
-                <Button>Create User</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create User</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="user-name">Name *</Label>
-                    <Input id="user-name" value={userForm.name} onChange={(e) => setUserForm({ ...userForm, name: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="user-email">Email *</Label>
-                    <Input id="user-email" type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="user-phone">Phone *</Label>
-                    <Input id="user-phone" value={userForm.phone} onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="user-password">Password *</Label>
-                    <Input id="user-password" type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="user-roles">Roles * (Select multiple)</Label>
-                    <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto">
-                      {['ADMIN', 'DGS', 'DDGS', 'ADGS', 'TO', 'DDICT', 'SO', 'SUPERVISOR', 'DRIVER', 'ICT_ADMIN', 'STORE_ADMIN', 'TRANSPORT_ADMIN'].map((role) => (
-                        <div key={role} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`user-role-${role}`}
-                            checked={userForm.roles.includes(role)}
-                            onCheckedChange={(checked) => {
-                              const currentRoles = [...userForm.roles];
-                              if (checked) {
-                                if (!currentRoles.includes(role)) {
-                                  setUserForm({ ...userForm, roles: [...currentRoles, role] });
-                                }
-                              } else {
-                                setUserForm({ ...userForm, roles: currentRoles.filter(r => r !== role) });
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`user-role-${role}`} className="cursor-pointer">
-                            {role}
-                          </Label>
-                        </div>
-                      ))}
+                <DialogTrigger asChild>
+                  <Button>Create User</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create User</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="user-name">Name *</Label>
+                      <Input id="user-name" value={userForm.name} onChange={(e) => setUserForm({ ...userForm, name: e.target.value })} />
                     </div>
-                    {userForm.roles.length === 0 && (
-                      <p className="text-xs text-red-500">Please select at least one role</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="user-department">Department {userForm.roles.includes('SUPERVISOR') ? '*' : ''}</Label>
-                    <Select
-                      value={userForm.department}
-                      onValueChange={(value) => setUserForm({ ...userForm, department: value })}
-                    >
-                      <SelectTrigger id="user-department">
-                        <SelectValue placeholder="Select a department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {departmentsQ.data?.map((dept) => (
-                          <SelectItem key={dept._id} value={dept.name}>
-                            {dept.name}
-                          </SelectItem>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-email">Email *</Label>
+                      <Input id="user-email" type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-phone">Phone *</Label>
+                      <Input id="user-phone" value={userForm.phone} onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-password">Password *</Label>
+                      <Input id="user-password" type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-roles">Roles * (Select multiple)</Label>
+                      <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto">
+                        {['ADMIN', 'DGS', 'DDGS', 'ADGS', 'TO', 'DDICT', 'SO', 'SUPERVISOR', 'DRIVER', 'ICT_ADMIN', 'STORE_ADMIN', 'TRANSPORT_ADMIN'].map((role) => (
+                          <div key={role} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`user-role-${role}`}
+                              checked={userForm.roles.includes(role)}
+                              onCheckedChange={(checked) => {
+                                const currentRoles = [...userForm.roles];
+                                if (checked) {
+                                  if (!currentRoles.includes(role)) {
+                                    setUserForm({ ...userForm, roles: [...currentRoles, role] });
+                                  }
+                                } else {
+                                  setUserForm({ ...userForm, roles: currentRoles.filter(r => r !== role) });
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`user-role-${role}`} className="cursor-pointer">
+                              {role}
+                            </Label>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                    {departmentsQ.data?.length === 0 && (
+                      </div>
+                      {userForm.roles.length === 0 && (
+                        <p className="text-xs text-red-500">Please select at least one role</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-department">Department {userForm.roles.includes('SUPERVISOR') ? '*' : ''}</Label>
+                      <Select
+                        value={userForm.department}
+                        onValueChange={(value) => setUserForm({ ...userForm, department: value })}
+                      >
+                        <SelectTrigger id="user-department">
+                          <SelectValue placeholder="Select a department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departmentsQ.data?.map((dept) => (
+                            <SelectItem key={dept._id} value={dept.name}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {departmentsQ.data?.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          No departments available. Please create a department first.
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-office">Office *</Label>
+                      <Select
+                        value={userForm.office}
+                        onValueChange={(value) => setUserForm({ ...userForm, office: value })}
+                      >
+                        <SelectTrigger id="user-office">
+                          <SelectValue placeholder="Select an office" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {officesQ.data?.map((office) => (
+                            <SelectItem key={office._id} value={office.name}>
+                              {office.name} {office.isHeadOffice ? '(Head Office)' : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {officesQ.data?.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          No offices available. Please create an office first.
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-level">Level *</Label>
+                      <Input 
+                        id="user-level" 
+                        type="number" 
+                        min="1" 
+                        value={userForm.level} 
+                        onChange={(e) => setUserForm({ ...userForm, level: parseInt(e.target.value) || 1 })} 
+                      />
                       <p className="text-xs text-muted-foreground">
-                        No departments available. Please create a department first.
+                        User level for workflow (1 = lowest, higher numbers = higher authority)
                       </p>
-                    )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="user-supervisor"
+                        checked={userForm.isSupervisor}
+                        onCheckedChange={(checked) => setUserForm({ ...userForm, isSupervisor: checked === true })}
+                      />
+                      <Label htmlFor="user-supervisor" className="cursor-pointer">Is Supervisor</Label>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-employeeId">Employee ID (optional)</Label>
+                      <Input id="user-employeeId" value={userForm.employeeId} onChange={(e) => setUserForm({ ...userForm, employeeId: e.target.value })} />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" onClick={() => setShowCreateUser(false)}>Cancel</Button>
+                      <Button onClick={createUser}>Create</Button>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="user-office">Office *</Label>
-                    <Select
-                      value={userForm.office}
-                      onValueChange={(value) => setUserForm({ ...userForm, office: value })}
-                    >
-                      <SelectTrigger id="user-office">
-                        <SelectValue placeholder="Select an office" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {officesQ.data?.map((office) => (
-                          <SelectItem key={office._id} value={office.name}>
-                            {office.name} {office.isHeadOffice ? '(Head Office)' : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {officesQ.data?.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        No offices available. Please create an office first.
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="user-level">Level *</Label>
-                    <Input 
-                      id="user-level" 
-                      type="number" 
-                      min="1" 
-                      value={userForm.level} 
-                      onChange={(e) => setUserForm({ ...userForm, level: parseInt(e.target.value) || 1 })} 
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      User level for workflow (1 = lowest, higher numbers = higher authority)
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="user-supervisor"
-                      checked={userForm.isSupervisor}
-                      onCheckedChange={(checked) => setUserForm({ ...userForm, isSupervisor: checked === true })}
-                    />
-                    <Label htmlFor="user-supervisor" className="cursor-pointer">Is Supervisor</Label>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="user-employeeId">Employee ID (optional)</Label>
-                    <Input id="user-employeeId" value={userForm.employeeId} onChange={(e) => setUserForm({ ...userForm, employeeId: e.target.value })} />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button variant="outline" onClick={() => setShowCreateUser(false)}>Cancel</Button>
-                    <Button onClick={createUser}>Create</Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

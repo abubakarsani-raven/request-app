@@ -5,7 +5,8 @@ import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type ICTItem = {
-  _id: string;
+  _id?: string;
+  id?: string;
   name: string;
   quantity: number;
   lowStockThreshold: number;
@@ -29,7 +30,7 @@ export function LowStockAlert({ items }: LowStockAlertProps) {
         </p>
         <div className="flex flex-wrap gap-2">
           {items.map((item) => (
-            <Badge key={item._id} variant="outline" className="text-destructive">
+            <Badge key={item._id || item.id || item.name} variant="outline" className="text-destructive">
               {item.name} ({item.quantity}/{item.lowStockThreshold})
             </Badge>
           ))}

@@ -4,8 +4,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const token = request.cookies.get("access_token")?.value;
 
@@ -13,7 +14,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const response = await fetch(`${API_BASE_URL}/notifications/${params.id}/read`, {
+    const response = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,

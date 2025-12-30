@@ -222,7 +222,50 @@ export default async function TransportRequestDetailsPage({
     ? requester.departmentId
     : null;
 
-  const approvals = request.approvals || [];
+  // Transform approvals to match WorkflowTimeline expected type
+  const approvals: Array<{
+    approverId: string | { _id: string; name: string; email: string };
+    role: string;
+    status: "APPROVED" | "REJECTED";
+    comment?: string;
+    timestamp: string | Date;
+  }> = (request.approvals || [])
+    .filter((approval) => {
+      // Filter out approvals that don't have required fields
+      return approval.role && approval.status && approval.timestamp && approval.approverId;
+    })
+    .map((approval) => {
+      // Normalize status to APPROVED or REJECTED
+      const normalizedStatus = approval.status!.toUpperCase();
+      const status: "APPROVED" | "REJECTED" = 
+        normalizedStatus === "APPROVED" || normalizedStatus === "REJECTED" 
+          ? normalizedStatus 
+          : "APPROVED";
+      
+      // Transform approverId to match expected structure
+      // We know approverId is defined because we filtered for it
+      const approverIdValue = approval.approverId!;
+      let approverId: string | { _id: string; name: string; email: string };
+      if (typeof approverIdValue === "object") {
+        // Ensure the object has the required fields
+        approverId = {
+          _id: (approverIdValue as any)._id || "",
+          name: approverIdValue.name || "",
+          email: (approverIdValue as any).email || "",
+        };
+      } else {
+        approverId = approverIdValue;
+      }
+      
+      return {
+        approverId,
+        role: approval.role!,
+        status,
+        comment: approval.comment,
+        timestamp: approval.timestamp!,
+      };
+    });
+  
   const corrections = request.corrections || [];
   const waypoints = request.waypoints || [];
 

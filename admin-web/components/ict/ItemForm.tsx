@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 
 type ICTItem = {
-  _id: string;
+  _id?: string;
+  id?: string;
   name: string;
   description?: string;
   category: string;

@@ -117,7 +117,7 @@ export default function ICTInventoryPage() {
       </div>
 
       {lowStockItems.length > 0 && (
-        <LowStockAlert items={lowStockItems} />
+        <LowStockAlert items={lowStockItems.filter(item => item._id || item.id) as ICTItem[]} />
       )}
 
       <Card>

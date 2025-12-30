@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Search, MapPin } from 'lucide-react'
 
-const libraries: ("places" | "drawing" | "geometry" | "localContext" | "visualization")[] = ["places"]
+const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"]
 
 interface MapPickerProps {
   initialLat?: number

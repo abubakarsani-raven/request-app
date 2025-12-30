@@ -4,9 +4,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = request.cookies.get("access_token")?.value;
 
     if (!token) {
@@ -15,7 +16,7 @@ export async function PATCH(
 
     const body = await request.json();
 
-    const response = await fetch(`${API_BASE_URL}/store/inventory/${params.id}/quantity`, {
+    const response = await fetch(`${API_BASE_URL}/store/inventory/${id}/quantity`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,

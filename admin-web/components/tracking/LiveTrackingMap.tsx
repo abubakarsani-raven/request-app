@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Car, User } from "lucide-react";
 
-const libraries: ("places" | "drawing" | "geometry" | "localContext" | "visualization")[] = ["places"];
+const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
 
 interface Location {
   lat: number;

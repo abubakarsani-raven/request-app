@@ -4,16 +4,17 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = request.cookies.get("access_token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const response = await fetch(`${API_BASE_URL}/store/inventory/${params.id}`, {
+    const response = await fetch(`${API_BASE_URL}/store/inventory/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -34,9 +35,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = request.cookies.get("access_token")?.value;
 
     if (!token) {
@@ -45,7 +47,7 @@ export async function PUT(
 
     const body = await request.json();
 
-    const response = await fetch(`${API_BASE_URL}/store/inventory/${params.id}`, {
+    const response = await fetch(`${API_BASE_URL}/store/inventory/${id}`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -68,16 +70,17 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = request.cookies.get("access_token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const response = await fetch(`${API_BASE_URL}/store/inventory/${params.id}`, {
+    const response = await fetch(`${API_BASE_URL}/store/inventory/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,

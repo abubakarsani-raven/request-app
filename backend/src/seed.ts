@@ -148,29 +148,6 @@ export async function runSeed() {
       console.log('👤 Driver Name: John Driver');
       console.log('📞 Phone: +2349012345678');
       console.log('🚗 License Number: DL-2024-001');
-
-      // Create a vehicle and assign it to the driver
-      const driverUserId = (driverUser as any)._id?.toString() || (driverUser as any).id?.toString();
-      const officeId = (officeDoc._id || officeDoc.id).toString();
-      
-      const vehicle = await vehiclesService.createVehicle({
-        plateNumber: 'ABC-123-XY',
-        make: 'Toyota',
-        model: 'Camry',
-        type: 'Sedan',
-        year: 2022,
-        capacity: 5,
-        status: 'assigned',
-        isPermanent: false,
-        assignedToUserId: driverUserId,
-        officeId: officeId,
-        isAvailable: false, // Not available since assigned to driver
-      });
-
-      console.log('✅ Created vehicle and assigned to driver');
-      console.log('🚗 Plate Number: ABC-123-XY');
-      console.log('🚙 Make/Model: Toyota Camry 2022');
-      console.log('👤 Assigned to: John Driver (driver@example.com)');
     }
 
     // Create supervisor user if it doesn't exist
@@ -258,6 +235,36 @@ export async function runSeed() {
       console.log('📞 Phone: +2349012345681');
       console.log('🏢 Department: Administration');
       console.log('🔐 Role: SO');
+    }
+
+    // Create DGS user if it doesn't exist
+    const existingDGS = await usersService.findByEmail('dgs@example.com');
+    if (existingDGS) {
+      console.log('✅ DGS user already exists');
+      console.log('📧 Email: dgs@example.com');
+      console.log('🔑 Password: DGS@2024');
+    } else {
+      const departmentDoc = department as any as DepartmentDocument;
+      const officeDoc = headOffice as any as OfficeDocument;
+      const dgsUser = await usersService.create({
+        email: 'dgs@example.com',
+        password: 'DGS@2024',
+        name: 'Director General Services',
+        phone: '+2349012345677',
+        departmentId: (departmentDoc._id || departmentDoc.id).toString(),
+        officeId: (officeDoc._id || officeDoc.id).toString(),
+        level: 17, // Highest level for DGS
+        roles: [UserRole.DGS],
+      });
+
+      console.log('✅ Created DGS user');
+      console.log('📧 Email: dgs@example.com');
+      console.log('🔑 Password: DGS@2024');
+      console.log('👤 Name: Director General Services');
+      console.log('📞 Phone: +2349012345677');
+      console.log('🏢 Department: Administration');
+      console.log('🔐 Role: DGS');
+      console.log('📊 Level: 17');
     }
 
     // Create DDGS user if it doesn't exist
@@ -439,6 +446,75 @@ export async function runSeed() {
       console.log('🔐 Role: TRANSPORT_ADMIN');
       console.log('📊 Level: 5');
     }
+
+    // Create vehicles (independent of drivers)
+    console.log('🚗 Seeding vehicles...');
+    const officeDocForVehicles = headOffice as any as OfficeDocument;
+    const officeIdForVehicles = (officeDocForVehicles._id || officeDocForVehicles.id).toString();
+
+    const vehicles = [
+      {
+        plateNumber: 'ABC-123-XY',
+        make: 'Toyota',
+        model: 'Camry',
+        type: 'Sedan',
+        year: 2022,
+        capacity: 5,
+        status: 'available',
+        isPermanent: false,
+        officeId: officeIdForVehicles,
+        isAvailable: true,
+      },
+      {
+        plateNumber: 'XYZ-456-AB',
+        make: 'Honda',
+        model: 'Accord',
+        type: 'Sedan',
+        year: 2023,
+        capacity: 5,
+        status: 'available',
+        isPermanent: false,
+        officeId: officeIdForVehicles,
+        isAvailable: true,
+      },
+      {
+        plateNumber: 'DEF-789-GH',
+        make: 'Toyota',
+        model: 'Hiace',
+        type: 'Van',
+        year: 2021,
+        capacity: 14,
+        status: 'available',
+        isPermanent: false,
+        officeId: officeIdForVehicles,
+        isAvailable: true,
+      },
+      {
+        plateNumber: 'GHI-012-JK',
+        make: 'Nissan',
+        model: 'Pathfinder',
+        type: 'SUV',
+        year: 2022,
+        capacity: 7,
+        status: 'available',
+        isPermanent: false,
+        officeId: officeIdForVehicles,
+        isAvailable: true,
+      },
+    ];
+
+    for (const vehicleData of vehicles) {
+      const existingVehicles = await vehiclesService.findAllVehicles();
+      const vehicleExists = existingVehicles.some((v: any) => v.plateNumber === vehicleData.plateNumber);
+      
+      if (!vehicleExists) {
+        await vehiclesService.createVehicle(vehicleData);
+        console.log(`  ✅ Created vehicle: ${vehicleData.plateNumber} (${vehicleData.make} ${vehicleData.model} ${vehicleData.year})`);
+      } else {
+        console.log(`  ⏭️  Vehicle already exists: ${vehicleData.plateNumber}`);
+      }
+    }
+    console.log('✅ Vehicle seeding completed!');
 
     // Seed ICT Inventory Items
     console.log('📦 Seeding ICT inventory items...');

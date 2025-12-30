@@ -18,15 +18,26 @@ async function bootstrap() {
     const users = await usersService.findAll();
     if (users.length === 0) {
       logger.log('🌱 No users found. Auto-seeding database...');
-      // Import and run seed
-      const { runSeed } = await import('./seed');
-      await runSeed();
-      logger.log('✅ Database seeded successfully');
+      try {
+        // Import and run seed
+        const { runSeed } = await import('./seed');
+        await runSeed();
+        logger.log('✅ Database seeded successfully');
+        // Verify users were created
+        const newUsers = await usersService.findAll();
+        logger.log(`✅ Verified: ${newUsers.length} users now exist in database`);
+      } catch (seedError: any) {
+        logger.error(`❌ Seed failed: ${seedError.message}`);
+        logger.error(`❌ Stack: ${seedError.stack}`);
+        logger.warn('⚠️  Continuing startup without seeding. Run seed manually.');
+      }
     } else {
       logger.log(`✅ Database already has ${users.length} users`);
     }
   } catch (error: any) {
-    logger.warn(`⚠️  Auto-seed check failed: ${error.message}. Continuing startup...`);
+    logger.error(`❌ Auto-seed check failed: ${error.message}`);
+    logger.error(`❌ Stack: ${error.stack}`);
+    logger.warn('⚠️  Continuing startup...');
   }
   
   // Enable CORS for mobile and web clients

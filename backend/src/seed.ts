@@ -9,7 +9,7 @@ import { DepartmentDocument } from './departments/schemas/department.schema';
 import { OfficeDocument } from './offices/schemas/office.schema';
 import { UserRole } from './shared/types';
 
-async function bootstrap() {
+export async function runSeed() {
   const app = await NestFactory.createApplicationContext(AppModule);
   
   const usersService = app.get(UsersService);
@@ -846,7 +846,13 @@ async function bootstrap() {
 // Only run if executed directly (not imported)
 if (require.main === module) {
   runSeed()
-    .then(() => process.exit(0))
-    .catch(() => process.exit(1));
+    .then(() => {
+      console.log('✅ Seed completed');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('❌ Seed failed:', error);
+      process.exit(1);
+    });
 }
 

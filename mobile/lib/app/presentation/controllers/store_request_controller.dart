@@ -19,6 +19,19 @@ class StoreRequestController extends GetxController {
   final RxBool isLoadingHistory = false.obs;
   final RxString error = ''.obs;
 
+  // Operation-specific loading flags
+  final RxBool isApproving = false.obs;
+  final RxBool isRejecting = false.obs;
+  final RxBool isFulfilling = false.obs;
+  final RxBool isCreating = false.obs;
+  final RxBool isUpdating = false.obs;
+  final RxBool isReloading = false.obs;
+  final RxBool isLoadingInventory = false.obs;
+  final RxBool isLoadingPending = false.obs;
+  final RxBool isLoadingDepartment = false.obs;
+  final RxBool isLoadingStage = false.obs;
+  final RxBool isLoadingFulfillment = false.obs;
+
   // Get count of pending approvals (requests that are pending and awaiting approval)
   int get pendingApprovalsCount {
     return storeRequests.where((request) {
@@ -38,6 +51,7 @@ class StoreRequestController extends GetxController {
   }
 
   Future<void> loadInventoryItems({String? category}) async {
+    isLoadingInventory.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -51,6 +65,7 @@ class StoreRequestController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
+      isLoadingInventory.value = false;
       isLoading.value = false;
     }
   }
@@ -91,6 +106,7 @@ class StoreRequestController extends GetxController {
   }
 
   Future<void> loadPendingApprovals() async {
+    isLoadingPending.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -100,11 +116,13 @@ class StoreRequestController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
+      isLoadingPending.value = false;
       isLoading.value = false;
     }
   }
 
   Future<void> loadDepartmentRequests(String departmentId) async {
+    isLoadingDepartment.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -114,11 +132,13 @@ class StoreRequestController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
+      isLoadingDepartment.value = false;
       isLoading.value = false;
     }
   }
 
   Future<void> loadStageSpecificRequests(String workflowStage) async {
+    isLoadingStage.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -130,11 +150,13 @@ class StoreRequestController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
+      isLoadingStage.value = false;
       isLoading.value = false;
     }
   }
 
   Future<void> loadFulfillmentQueue() async {
+    isLoadingFulfillment.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -146,11 +168,13 @@ class StoreRequestController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
+      isLoadingFulfillment.value = false;
       isLoading.value = false;
     }
   }
 
   Future<void> loadRequest(String id) async {
+    isReloading.value = true;
     isLoading.value = true;
     try {
       final request = await _storeService.getStoreRequest(id);
@@ -158,11 +182,13 @@ class StoreRequestController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
+      isReloading.value = false;
       isLoading.value = false;
     }
   }
 
   Future<bool> createStoreRequest(List<Map<String, dynamic>> items) async {
+    isCreating.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -170,25 +196,30 @@ class StoreRequestController extends GetxController {
       final result = await _storeService.createStoreRequest(items);
       if (result['success'] == true) {
         await loadStoreRequests();
+        isCreating.value = false;
         isLoading.value = false;
         return true;
       } else {
         error.value = result['message'] ?? 'Failed to create request';
+        isCreating.value = false;
         isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = e.toString();
+      isCreating.value = false;
       isLoading.value = false;
       return false;
     }
   }
 
   Future<bool> approveRequest(String id, {String? comment, bool reloadPending = false}) async {
+    isApproving.value = true;
     isLoading.value = true;
     try {
       final result = await _storeService.approveRequest(id, comment: comment);
       if (result['success'] == true) {
+        isReloading.value = true;
         await loadRequest(id);
         // Reload pending approvals if requested, otherwise reload all requests
         if (reloadPending) {
@@ -196,57 +227,73 @@ class StoreRequestController extends GetxController {
         } else {
           await loadStoreRequests();
         }
+        isReloading.value = false;
+        isApproving.value = false;
         isLoading.value = false;
         return true;
       } else {
         error.value = result['message'] ?? 'Failed to approve request';
+        isApproving.value = false;
         isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = e.toString();
+      isApproving.value = false;
       isLoading.value = false;
       return false;
     }
   }
 
   Future<bool> rejectRequest(String id, String comment) async {
+    isRejecting.value = true;
     isLoading.value = true;
     try {
       final result = await _storeService.rejectRequest(id, comment);
       if (result['success'] == true) {
+        isReloading.value = true;
         await loadRequest(id);
         await loadStoreRequests();
+        isReloading.value = false;
+        isRejecting.value = false;
         isLoading.value = false;
         return true;
       } else {
         error.value = result['message'] ?? 'Failed to reject request';
+        isRejecting.value = false;
         isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = e.toString();
+      isRejecting.value = false;
       isLoading.value = false;
       return false;
     }
   }
 
   Future<bool> fulfillRequest(String id, Map<String, int> fulfillmentData) async {
+    isFulfilling.value = true;
     isLoading.value = true;
     try {
       final result = await _storeService.fulfillRequest(id, fulfillmentData);
       if (result['success'] == true) {
+        isReloading.value = true;
         await loadRequest(id);
         await loadStoreRequests();
+        isReloading.value = false;
+        isFulfilling.value = false;
         isLoading.value = false;
         return true;
       } else {
         error.value = result['message'] ?? 'Failed to fulfill request';
+        isFulfilling.value = false;
         isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = e.toString();
+      isFulfilling.value = false;
       isLoading.value = false;
       return false;
     }

@@ -12,6 +12,7 @@ import '../widgets/permission_button.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/workflow_timeline.dart';
+import '../widgets/loading_overlay.dart';
 import '../../data/models/request_model.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -58,40 +59,52 @@ class RequestDetailPage extends StatelessWidget {
           ),
           title: const Text('Request Details'),
         ),
-      body: Obx(
-        () {
-          final request = requestController.selectedRequest.value;
-          
-          if (requestController.isLoading.value && request == null) {
-            return ListView(
-              padding: const EdgeInsets.all(AppConstants.spacingL),
-              children: [
-                const SkeletonCard(height: 200),
-                const SizedBox(height: AppConstants.spacingL),
-                const SkeletonText(width: double.infinity, height: 20, lines: 3),
-                const SizedBox(height: AppConstants.spacingL),
-                const SkeletonCard(height: 150),
-              ],
-            );
-          }
-
-          if (request == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: LoadingOverlay(
+        isLoading: requestController.isApproving.value ||
+                   requestController.isRejecting.value ||
+                   requestController.isAssigning.value ||
+                   requestController.isReloading.value,
+        message: requestController.isApproving.value
+            ? 'Approving request...'
+            : requestController.isRejecting.value
+                ? 'Rejecting request...'
+                : requestController.isAssigning.value
+                    ? 'Assigning vehicle...'
+                    : 'Loading...',
+        child: Obx(
+          () {
+            final request = requestController.selectedRequest.value;
+            
+            if (requestController.isLoading.value && request == null) {
+              return ListView(
+                padding: const EdgeInsets.all(AppConstants.spacingL),
                 children: [
-                  const Text('Request not found'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => requestController.loadRequest(requestId),
-                    child: const Text('Retry'),
-                  ),
+                  const SkeletonCard(height: 200),
+                  const SizedBox(height: AppConstants.spacingL),
+                  const SkeletonText(width: double.infinity, height: 20, lines: 3),
+                  const SizedBox(height: AppConstants.spacingL),
+                  const SkeletonCard(height: 150),
                 ],
-              ),
-            );
-          }
+              );
+            }
 
-          return SingleChildScrollView(
+            if (request == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Request not found'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => requestController.loadRequest(requestId),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return SingleChildScrollView(
             padding: const EdgeInsets.all(AppConstants.spacingM),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,10 +291,11 @@ class RequestDetailPage extends StatelessWidget {
                 // Action Buttons
                 _buildActionButtons(context, request, authController, source ?? RequestDetailSource.other),
               ],
-            ),
-          );
-        },
-      ),
+              ),
+            );
+          },
+        ),
+        ),
     ),
     );
   }
@@ -916,45 +930,86 @@ class RequestDetailPage extends StatelessWidget {
     final requestController = Get.find<RequestController>();
 
     Get.dialog(
-      AlertDialog(
-        title: const Text('Approve Request'),
-        content: TextField(
-          controller: commentController,
-          decoration: const InputDecoration(
-            labelText: 'Comment (Optional)',
-            hintText: 'Add a comment...',
-          ),
-          maxLines: 3,
+      WillPopScope(
+        onWillPop: () async => !requestController.isApproving.value,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Approve Request'),
+              content: Obx(
+                () => requestController.isApproving.value
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Approving request...',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      )
+                    : TextField(
+                        controller: commentController,
+                        decoration: const InputDecoration(
+                          labelText: 'Comment (Optional)',
+                          hintText: 'Add a comment...',
+                        ),
+                        maxLines: 3,
+                      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: requestController.isApproving.value
+                      ? null
+                      : () => Get.back(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                  ),
+                  child: const Text('Cancel'),
+                ),
+                Obx(
+                  () => ElevatedButton(
+                    onPressed: requestController.isApproving.value
+                        ? null
+                        : () async {
+                            setState(() {}); // Trigger rebuild
+                            final success = await requestController.approveRequest(
+                              requestId,
+                              comment: commentController.text.isEmpty ? null : commentController.text,
+                            );
+                            if (success) {
+                              Get.back();
+                              Get.snackbar('Success', 'Request approved successfully');
+                            } else {
+                              setState(() {}); // Trigger rebuild
+                              Get.snackbar('Error', requestController.error.value);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                    ),
+                    child: requestController.isApproving.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Approve'),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
-            ),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final success = await requestController.approveRequest(
-                requestId,
-                comment: commentController.text.isEmpty ? null : commentController.text,
-              );
-              if (success) {
-                Get.back();
-                Get.snackbar('Success', 'Request approved successfully');
-              } else {
-                Get.snackbar('Error', requestController.error.value);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            child: const Text('Approve'),
-          ),
-        ],
       ),
+      barrierDismissible: false,
     ).then((_) {
       // Ensure controller is disposed only once when dialog is dismissed
       if (!isDisposed) {
@@ -973,52 +1028,93 @@ class RequestDetailPage extends StatelessWidget {
     final requestController = Get.find<RequestController>();
 
     Get.dialog(
-      AlertDialog(
-        title: const Text('Reject Request'),
-        content: TextField(
-          controller: commentController,
-          decoration: const InputDecoration(
-            labelText: 'Reason *',
-            hintText: 'Please provide a reason for rejection...',
-          ),
-          maxLines: 3,
+      WillPopScope(
+        onWillPop: () async => !requestController.isRejecting.value,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Reject Request'),
+              content: Obx(
+                () => requestController.isRejecting.value
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Rejecting request...',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      )
+                    : TextField(
+                        controller: commentController,
+                        decoration: const InputDecoration(
+                          labelText: 'Reason *',
+                          hintText: 'Please provide a reason for rejection...',
+                        ),
+                        maxLines: 3,
+                      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: requestController.isRejecting.value
+                      ? null
+                      : () {
+                          Get.back();
+                        },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                  ),
+                  child: const Text('Cancel'),
+                ),
+                Obx(
+                  () => ElevatedButton(
+                    onPressed: requestController.isRejecting.value
+                        ? null
+                        : () async {
+                            if (commentController.text.isEmpty) {
+                              Get.snackbar('Error', 'Please provide a reason');
+                              return;
+                            }
+                            final comment = commentController.text;
+                            setState(() {}); // Trigger rebuild
+                            final success = await requestController.rejectRequest(
+                              requestId,
+                              comment,
+                            );
+                            if (success) {
+                              Get.back();
+                              Get.snackbar('Success', 'Request rejected');
+                            } else {
+                              setState(() {}); // Trigger rebuild
+                              Get.snackbar('Error', requestController.error.value);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: AppColors.textOnPrimary,
+                    ),
+                    child: requestController.isRejecting.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Reject'),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
-            ),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (commentController.text.isEmpty) {
-                Get.snackbar('Error', 'Please provide a reason');
-                return;
-              }
-              final comment = commentController.text;
-              final success = await requestController.rejectRequest(
-                requestId,
-                comment,
-              );
-              if (success) {
-                Get.back();
-                Get.snackbar('Success', 'Request rejected');
-              } else {
-                Get.snackbar('Error', requestController.error.value);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            child: const Text('Reject'),
-          ),
-        ],
       ),
+      barrierDismissible: false,
     ).then((_) {
       // Ensure controller is disposed only once when dialog is dismissed
       if (!isDisposed) {

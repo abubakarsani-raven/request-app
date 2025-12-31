@@ -13,6 +13,11 @@ class AuthController extends GetxController {
   final RxString error = ''.obs;
   final RxBool isAuthenticated = false.obs;
 
+  // Operation-specific loading flags
+  final RxBool isLoggingIn = false.obs;
+  final RxBool isLoadingProfile = false.obs;
+  final RxBool isLoggingOut = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -30,6 +35,7 @@ class AuthController extends GetxController {
   }
 
   Future<bool> login(String email, String password) async {
+    isLoggingIn.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -39,6 +45,7 @@ class AuthController extends GetxController {
       if (result['success'] == true) {
         user.value = result['user'] as UserModel;
         isAuthenticated.value = true;
+        isLoggingIn.value = false;
         isLoading.value = false;
         
         // Register FCM token after successful login
@@ -62,6 +69,7 @@ class AuthController extends GetxController {
       } else {
         final errorMsg = result['message'] ?? 'Login failed';
         error.value = errorMsg;
+        isLoggingIn.value = false;
         isLoading.value = false;
         
         // Show toast with user-friendly error message
@@ -75,6 +83,7 @@ class AuthController extends GetxController {
       
       final errorMsg = e.toString();
       error.value = errorMsg;
+      isLoggingIn.value = false;
       isLoading.value = false;
       
       // Show toast with user-friendly error message
@@ -93,6 +102,7 @@ class AuthController extends GetxController {
   }
 
   Future<void> loadProfile() async {
+    isLoadingProfile.value = true;
     try {
       final profile = await _authService.getProfile();
       if (profile != null) {
@@ -101,6 +111,8 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       print('Error loading profile: $e');
+    } finally {
+      isLoadingProfile.value = false;
     }
   }
 

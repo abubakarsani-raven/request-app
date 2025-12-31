@@ -221,17 +221,30 @@ class ICTFulfillmentPage extends StatelessWidget {
             onPressed: () => Get.back(),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final success = await controller.fulfillRequest(request.id, fulfillmentData);
-              if (success) {
-                Get.back();
-                Get.snackbar('Success', 'Request fulfilled successfully');
-              } else {
-                Get.snackbar('Error', controller.error.value);
-              }
-            },
-            child: const Text('Fulfill'),
+          Obx(
+            () => ElevatedButton(
+              onPressed: controller.isFulfilling.value
+                  ? null
+                  : () async {
+                      final success = await controller.fulfillRequest(request.id, fulfillmentData);
+                      if (success) {
+                        Get.back();
+                        Get.snackbar('Success', 'Request fulfilled successfully');
+                      } else {
+                        Get.snackbar('Error', controller.error.value);
+                      }
+                    },
+              child: controller.isFulfilling.value
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Fulfill'),
+            ),
           ),
         ],
       ),

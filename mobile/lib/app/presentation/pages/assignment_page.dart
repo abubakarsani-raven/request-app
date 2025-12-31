@@ -8,6 +8,7 @@ import '../controllers/request_controller.dart';
 import '../controllers/notification_controller.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/loading_overlay.dart';
 import '../widgets/assignment_preview_card.dart';
 import '../widgets/bottom_sheets/vehicle_selection_bottom_sheet.dart';
 import '../widgets/bottom_sheets/driver_selection_bottom_sheet.dart';
@@ -163,44 +164,53 @@ class _AssignmentPageState extends State<AssignmentPage> {
           ),
           title: const Text('Assign Vehicle'),
         ),
-        body: Obx(() {
-          final request = requestController.selectedRequest.value;
+        body: Obx(
+          () => LoadingOverlay(
+            isLoading: assignmentController.isAssigning.value ||
+                       requestController.isReloading.value,
+            message: assignmentController.isAssigning.value
+                ? 'Assigning vehicle...'
+                : 'Loading...',
+            child: () {
+              final request = requestController.selectedRequest.value;
 
-          if (request == null) {
-            return ListView(
-              padding: const EdgeInsets.all(AppConstants.spacingL),
-              children: [
-                const SkeletonCard(height: 150),
-                const SizedBox(height: AppConstants.spacingXL),
-                const SkeletonText(width: double.infinity, height: 20, lines: 1),
-                const SizedBox(height: AppConstants.spacingM),
-                const SkeletonCard(height: 200),
-                const SizedBox(height: AppConstants.spacingM),
-                const SkeletonCard(height: 200),
-              ],
-            );
-          }
-
-          return Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
+              if (request == null) {
+                return ListView(
                   padding: const EdgeInsets.all(AppConstants.spacingL),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildRequestDetailsHeader(context, request),
-                      const SizedBox(height: AppConstants.spacingXL),
-                      _buildSelectionButtons(context),
-                      const SizedBox(height: AppConstants.spacingXL),
-                      _buildPreviewSection(context),
-                    ],
+                  children: [
+                    const SkeletonCard(height: 150),
+                    const SizedBox(height: AppConstants.spacingXL),
+                    const SkeletonText(width: double.infinity, height: 20, lines: 1),
+                    const SizedBox(height: AppConstants.spacingM),
+                    const SkeletonCard(height: 200),
+                    const SizedBox(height: AppConstants.spacingM),
+                    const SkeletonCard(height: 200),
+                  ],
+                );
+              }
+
+              return Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppConstants.spacingL),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildRequestDetailsHeader(context, request),
+                          const SizedBox(height: AppConstants.spacingXL),
+                          _buildSelectionButtons(context),
+                          const SizedBox(height: AppConstants.spacingXL),
+                          _buildPreviewSection(context),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
-          );
-        }),
+                ],
+              );
+            }(),
+          ),
+        ),
       ),
     );
   }

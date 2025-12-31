@@ -8,6 +8,7 @@ import '../widgets/custom_button.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/loading_overlay.dart';
 import '../../data/models/store_request_model.dart';
 import '../../data/models/request_model.dart';
 import '../../../core/services/permission_service.dart';
@@ -47,40 +48,52 @@ class StoreRequestDetailPage extends StatelessWidget {
           ),
           title: const Text('Store Request Details'),
         ),
-        body: Obx(
-          () {
-            final request = storeController.selectedRequest.value;
+        body: LoadingOverlay(
+          isLoading: storeController.isApproving.value ||
+                     storeController.isRejecting.value ||
+                     storeController.isFulfilling.value ||
+                     storeController.isReloading.value,
+          message: storeController.isApproving.value
+              ? 'Approving request...'
+              : storeController.isRejecting.value
+                  ? 'Rejecting request...'
+                  : storeController.isFulfilling.value
+                      ? 'Fulfilling request...'
+                      : 'Loading...',
+          child: Obx(
+            () {
+              final request = storeController.selectedRequest.value;
 
-            if (storeController.isLoading.value && request == null) {
-              return ListView(
-                padding: const EdgeInsets.all(AppConstants.spacingL),
-                children: [
-                  const SkeletonCard(height: 200),
-                  const SizedBox(height: AppConstants.spacingL),
-                  const SkeletonText(width: double.infinity, height: 20, lines: 3),
-                  const SizedBox(height: AppConstants.spacingL),
-                  const SkeletonCard(height: 150),
-                ],
-              );
-            }
-
-            if (request == null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              if (storeController.isLoading.value && request == null) {
+                return ListView(
+                  padding: const EdgeInsets.all(AppConstants.spacingL),
                   children: [
-                    const Text('Request not found'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => storeController.loadRequest(requestId),
-                      child: const Text('Retry'),
-                    ),
+                    const SkeletonCard(height: 200),
+                    const SizedBox(height: AppConstants.spacingL),
+                    const SkeletonText(width: double.infinity, height: 20, lines: 3),
+                    const SizedBox(height: AppConstants.spacingL),
+                    const SkeletonCard(height: 150),
                   ],
-                ),
-              );
-            }
+                );
+              }
 
-            return SingleChildScrollView(
+              if (request == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Request not found'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => storeController.loadRequest(requestId),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return SingleChildScrollView(
               padding: const EdgeInsets.all(AppConstants.spacingM),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +163,8 @@ class StoreRequestDetailPage extends StatelessWidget {
                 ],
               ),
             );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -472,7 +486,10 @@ class StoreRequestDetailPage extends StatelessWidget {
           CustomButton(
             text: 'Fulfill Request',
             icon: Icons.check_circle,
-            onPressed: () => _showFulfillmentDialog(context, storeController, request),
+            isLoading: storeController.isFulfilling.value,
+            onPressed: storeController.isFulfilling.value
+                ? null
+                : () => _showFulfillmentDialog(context, storeController, request),
           ),
           const SizedBox(height: AppConstants.spacingM),
         ],
@@ -484,7 +501,10 @@ class StoreRequestDetailPage extends StatelessWidget {
                   text: 'Approve',
                   icon: Icons.check,
                   type: ButtonType.primary,
-                  onPressed: () => _showApproveDialog(context, storeController, request.id),
+                  isLoading: storeController.isApproving.value,
+                  onPressed: storeController.isApproving.value
+                      ? null
+                      : () => _showApproveDialog(context, storeController, request.id),
                 ),
               ),
               const SizedBox(width: AppConstants.spacingM),
@@ -495,7 +515,10 @@ class StoreRequestDetailPage extends StatelessWidget {
                   type: ButtonType.outlined,
                   backgroundColor: AppColors.error,
                   textColor: AppColors.error,
-                  onPressed: () => _showRejectDialog(context, storeController, request.id),
+                  isLoading: storeController.isRejecting.value,
+                  onPressed: storeController.isRejecting.value
+                      ? null
+                      : () => _showRejectDialog(context, storeController, request.id),
                 ),
               ),
             ],
@@ -522,16 +545,18 @@ class StoreRequestDetailPage extends StatelessWidget {
     }
 
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.9,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
+      WillPopScope(
+        onWillPop: () async => !controller.isFulfilling.value,
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: Column(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -642,42 +667,56 @@ class StoreRequestDetailPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final fulfillmentData = <String, int>{};
-                          for (var entry in fulfillmentControllers.entries) {
-                            final qty = int.tryParse(entry.value.text) ?? 0;
-                            if (qty < 0) {
-                              CustomToast.error('Quantities cannot be negative');
-                              return;
-                            }
-                            fulfillmentData[entry.key] = qty;
-                          }
+                      child: Obx(
+                        () => ElevatedButton(
+                          onPressed: controller.isFulfilling.value
+                              ? null
+                              : () async {
+                                  final fulfillmentData = <String, int>{};
+                                  for (var entry in fulfillmentControllers.entries) {
+                                    final qty = int.tryParse(entry.value.text) ?? 0;
+                                    if (qty < 0) {
+                                      CustomToast.error('Quantities cannot be negative');
+                                      return;
+                                    }
+                                    fulfillmentData[entry.key] = qty;
+                                  }
 
-                          for (var controller in fulfillmentControllers.values) {
-                            controller.dispose();
-                          }
+                                  for (var controller in fulfillmentControllers.values) {
+                                    controller.dispose();
+                                  }
 
-                          final success = await controller.fulfillRequest(request.id, fulfillmentData);
-                          if (success) {
-                            Get.back();
-                            CustomToast.success('Request fulfilled successfully');
-                            await controller.loadRequest(request.id);
-                          } else {
-                            CustomToast.error(controller.error.value);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: theme.colorScheme.onPrimary,
+                                  final success = await controller.fulfillRequest(request.id, fulfillmentData);
+                                  if (success) {
+                                    Get.back();
+                                    CustomToast.success('Request fulfilled successfully');
+                                    await controller.loadRequest(request.id);
+                                  } else {
+                                    CustomToast.error(controller.error.value);
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: theme.colorScheme.onPrimary,
+                          ),
+                          child: controller.isFulfilling.value
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('Fulfill'),
                         ),
-                        child: const Text('Fulfill'),
                       ),
                     ),
                   ],
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),
@@ -699,84 +738,124 @@ class StoreRequestDetailPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     Get.dialog(
-      Dialog(
-        backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Approve Request',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+      WillPopScope(
+        onWillPop: () async => !controller.isApproving.value,
+        child: Dialog(
+          backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Approve Request',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
                     ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: commentController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Comment (Optional)',
-                  labelStyle: TextStyle(
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? AppColors.darkSurfaceLight : theme.colorScheme.surface,
-                ),
-                style: TextStyle(
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () {
-                        Get.back();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      ),
-                      child: const Text('Cancel'),
+                    const SizedBox(height: 16),
+                    Obx(
+                      () => controller.isApproving.value
+                          ? Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Approving request...',
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : TextField(
+                              controller: commentController,
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                labelText: 'Comment (Optional)',
+                                labelStyle: TextStyle(
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkSurfaceLight : theme.colorScheme.surface,
+                              ),
+                              style: TextStyle(
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
+                            ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final comment = commentController.text.trim();
-                        final success = await controller.approveRequest(
-                          requestId,
-                          comment: comment.isEmpty ? null : comment,
-                          reloadPending: true,
-                        );
-                        if (success) {
-                          Get.back();
-                          CustomToast.success('Request approved successfully');
-                        } else {
-                          CustomToast.error(controller.error.value);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                      ),
-                      child: const Text('Approve'),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: controller.isApproving.value
+                                ? null
+                                : () {
+                                    Get.back();
+                                  },
+                            style: TextButton.styleFrom(
+                              foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Obx(
+                            () => ElevatedButton(
+                              onPressed: controller.isApproving.value
+                                  ? null
+                                  : () async {
+                                      final comment = commentController.text.trim();
+                                      setState(() {}); // Trigger rebuild
+                                      final success = await controller.approveRequest(
+                                        requestId,
+                                        comment: comment.isEmpty ? null : comment,
+                                        reloadPending: true,
+                                      );
+                                      if (success) {
+                                        Get.back();
+                                        CustomToast.success('Request approved successfully');
+                                      } else {
+                                        setState(() {}); // Trigger rebuild
+                                        CustomToast.error(controller.error.value);
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: theme.colorScheme.onPrimary,
+                              ),
+                              child: controller.isApproving.value
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : const Text('Approve'),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -800,84 +879,124 @@ class StoreRequestDetailPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     Get.dialog(
-      Dialog(
-        backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Reject Request',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+      WillPopScope(
+        onWillPop: () async => !controller.isRejecting.value,
+        child: Dialog(
+          backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Reject Request',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
                     ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: commentController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Reason for Rejection',
-                  labelStyle: TextStyle(
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? AppColors.darkSurfaceLight : theme.colorScheme.surface,
-                ),
-                style: TextStyle(
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () {
-                        Get.back();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      ),
-                      child: const Text('Cancel'),
+                    const SizedBox(height: 16),
+                    Obx(
+                      () => controller.isRejecting.value
+                          ? Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Rejecting request...',
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : TextField(
+                              controller: commentController,
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                labelText: 'Reason for Rejection',
+                                labelStyle: TextStyle(
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: isDark ? AppColors.darkSurfaceLight : theme.colorScheme.surface,
+                              ),
+                              style: TextStyle(
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
+                            ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final comment = commentController.text.trim();
-                        if (comment.isEmpty) {
-                          CustomToast.error('Please provide a reason for rejection');
-                          return;
-                        }
-                        final success = await controller.rejectRequest(requestId, comment);
-                        if (success) {
-                          Get.back();
-                          CustomToast.success('Request rejected');
-                        } else {
-                          CustomToast.error(controller.error.value);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.error,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Reject'),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: controller.isRejecting.value
+                                ? null
+                                : () {
+                                    Get.back();
+                                  },
+                            style: TextButton.styleFrom(
+                              foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Obx(
+                            () => ElevatedButton(
+                              onPressed: controller.isRejecting.value
+                                  ? null
+                                  : () async {
+                                      final comment = commentController.text.trim();
+                                      if (comment.isEmpty) {
+                                        CustomToast.error('Please provide a reason for rejection');
+                                        return;
+                                      }
+                                      setState(() {}); // Trigger rebuild
+                                      final success = await controller.rejectRequest(requestId, comment);
+                                      if (success) {
+                                        Get.back();
+                                        CustomToast.success('Request rejected');
+                                      } else {
+                                        setState(() {}); // Trigger rebuild
+                                        CustomToast.error(controller.error.value);
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.error,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: controller.isRejecting.value
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : const Text('Reject'),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

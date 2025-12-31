@@ -13,6 +13,7 @@ import '../widgets/map_picker.dart';
 import '../widgets/catalog_browser.dart';
 import '../widgets/inventory_browser.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/loading_overlay.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
@@ -1187,15 +1188,23 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
 
     return AppDrawer(
       controller: _drawerController,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
+      child: Obx(
+        () => LoadingOverlay(
+          isLoading: (widget.type == 'vehicle' && _requestController.isCreating.value) ||
+                     (widget.type == 'ict' && _ictController.isCreating.value) ||
+                     (widget.type == 'store' && _storeController.isCreating.value),
+          message: 'Creating request...',
+          child: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Get.back(),
+              ),
+              title: Text(title),
+            ),
+            body: body,
           ),
-          title: Text(title),
         ),
-        body: body,
       ),
     );
   }

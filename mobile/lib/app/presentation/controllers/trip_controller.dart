@@ -24,6 +24,17 @@ class TripController extends GetxController {
   Timer? _locationTimer;
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
+
+  // Operation-specific loading flags
+  final RxBool isLoadingTrip = false.obs;
+  final RxBool isFetchingRoute = false.obs;
+  final RxBool isFetchingReturnRoute = false.obs;
+  final RxBool isStartingTrip = false.obs;
+  final RxBool isCompletingTrip = false.obs;
+  final RxBool isUpdatingLocation = false.obs;
+  final RxBool isReachingDestination = false.obs;
+  final RxBool isReturningToOffice = false.obs;
+  final RxBool isReachingWaypoint = false.obs;
   
   // Route management
   final Rx<RouteModel?> currentRoute = Rx<RouteModel?>(null);
@@ -138,6 +149,7 @@ class TripController extends GetxController {
   }
 
   Future<void> loadTripDetails(String requestId) async {
+    isLoadingTrip.value = true;
     isLoading.value = true;
     try {
       final trip = await _requestService.getTripDetails(requestId);
@@ -167,11 +179,13 @@ class TripController extends GetxController {
       error.value = e.toString();
       print('❌ [FRONTEND - LOAD TRIP] Error: $e');
     } finally {
+      isLoadingTrip.value = false;
       isLoading.value = false;
     }
   }
 
   Future<bool> startTrip(String requestId) async {
+    isStartingTrip.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -197,21 +211,25 @@ class TripController extends GetxController {
         _startGeofencing(requestId);
         // Fetch route when trip starts
         await fetchRoute(requestId);
+        isStartingTrip.value = false;
         isLoading.value = false;
         return true;
       } else {
         error.value = result['message'] ?? 'Failed to start trip';
+        isStartingTrip.value = false;
         isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = e.toString();
+      isStartingTrip.value = false;
       isLoading.value = false;
       return false;
     }
   }
 
   Future<bool> reachDestination(String requestId, {String? notes}) async {
+    isReachingDestination.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -267,23 +285,27 @@ class TripController extends GetxController {
 
       if (result['success'] == true) {
         await loadTripDetails(requestId);
+        isReachingDestination.value = false;
         isLoading.value = false;
         return true;
       } else {
         final errorMsg = result['message'] ?? 'Failed to mark destination reached';
         // Format error message to be more informative
         error.value = ErrorMessageFormatter.formatApiError(errorMsg);
+        isReachingDestination.value = false;
         isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = e.toString();
+      isReachingDestination.value = false;
       isLoading.value = false;
       return false;
     }
   }
 
   Future<bool> reachWaypoint(String requestId, int stopIndex, {String? notes}) async {
+    isReachingWaypoint.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -291,6 +313,7 @@ class TripController extends GetxController {
       final position = await _getCurrentPosition();
       if (position == null) {
         error.value = 'Unable to get current location';
+        isReachingWaypoint.value = false;
         isLoading.value = false;
         return false;
       }
@@ -305,22 +328,26 @@ class TripController extends GetxController {
 
       if (result['success'] == true) {
         await loadTripDetails(requestId);
+        isReachingWaypoint.value = false;
         isLoading.value = false;
         return true;
       } else {
         final errorMsg = result['message'] ?? 'Failed to mark waypoint reached';
         error.value = ErrorMessageFormatter.formatApiError(errorMsg);
+        isReachingWaypoint.value = false;
         isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = ErrorMessageFormatter.formatApiError(e.toString());
+      isReachingWaypoint.value = false;
       isLoading.value = false;
       return false;
     }
   }
 
   Future<bool> returnToOffice(String requestId, {String? notes}) async {
+    isReturningToOffice.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -385,16 +412,19 @@ class TripController extends GetxController {
         }
         await loadTripDetails(requestId);
         stopTracking();
+        isReturningToOffice.value = false;
         isLoading.value = false;
         return true;
       } else {
         final errorMsg = result['message'] ?? 'Failed to mark return to office';
         error.value = ErrorMessageFormatter.formatApiError(errorMsg);
+        isReturningToOffice.value = false;
         isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = ErrorMessageFormatter.formatApiError(e.toString());
+      isReturningToOffice.value = false;
       isLoading.value = false;
       return false;
     }
@@ -663,6 +693,7 @@ class TripController extends GetxController {
     final trip = currentTrip.value;
     if (trip == null) return;
 
+    isFetchingRoute.value = true;
     try {
       final originLat = trip.officeLocation?['latitude']?.toDouble() ?? 
                        trip.startLocation?['latitude']?.toDouble();
@@ -713,6 +744,8 @@ class TripController extends GetxController {
       print('❌ [TripController] Error fetching route: $e');
       error.value = 'Error calculating route: ${e.toString()}';
       // Don't throw - allow trip to continue with fallback polyline
+    } finally {
+      isFetchingRoute.value = false;
     }
   }
 
@@ -721,6 +754,7 @@ class TripController extends GetxController {
     final trip = currentTrip.value;
     if (trip == null) return;
 
+    isFetchingReturnRoute.value = true;
     try {
       final destLat = trip.destinationLocation?['latitude']?.toDouble() ?? 
                      trip.requestedDestinationLocation?['latitude']?.toDouble();
@@ -750,6 +784,8 @@ class TripController extends GetxController {
       }
     } catch (e) {
       print('❌ [TripController] Error fetching return route: $e');
+    } finally {
+      isFetchingReturnRoute.value = false;
     }
   }
 

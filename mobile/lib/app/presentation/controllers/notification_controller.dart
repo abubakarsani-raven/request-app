@@ -18,6 +18,11 @@ class NotificationController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
 
+  // Operation-specific loading flags
+  final RxBool isLoadingNotifications = false.obs;
+  final RxBool isLoadingUnreadCount = false.obs;
+  final RxBool isMarkingAsRead = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -230,6 +235,7 @@ class NotificationController extends GetxController {
   }
 
   Future<void> loadNotifications({bool unreadOnly = false}) async {
+    isLoadingNotifications.value = true;
     isLoading.value = true;
     error.value = '';
 
@@ -241,11 +247,13 @@ class NotificationController extends GetxController {
     } catch (e) {
       error.value = e.toString();
     } finally {
+      isLoadingNotifications.value = false;
       isLoading.value = false;
     }
   }
 
   Future<void> loadUnreadCount() async {
+    isLoadingUnreadCount.value = true;
     try {
       final count = await _notificationService.getUnreadCount();
       print('📊 [NotificationController] Setting unreadCount to: $count');
@@ -253,10 +261,13 @@ class NotificationController extends GetxController {
       print('📊 [NotificationController] unreadCount.value is now: ${unreadCount.value}');
     } catch (e) {
       print('Error loading unread count: $e');
+    } finally {
+      isLoadingUnreadCount.value = false;
     }
   }
 
   Future<void> markAsRead(String notificationId) async {
+    isMarkingAsRead.value = true;
     try {
       final success = await _notificationService.markAsRead(notificationId);
       if (success) {
@@ -266,6 +277,8 @@ class NotificationController extends GetxController {
       }
     } catch (e) {
       error.value = e.toString();
+    } finally {
+      isMarkingAsRead.value = false;
     }
   }
 

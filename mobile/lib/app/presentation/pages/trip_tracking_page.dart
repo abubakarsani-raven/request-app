@@ -421,19 +421,32 @@ class _TripTrackingPageState extends State<TripTrackingPage> {
             onPressed: () => Get.back(),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              SheetHaptics.heavyImpact();
-              final success = await tripController.startTrip(widget.requestId);
-              if (success) {
-                Get.back();
-                Get.snackbar('Success', 'Trip started successfully');
-                await tripController.fetchRoute(widget.requestId);
-              } else {
-                Get.snackbar('Error', tripController.error.value);
-              }
-            },
-            child: const Text('Start Trip'),
+          Obx(
+            () => ElevatedButton(
+              onPressed: tripController.isStartingTrip.value
+                  ? null
+                  : () async {
+                      SheetHaptics.heavyImpact();
+                      final success = await tripController.startTrip(widget.requestId);
+                      if (success) {
+                        Get.back();
+                        Get.snackbar('Success', 'Trip started successfully');
+                        await tripController.fetchRoute(widget.requestId);
+                      } else {
+                        Get.snackbar('Error', tripController.error.value);
+                      }
+                    },
+              child: tripController.isStartingTrip.value
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Start Trip'),
+            ),
           ),
         ],
       ),
@@ -478,32 +491,45 @@ class _TripTrackingPageState extends State<TripTrackingPage> {
             },
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              SheetHaptics.heavyImpact();
-              final notes = notesController.text.isEmpty ? null : notesController.text;
-              notesController.dispose();
-              final success = await tripController.reachDestination(
-                widget.requestId,
-                notes: notes,
-              );
-              if (success) {
-                Get.back();
-                Get.snackbar('Success', 'Destination marked as reached');
-              } else {
-                // Show formatted error message
-                final errorMsg = tripController.error.value;
-                Get.snackbar(
-                  'Cannot Mark Destination',
-                  errorMsg,
-                  backgroundColor: Colors.orange.shade100,
-                  colorText: Colors.orange.shade900,
-                  duration: const Duration(seconds: 5),
-                  icon: const Icon(Icons.warning, color: Colors.orange),
-                );
-              }
-            },
-            child: const Text('Confirm'),
+          Obx(
+            () => ElevatedButton(
+              onPressed: tripController.isReachingDestination.value
+                  ? null
+                  : () async {
+                      SheetHaptics.heavyImpact();
+                      final notes = notesController.text.isEmpty ? null : notesController.text;
+                      notesController.dispose();
+                      final success = await tripController.reachDestination(
+                        widget.requestId,
+                        notes: notes,
+                      );
+                      if (success) {
+                        Get.back();
+                        Get.snackbar('Success', 'Destination marked as reached');
+                      } else {
+                        // Show formatted error message
+                        final errorMsg = tripController.error.value;
+                        Get.snackbar(
+                          'Cannot Mark Destination',
+                          errorMsg,
+                          backgroundColor: Colors.orange.shade100,
+                          colorText: Colors.orange.shade900,
+                          duration: const Duration(seconds: 5),
+                          icon: const Icon(Icons.warning, color: Colors.orange),
+                        );
+                      }
+                    },
+              child: tripController.isReachingDestination.value
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Confirm'),
+            ),
           ),
         ],
       ),
@@ -532,47 +558,60 @@ class _TripTrackingPageState extends State<TripTrackingPage> {
             },
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              SheetHaptics.heavyImpact();
-              final notes = notesController.text.isEmpty ? null : notesController.text;
-              notesController.dispose();
-              final success = await tripController.returnToOffice(
-                widget.requestId,
-                notes: notes,
-              );
-              if (success) {
-                Get.back();
-                if (tripController.error.value.isNotEmpty && 
-                    (tripController.error.value.contains('away') || 
-                     tripController.error.value.contains('meters'))) {
-                  // Show formatted warning message
-                  Get.snackbar(
-                    'Warning',
-                    tripController.error.value,
-                    backgroundColor: Colors.orange.shade100,
-                    colorText: Colors.orange.shade900,
-                    duration: const Duration(seconds: 5),
-                    icon: const Icon(Icons.warning, color: Colors.orange),
-                  );
-                } else {
-                  Get.snackbar('Success', 'Trip completed successfully');
-                }
-                Get.back(result: true);
-              } else {
-                // Show formatted error message
-                final errorMsg = tripController.error.value;
-                Get.snackbar(
-                  'Cannot Mark Return',
-                  errorMsg,
-                  backgroundColor: Colors.orange.shade100,
-                  colorText: Colors.orange.shade900,
-                  duration: const Duration(seconds: 5),
-                  icon: const Icon(Icons.warning, color: Colors.orange),
-                );
-              }
-            },
-            child: const Text('Confirm'),
+          Obx(
+            () => ElevatedButton(
+              onPressed: tripController.isReturningToOffice.value
+                  ? null
+                  : () async {
+                      SheetHaptics.heavyImpact();
+                      final notes = notesController.text.isEmpty ? null : notesController.text;
+                      notesController.dispose();
+                      final success = await tripController.returnToOffice(
+                        widget.requestId,
+                        notes: notes,
+                      );
+                      if (success) {
+                        Get.back();
+                        if (tripController.error.value.isNotEmpty && 
+                            (tripController.error.value.contains('away') || 
+                             tripController.error.value.contains('meters'))) {
+                          // Show formatted warning message
+                          Get.snackbar(
+                            'Warning',
+                            tripController.error.value,
+                            backgroundColor: Colors.orange.shade100,
+                            colorText: Colors.orange.shade900,
+                            duration: const Duration(seconds: 5),
+                            icon: const Icon(Icons.warning, color: Colors.orange),
+                          );
+                        } else {
+                          Get.snackbar('Success', 'Trip completed successfully');
+                        }
+                        Get.back(result: true);
+                      } else {
+                        // Show formatted error message
+                        final errorMsg = tripController.error.value;
+                        Get.snackbar(
+                          'Cannot Mark Return',
+                          errorMsg,
+                          backgroundColor: Colors.orange.shade100,
+                          colorText: Colors.orange.shade900,
+                          duration: const Duration(seconds: 5),
+                          icon: const Icon(Icons.warning, color: Colors.orange),
+                        );
+                      }
+                    },
+              child: tripController.isReturningToOffice.value
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Confirm'),
+            ),
           ),
         ],
       ),

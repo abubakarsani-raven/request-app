@@ -95,6 +95,7 @@ export class AnalyticsService {
       pending: 0,
       approved: 0,
       rejected: 0,
+      partialFulfilled: 0,
       fulfilled: 0,
       activeTrips: 0,
     };
@@ -140,6 +141,7 @@ export class AnalyticsService {
       results.approved += ictRequests.filter((r) => r.status === RequestStatus.APPROVED).length;
       results.rejected += ictRequests.filter((r) => r.status === RequestStatus.REJECTED).length;
       results.fulfilled += ictRequests.filter((r) => r.status === RequestStatus.FULFILLED).length;
+      results.partialFulfilled = (results.partialFulfilled || 0) + ictRequests.filter((r) => r.status === RequestStatus.PARTIAL_FULFILLMENT).length;
 
       ictRequests.forEach((r) => {
         results.byStage[r.workflowStage] = (results.byStage[r.workflowStage] || 0) + 1;
@@ -174,6 +176,7 @@ export class AnalyticsService {
       PENDING: results.pending,
       APPROVED: results.approved,
       REJECTED: results.rejected,
+      PARTIAL_FULFILLMENT: results.partialFulfilled || 0,
       FULFILLED: results.fulfilled,
       ACTIVE_TRIPS: results.activeTrips,
     };

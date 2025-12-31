@@ -767,7 +767,7 @@ export class StoreService {
     if (allFulfilled) {
       request.status = RequestStatus.FULFILLED;
     } else {
-      request.status = RequestStatus.APPROVED; // Partial fulfillment
+      request.status = RequestStatus.PARTIAL_FULFILLMENT; // Partial fulfillment
     }
     
     // Add fulfiller as participant

@@ -11,6 +11,10 @@ export class BroadcastNotificationDto {
 
   @IsString()
   @IsOptional()
+  type?: string;
+
+  @IsString()
+  @IsOptional()
   requestType?: string;
 
   @IsString()

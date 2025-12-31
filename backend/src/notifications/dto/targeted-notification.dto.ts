@@ -9,6 +9,10 @@ export class TargetedNotificationDto {
   @IsNotEmpty()
   message: string;
 
+  @IsString()
+  @IsOptional()
+  type?: string;
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional()

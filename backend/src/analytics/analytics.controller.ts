@@ -34,8 +34,17 @@ export class AnalyticsController {
   ) {
     const userRoles = (user.roles || []) as UserRole[];
     
+    // Filter to only show ICT requests for ICT admins
+    const isICTAdmin = this.adminRoleService.isICTAdmin(userRoles);
+    const isMainAdmin = this.adminRoleService.isMainAdmin(userRoles);
+    
     if (!this.adminRoleService.isAnyAdmin(userRoles)) {
       throw new Error('Unauthorized: Admin access required');
+    }
+
+    // If ICT admin and no requestType specified, default to ICT only
+    if (isICTAdmin && !isMainAdmin && !requestType) {
+      requestType = RequestType.ICT;
     }
 
     const filters: any = {};

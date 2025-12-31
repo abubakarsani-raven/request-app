@@ -1317,7 +1317,7 @@ export class ICTService {
       request.status = RequestStatus.FULFILLED;
       // Workflow stage is at FULFILLMENT, status FULFILLED indicates completion
     } else {
-      request.status = RequestStatus.APPROVED; // Partial fulfillment
+      request.status = RequestStatus.PARTIAL_FULFILLMENT; // Partial fulfillment
       // Workflow stage is at FULFILLMENT for partial fulfillments too
     }
     

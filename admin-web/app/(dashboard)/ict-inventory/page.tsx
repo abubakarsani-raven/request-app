@@ -15,6 +15,7 @@ import { UpdateQuantityModal } from "@/components/ict/UpdateQuantityModal";
 import { StockHistoryModal } from "@/components/ict/StockHistoryModal";
 import { LowStockAlert } from "@/components/ict/LowStockAlert";
 import { BulkImportModal } from "@/components/ict/BulkImportModal";
+import { AIRestockingAdvice } from "@/components/ict/AIRestockingAdvice";
 
 type ICTItem = {
   _id?: string;
@@ -119,6 +120,8 @@ export default function ICTInventoryPage() {
       {lowStockItems.length > 0 && (
         <LowStockAlert items={lowStockItems.filter(item => item._id || item.id) as ICTItem[]} />
       )}
+
+      <AIRestockingAdvice />
 
       <Card>
         <CardHeader>

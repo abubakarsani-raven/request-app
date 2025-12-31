@@ -33,7 +33,7 @@ export class ICTController {
   // ICT Item Management
   @Post('items')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
   createItem(@Body() createICTItemDto: CreateICTItemDto) {
     return this.ictService.createItem(createICTItemDto);
   }
@@ -56,7 +56,7 @@ export class ICTController {
 
   @Put('items/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
   updateItem(
     @Param('id') id: string,
     @Body() updateDto: UpdateICTItemDto,
@@ -66,7 +66,7 @@ export class ICTController {
 
   @Put('items/:id/availability')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.SO)
   updateItemAvailability(
     @Param('id') id: string,
     @Body() body: { isAvailable: boolean },
@@ -76,7 +76,7 @@ export class ICTController {
 
   @Patch('items/:id/quantity')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
   updateItemQuantity(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -88,28 +88,28 @@ export class ICTController {
 
   @Get('items/:id/history')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
   getStockHistory(@Param('id') id: string) {
     return this.ictService.getStockHistory(id);
   }
 
   @Get('items/low-stock/all')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
   getLowStockItems() {
     return this.ictService.getLowStockItems();
   }
 
   @Post('items/bulk')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
   bulkCreateItems(@Body() body: { items: CreateICTItemDto[] }) {
     return this.ictService.bulkCreateItems(body.items);
   }
 
   @Delete('items/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
   deleteItem(@Param('id') id: string) {
     return this.ictService.deleteItem(id);
   }

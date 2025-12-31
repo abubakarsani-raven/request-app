@@ -114,7 +114,7 @@ export class VehiclesController {
   // Vehicle Management
   @Post('vehicles')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.DGS, UserRole.TO)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN, UserRole.DGS, UserRole.TO)
   createVehicle(@Body() createVehicleDto: CreateVehicleDto) {
     return this.vehiclesService.createVehicle(createVehicleDto);
   }
@@ -140,14 +140,14 @@ export class VehiclesController {
 
   @Patch('vehicles/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TO)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN, UserRole.TO)
   updateVehicle(@Param('id') id: string, @Body() updateDto: Partial<CreateVehicleDto>) {
     return this.vehiclesService.updateVehicle(id, updateDto);
   }
 
   @Delete('vehicles/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN)
   deleteVehicle(@Param('id') id: string) {
     return this.vehiclesService.deleteVehicle(id);
   }
@@ -155,7 +155,7 @@ export class VehiclesController {
   // Driver Management
   @Post('drivers')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.DGS, UserRole.TO)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN, UserRole.DGS, UserRole.TO)
   createDriver(@Body() createDriverDto: CreateDriverDto) {
     return this.vehiclesService.createDriver(createDriverDto);
   }
@@ -394,7 +394,7 @@ export class VehiclesController {
   // Maintenance Operations
   @Post('vehicles/:id/maintenance/reminder')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TO)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN, UserRole.TO)
   addMaintenanceReminder(
     @Param('id') id: string,
     @Body() addReminderDto: AddMaintenanceReminderDto,
@@ -404,7 +404,7 @@ export class VehiclesController {
 
   @Post('vehicles/:id/maintenance/log')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TO)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN, UserRole.TO)
   addMaintenanceLog(
     @Param('id') id: string,
     @Body() addLogDto: AddMaintenanceLogDto,
@@ -414,7 +414,7 @@ export class VehiclesController {
 
   @Post('vehicles/:id/issues')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TO)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN, UserRole.TO)
   reportIssue(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -430,7 +430,7 @@ export class VehiclesController {
 
   @Patch('vehicles/:id/issues/:issueIndex')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TO)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN, UserRole.TO)
   updateIssueStatus(
     @Param('id') id: string,
     @Param('issueIndex') issueIndex: string,
@@ -446,7 +446,7 @@ export class VehiclesController {
 
   @Patch('vehicles/:id/maintenance/reminder/:reminderIndex/complete')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TO)
+  @Roles(UserRole.ADMIN, UserRole.TRANSPORT_ADMIN, UserRole.TO)
   completeMaintenanceReminder(
     @Param('id') id: string,
     @Param('reminderIndex') reminderIndex: string,

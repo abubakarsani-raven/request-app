@@ -68,19 +68,44 @@ export function ReportTable({ data, reportType }: ReportTableProps) {
               {data.map((row, index) => (
                 <TableRow key={row.id || index}>
                   {headers.map((header) => {
-                    const key = header.toLowerCase().replace(/\s+/g, "");
-                    let value = row[key] || row[header] || "";
+                    let value = "";
+                    
+                    // Map headers to actual data keys
+                    if (header === "ID") {
+                      value = row.id || row._id || "";
+                    } else if (header === "Type") {
+                      value = row.type || "";
+                    } else if (header === "Requester") {
+                      value = row.requester || "";
+                    } else if (header === "Email") {
+                      value = row.requesterEmail || row.email || "";
+                    } else if (header === "Department") {
+                      value = row.department || "";
+                    } else if (header === "Status") {
+                      value = row.status || "";
+                    } else if (header === "Workflow Stage") {
+                      value = row.workflowStage || "";
+                    } else if (header === "Created At") {
+                      value = row.createdAt || "";
+                    } else {
+                      // Fallback to key matching
+                      const key = header.toLowerCase().replace(/\s+/g, "");
+                      value = row[key] || row[header] || "";
+                    }
                     
                     // Format dates
                     if (value && (header.includes("Date") || header.includes("At"))) {
                       try {
-                        value = format(new Date(value), "PPP");
+                        const dateValue = new Date(value);
+                        if (!isNaN(dateValue.getTime())) {
+                          value = format(dateValue, "PPP");
+                        }
                       } catch {
                         // Keep original value if parsing fails
                       }
                     }
 
-                    return <TableCell key={header}>{String(value)}</TableCell>;
+                    return <TableCell key={header}>{String(value || "")}</TableCell>;
                   })}
                 </TableRow>
               ))}

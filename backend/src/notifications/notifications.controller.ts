@@ -219,6 +219,7 @@ export class NotificationsController {
       dto.message,
       dto.requestType as RequestType,
       dto.requestId,
+      dto.type,
     );
   }
 
@@ -245,6 +246,7 @@ export class NotificationsController {
       dto.roles as UserRole[],
       dto.requestType as RequestType,
       dto.requestId,
+      dto.type,
     );
   }
 }

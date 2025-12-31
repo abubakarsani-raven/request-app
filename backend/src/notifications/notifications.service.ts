@@ -369,10 +369,28 @@ export class NotificationsService {
     message: string,
     requestType?: RequestType,
     requestId?: string,
+    type?: string,
   ): Promise<{ sent: number; failed: number }> {
     const users = await this.usersService.findAll();
     let sent = 0;
     let failed = 0;
+
+    // Validate and map type to NotificationType enum, default to REQUEST_UPDATED
+    let notificationType: NotificationType = NotificationType.REQUEST_UPDATED;
+    if (type) {
+      // Try to match the type string to an enum value
+      const typeUpper = type.toUpperCase();
+      const validType = Object.values(NotificationType).find(
+        (nt) => nt === typeUpper,
+      ) as NotificationType | undefined;
+      if (validType) {
+        notificationType = validType;
+      } else {
+        // For types not in enum (like SYSTEM, TRIP_STARTED, TRIP_COMPLETED), use REQUEST_UPDATED
+        // but we could extend the enum if needed
+        notificationType = NotificationType.REQUEST_UPDATED;
+      }
+    }
 
     for (const user of users) {
       try {
@@ -384,7 +402,7 @@ export class NotificationsService {
 
         await this.createNotification(
           userId,
-          NotificationType.REQUEST_UPDATED,
+          notificationType,
           title,
           message,
           requestId,
@@ -411,10 +429,28 @@ export class NotificationsService {
     roles?: UserRole[],
     requestType?: RequestType,
     requestId?: string,
+    type?: string,
   ): Promise<{ sent: number; failed: number }> {
     const users = await this.usersService.findAll();
     let sent = 0;
     let failed = 0;
+
+    // Validate and map type to NotificationType enum, default to REQUEST_UPDATED
+    let notificationType: NotificationType = NotificationType.REQUEST_UPDATED;
+    if (type) {
+      // Try to match the type string to an enum value
+      const typeUpper = type.toUpperCase();
+      const validType = Object.values(NotificationType).find(
+        (nt) => nt === typeUpper,
+      ) as NotificationType | undefined;
+      if (validType) {
+        notificationType = validType;
+      } else {
+        // For types not in enum (like SYSTEM, TRIP_STARTED, TRIP_COMPLETED), use REQUEST_UPDATED
+        // but we could extend the enum if needed
+        notificationType = NotificationType.REQUEST_UPDATED;
+      }
+    }
 
     // Filter users based on userIds or roles
     const targetUsers = users.filter((user) => {
@@ -438,7 +474,7 @@ export class NotificationsService {
 
         await this.createNotification(
           userId,
-          NotificationType.REQUEST_UPDATED,
+          notificationType,
           title,
           message,
           requestId,

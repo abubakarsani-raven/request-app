@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body, UseGuards, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards, Res, HttpStatus, BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -7,6 +7,8 @@ import { GenerateReportDto } from './dto/generate-report.dto';
 import { ExportReportDto, ExportFormat } from './dto/export-report.dto';
 import { AdminRoleService } from '../common/services/admin-role.service';
 import { UserRole } from '../shared/types';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 
 @Controller('reports')
 @UseGuards(JwtAuthGuard)
@@ -151,7 +153,8 @@ export class ReportsController {
   @Post('export')
   async exportReport(
     @CurrentUser() user: any,
-    @Body() dto: ExportReportDto,
+    @Body() body: any,
+    @Query() query: any,
     @Res() res: Response,
   ) {
     const userRoles = (user.roles || []) as UserRole[];
@@ -161,6 +164,44 @@ export class ReportsController {
     }
 
     try {
+      // Merge query parameters with body (query params take precedence)
+      const mergedData: any = {
+        reportType: query.reportType || body.reportType,
+        format: query.format || body.format,
+        startDate: query.startDate || body.startDate,
+        endDate: query.endDate || body.endDate,
+        requestType: query.requestType || body.requestType,
+        status: query.status || body.status,
+        departmentId: query.departmentId || body.departmentId,
+        userId: query.userId || body.userId,
+      };
+
+      // Validate required fields
+      if (!mergedData.reportType) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          message: 'Validation failed',
+          errors: [{ property: 'reportType', constraints: { isEnum: 'reportType is required' } }],
+        });
+      }
+
+      if (!mergedData.format) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          message: 'Validation failed',
+          errors: [{ property: 'format', constraints: { isEnum: 'format is required' } }],
+        });
+      }
+
+      // Validate the DTO
+      const dto = plainToInstance(ExportReportDto, mergedData);
+      const errors = await validate(dto, { skipMissingProperties: false });
+      
+      if (errors.length > 0) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          message: 'Validation failed',
+          errors: errors,
+        });
+      }
+
       // Generate report data
       const reportData = await this.reportsService.generateReport(dto, userRoles);
 

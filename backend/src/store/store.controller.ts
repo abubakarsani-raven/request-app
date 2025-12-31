@@ -31,7 +31,7 @@ export class StoreController {
   // Store Item Management
   @Post('items')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.DGS, UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN, UserRole.DGS, UserRole.SO)
   createItem(@Body() createStoreItemDto: CreateStoreItemDto) {
     return this.storeService.createItem(createStoreItemDto);
   }
@@ -51,7 +51,7 @@ export class StoreController {
 
   @Put('items/:id/availability')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SO)
+  @Roles(UserRole.ADMIN, UserRole.STORE_ADMIN, UserRole.SO)
   updateItemAvailability(
     @Param('id') id: string,
     @Body() body: { isAvailable: boolean },

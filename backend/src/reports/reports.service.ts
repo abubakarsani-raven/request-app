@@ -150,6 +150,7 @@ export class ReportsService {
           type: 'VEHICLE',
           requester: (request.requesterId as any)?.name || 'N/A',
           requesterEmail: (request.requesterId as any)?.email || 'N/A',
+          email: (request.requesterId as any)?.email || 'N/A', // Also add as 'email' for table compatibility
           department: (request.requesterId as any)?.departmentId?.name || 'N/A',
           tripDate: request.tripDate,
           destination: request.destination,
@@ -157,8 +158,8 @@ export class ReportsService {
           workflowStage: request.workflowStage,
           vehicle: request.vehicleId ? `${(request.vehicleId as any).plateNumber} - ${(request.vehicleId as any).make} ${(request.vehicleId as any).model}` : 'N/A',
           driver: request.driverId ? (request.driverId as any).name : 'N/A',
-          createdAt: (request as any).createdAt,
-          updatedAt: (request as any).updatedAt,
+          createdAt: (request as any).createdAt ? new Date((request as any).createdAt).toISOString() : null,
+          updatedAt: (request as any).updatedAt ? new Date((request as any).updatedAt).toISOString() : null,
         });
       }
     }
@@ -204,12 +205,13 @@ export class ReportsService {
           type: 'ICT',
           requester: (request.requesterId as any)?.name || 'N/A',
           requesterEmail: (request.requesterId as any)?.email || 'N/A',
+          email: (request.requesterId as any)?.email || 'N/A', // Also add as 'email' for table compatibility
           department: (request.requesterId as any)?.departmentId?.name || 'N/A',
           items: itemsSummary,
           status: request.status,
           workflowStage: request.workflowStage,
-          createdAt: (request as any).createdAt,
-          updatedAt: (request as any).updatedAt,
+          createdAt: (request as any).createdAt ? new Date((request as any).createdAt).toISOString() : null,
+          updatedAt: (request as any).updatedAt ? new Date((request as any).updatedAt).toISOString() : null,
         });
       }
     }
@@ -255,12 +257,13 @@ export class ReportsService {
           type: 'STORE',
           requester: (request.requesterId as any)?.name || 'N/A',
           requesterEmail: (request.requesterId as any)?.email || 'N/A',
+          email: (request.requesterId as any)?.email || 'N/A', // Also add as 'email' for table compatibility
           department: (request.requesterId as any)?.departmentId?.name || 'N/A',
           items: itemsSummary,
           status: request.status,
           workflowStage: request.workflowStage,
-          createdAt: (request as any).createdAt,
-          updatedAt: (request as any).updatedAt,
+          createdAt: (request as any).createdAt ? new Date((request as any).createdAt).toISOString() : null,
+          updatedAt: (request as any).updatedAt ? new Date((request as any).updatedAt).toISOString() : null,
         });
       }
     }

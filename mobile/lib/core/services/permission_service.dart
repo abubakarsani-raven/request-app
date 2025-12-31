@@ -297,9 +297,15 @@ class PermissionService extends GetxService {
   bool canApproveAtStage(UserModel user, RequestType type, String workflowStage) {
     final roles = _getUserRoles(user);
     
-    // DGS can approve at any stage
+    // DGS can approve at any stage for vehicle requests, but only at DGS_REVIEW for ICT requests
     if (roles.contains(UserRole.dgs)) {
-      print('[Permission Service] canApproveAtStage: DGS can approve at any stage');
+      if (type == RequestType.ict) {
+        final canApprove = workflowStage == 'DGS_REVIEW';
+        print('[Permission Service] canApproveAtStage: DGS can approve ICT at DGS_REVIEW: $canApprove');
+        return canApprove;
+      }
+      // For vehicle requests, DGS can approve at any stage
+      print('[Permission Service] canApproveAtStage: DGS can approve vehicle at any stage');
       return true;
     }
     

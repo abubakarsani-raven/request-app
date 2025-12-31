@@ -8,6 +8,7 @@ import '../widgets/custom_button.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/skeleton_loader.dart';
+import '../widgets/loading_overlay.dart';
 import '../../data/models/ict_request_model.dart';
 import '../../data/models/request_model.dart';
 import '../../../core/services/permission_service.dart';
@@ -48,40 +49,55 @@ class ICTRequestDetailPage extends StatelessWidget {
           ),
           title: const Text('ICT Request Details'),
         ),
-        body: Obx(
-          () {
-            final request = ictController.selectedRequest.value;
+        body: LoadingOverlay(
+          isLoading: ictController.isApproving.value ||
+                     ictController.isRejecting.value ||
+                     ictController.isFulfilling.value ||
+                     ictController.isUpdating.value ||
+                     ictController.isReloading.value,
+          message: ictController.isApproving.value
+              ? 'Approving request...'
+              : ictController.isRejecting.value
+                  ? 'Rejecting request...'
+                  : ictController.isFulfilling.value
+                      ? 'Fulfilling request...'
+                      : ictController.isUpdating.value
+                          ? 'Updating request...'
+                          : 'Loading...',
+          child: Obx(
+            () {
+              final request = ictController.selectedRequest.value;
 
-            if (ictController.isLoading.value && request == null) {
-              return ListView(
-                padding: const EdgeInsets.all(AppConstants.spacingL),
-                children: [
-                  const SkeletonCard(height: 200),
-                  const SizedBox(height: AppConstants.spacingL),
-                  const SkeletonText(width: double.infinity, height: 20, lines: 3),
-                  const SizedBox(height: AppConstants.spacingL),
-                  const SkeletonCard(height: 150),
-                ],
-              );
-            }
-
-            if (request == null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              if (ictController.isLoading.value && request == null) {
+                return ListView(
+                  padding: const EdgeInsets.all(AppConstants.spacingL),
                   children: [
-                    const Text('Request not found'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => ictController.loadRequest(requestId),
-                      child: const Text('Retry'),
-                    ),
+                    const SkeletonCard(height: 200),
+                    const SizedBox(height: AppConstants.spacingL),
+                    const SkeletonText(width: double.infinity, height: 20, lines: 3),
+                    const SizedBox(height: AppConstants.spacingL),
+                    const SkeletonCard(height: 150),
                   ],
-                ),
-              );
-            }
+                );
+              }
 
-            return SingleChildScrollView(
+              if (request == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Request not found'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => ictController.loadRequest(requestId),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return SingleChildScrollView(
               padding: const EdgeInsets.all(AppConstants.spacingM),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +173,8 @@ class ICTRequestDetailPage extends StatelessWidget {
                 ],
               ),
             );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -542,9 +559,18 @@ class ICTRequestDetailPage extends StatelessWidget {
       final userRoles = user.roles.map((r) => r.toUpperCase()).toList();
       
       // Check if any of user's roles match the approval role
-      return userRoles.contains(approvalRole) && 
-             approval.status == 'APPROVED' &&
-             getStageForRole(approvalRole) == workflowStage;
+      if (!userRoles.contains(approvalRole) || approval.status != 'APPROVED') {
+        return false;
+      }
+      
+      // Remove the special handling for DGS that allows approval at any stage
+      // DGS should only be considered as having approved if they approved at DGS_REVIEW
+      if (approvalRole == 'DGS') {
+        return getStageForRole(approvalRole) == workflowStage;
+      }
+      
+      // For other roles, check if approval was at the correct stage
+      return getStageForRole(approvalRole) == workflowStage;
     });
     
     // User can approve if they have permission at the current stage and haven't already approved
@@ -568,7 +594,10 @@ class ICTRequestDetailPage extends StatelessWidget {
           CustomButton(
             text: 'Fulfill Request',
             icon: Icons.check_circle,
-            onPressed: () => _showFulfillmentDialog(context, ictController, request),
+            isLoading: ictController.isFulfilling.value,
+            onPressed: ictController.isFulfilling.value
+                ? null
+                : () => _showFulfillmentDialog(context, ictController, request),
           ),
           const SizedBox(height: AppConstants.spacingM),
         ],
@@ -577,7 +606,10 @@ class ICTRequestDetailPage extends StatelessWidget {
             text: 'Adjust Quantities',
             icon: Icons.edit,
             type: ButtonType.outlined,
-            onPressed: () => _showAdjustQuantitiesDialog(context, ictController, request),
+            isLoading: ictController.isUpdating.value,
+            onPressed: ictController.isUpdating.value
+                ? null
+                : () => _showAdjustQuantitiesDialog(context, ictController, request),
           ),
           const SizedBox(height: AppConstants.spacingM),
         ],
@@ -589,7 +621,10 @@ class ICTRequestDetailPage extends StatelessWidget {
                   text: 'Approve',
                   icon: Icons.check,
                   type: ButtonType.primary,
-                  onPressed: () => _showApproveDialog(context, ictController, request.id),
+                  isLoading: ictController.isApproving.value,
+                  onPressed: ictController.isApproving.value
+                      ? null
+                      : () => _showApproveDialog(context, ictController, request.id),
                 ),
               ),
               const SizedBox(width: AppConstants.spacingM),
@@ -600,7 +635,10 @@ class ICTRequestDetailPage extends StatelessWidget {
                   type: ButtonType.outlined,
                   backgroundColor: AppColors.error,
                   textColor: AppColors.error,
-                  onPressed: () => _showRejectDialog(context, ictController, request.id),
+                  isLoading: ictController.isRejecting.value,
+                  onPressed: ictController.isRejecting.value
+                      ? null
+                      : () => _showRejectDialog(context, ictController, request.id),
                 ),
               ),
             ],
@@ -879,35 +917,48 @@ class ICTRequestDetailPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final fulfillmentData = <String, int>{};
-                          for (var entry in fulfillmentControllers.entries) {
-                            final qty = int.tryParse(entry.value.text) ?? 0;
-                            if (qty > 0) {
-                              fulfillmentData[entry.key] = qty;
-                            }
-                          }
+                      child: Obx(
+                        () => ElevatedButton(
+                          onPressed: controller.isFulfilling.value
+                              ? null
+                              : () async {
+                                  final fulfillmentData = <String, int>{};
+                                  for (var entry in fulfillmentControllers.entries) {
+                                    final qty = int.tryParse(entry.value.text) ?? 0;
+                                    if (qty > 0) {
+                                      fulfillmentData[entry.key] = qty;
+                                    }
+                                  }
 
-                          if (fulfillmentData.isEmpty) {
-                            CustomToast.error('Please specify quantities to fulfill');
-                            return;
-                          }
+                                  if (fulfillmentData.isEmpty) {
+                                    CustomToast.error('Please specify quantities to fulfill');
+                                    return;
+                                  }
 
-                          final success = await controller.fulfillRequest(request.id, fulfillmentData);
-                          if (success) {
-                            Get.back();
-                            CustomToast.success('Request fulfilled successfully');
-                            await controller.loadRequest(request.id);
-                          } else {
-                            CustomToast.error(controller.error.value);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.textOnPrimary,
+                                  final success = await controller.fulfillRequest(request.id, fulfillmentData);
+                                  if (success) {
+                                    Get.back();
+                                    CustomToast.success('Request fulfilled successfully');
+                                    await controller.loadRequest(request.id);
+                                  } else {
+                                    CustomToast.error(controller.error.value);
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.textOnPrimary,
+                          ),
+                          child: controller.isFulfilling.value
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('Fulfill'),
                         ),
-                        child: const Text('Fulfill'),
                       ),
                     ),
                   ],
@@ -925,49 +976,86 @@ class ICTRequestDetailPage extends StatelessWidget {
     bool isDisposed = false;
 
     Get.dialog(
-      AlertDialog(
-        title: const Text('Approve Request'),
-        content: TextField(
-          controller: commentController,
-          decoration: const InputDecoration(
-            labelText: 'Comment (Optional)',
-            hintText: 'Add a comment...',
-          ),
-          maxLines: 3,
+      WillPopScope(
+        onWillPop: () async => !controller.isApproving.value,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Approve Request'),
+              content: controller.isApproving.value
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Approving request...',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    )
+                  : TextField(
+                      controller: commentController,
+                      decoration: const InputDecoration(
+                        labelText: 'Comment (Optional)',
+                        hintText: 'Add a comment...',
+                      ),
+                      maxLines: 3,
+                    ),
+              actions: [
+                TextButton(
+                  onPressed: controller.isApproving.value
+                      ? null
+                      : () {
+                          Get.back();
+                        },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: controller.isApproving.value
+                      ? null
+                      : () async {
+                          final comment = commentController.text.isEmpty ? null : commentController.text;
+                          // Check if we came from pending approvals page
+                          final cameFromPendingApprovals = source == RequestDetailSource.pendingApprovals;
+                          setState(() {}); // Trigger rebuild to show loading
+                          final success = await controller.approveRequest(
+                            requestId,
+                            comment: comment,
+                            reloadPending: cameFromPendingApprovals,
+                          );
+                          if (success) {
+                            Get.back();
+                            CustomToast.success('Request approved successfully');
+                            await controller.loadRequest(requestId);
+                          } else {
+                            setState(() {}); // Trigger rebuild to hide loading
+                            CustomToast.error(controller.error.value);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textOnPrimary,
+                  ),
+                  child: controller.isApproving.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Approve'),
+                ),
+              ],
+            );
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-            },
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final comment = commentController.text.isEmpty ? null : commentController.text;
-              // Check if we came from pending approvals page
-              final cameFromPendingApprovals = source == RequestDetailSource.pendingApprovals;
-              final success = await controller.approveRequest(
-                requestId,
-                comment: comment,
-                reloadPending: cameFromPendingApprovals,
-              );
-              if (success) {
-                Get.back();
-                CustomToast.success('Request approved successfully');
-                await controller.loadRequest(requestId);
-              } else {
-                CustomToast.error(controller.error.value);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            child: const Text('Approve'),
-          ),
-        ],
       ),
+      barrierDismissible: false,
     ).then((_) {
       // Ensure controller is disposed only once when dialog is dismissed
       if (!isDisposed) {
@@ -982,47 +1070,84 @@ class ICTRequestDetailPage extends StatelessWidget {
     bool isDisposed = false;
 
     Get.dialog(
-      AlertDialog(
-        title: const Text('Reject Request'),
-        content: TextField(
-          controller: commentController,
-          decoration: const InputDecoration(
-            labelText: 'Reason *',
-            hintText: 'Please provide a reason for rejection...',
-          ),
-          maxLines: 3,
+      WillPopScope(
+        onWillPop: () async => !controller.isRejecting.value,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Reject Request'),
+              content: controller.isRejecting.value
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Rejecting request...',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    )
+                  : TextField(
+                      controller: commentController,
+                      decoration: const InputDecoration(
+                        labelText: 'Reason *',
+                        hintText: 'Please provide a reason for rejection...',
+                      ),
+                      maxLines: 3,
+                    ),
+              actions: [
+                TextButton(
+                  onPressed: controller.isRejecting.value
+                      ? null
+                      : () {
+                          Get.back();
+                        },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: controller.isRejecting.value
+                      ? null
+                      : () async {
+                          if (commentController.text.isEmpty) {
+                            CustomToast.error('Please provide a reason');
+                            return;
+                          }
+                          final comment = commentController.text;
+                          setState(() {}); // Trigger rebuild to show loading
+                          final success = await controller.rejectRequest(requestId, comment);
+                          if (success) {
+                            Get.back();
+                            CustomToast.success('Request rejected');
+                            await controller.loadRequest(requestId);
+                          } else {
+                            setState(() {}); // Trigger rebuild to hide loading
+                            CustomToast.error(controller.error.value);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: AppColors.textOnPrimary,
+                  ),
+                  child: controller.isRejecting.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Reject'),
+                ),
+              ],
+            );
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-            },
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (commentController.text.isEmpty) {
-                CustomToast.error('Please provide a reason');
-                return;
-              }
-              final comment = commentController.text;
-              final success = await controller.rejectRequest(requestId, comment);
-              if (success) {
-                Get.back();
-                CustomToast.success('Request rejected');
-                await controller.loadRequest(requestId);
-              } else {
-                CustomToast.error(controller.error.value);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            child: const Text('Reject'),
-          ),
-        ],
       ),
+      barrierDismissible: false,
     ).then((_) {
       // Ensure controller is disposed only once when dialog is dismissed
       if (!isDisposed) {
@@ -1255,19 +1380,21 @@ class ICTRequestDetailPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     
     Get.dialog(
-      Dialog(
-        backgroundColor: isDark 
-            ? AppColors.darkSurface 
-            : theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.9,
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
+      WillPopScope(
+        onWillPop: () async => !controller.isUpdating.value,
+        child: Dialog(
+          backgroundColor: isDark
+              ? AppColors.darkSurface
+              : theme.colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: Padding(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1470,32 +1597,45 @@ class ICTRequestDetailPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final itemsData = <String, int>{};
-                          for (var entry in quantityControllers.entries) {
-                            final qty = int.tryParse(entry.value.text) ?? 0;
-                            if (qty <= 0) {
-                              CustomToast.error('All quantities must be greater than 0');
-                              return;
-                            }
-                            itemsData[entry.key] = qty;
-                          }
+                      child: Obx(
+                        () => ElevatedButton(
+                          onPressed: controller.isUpdating.value
+                              ? null
+                              : () async {
+                                  final itemsData = <String, int>{};
+                                  for (var entry in quantityControllers.entries) {
+                                    final qty = int.tryParse(entry.value.text) ?? 0;
+                                    if (qty <= 0) {
+                                      CustomToast.error('All quantities must be greater than 0');
+                                      return;
+                                    }
+                                    itemsData[entry.key] = qty;
+                                  }
 
-                          final success = await controller.updateRequestItems(request.id, itemsData);
-                          if (success) {
-                            Get.back();
-                            CustomToast.success('Quantities updated successfully');
-                            await controller.loadRequest(request.id);
-                          } else {
-                            CustomToast.error(controller.error.value);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: theme.colorScheme.onPrimary,
+                                  final success = await controller.updateRequestItems(request.id, itemsData);
+                                  if (success) {
+                                    Get.back();
+                                    CustomToast.success('Quantities updated successfully');
+                                    await controller.loadRequest(request.id);
+                                  } else {
+                                    CustomToast.error(controller.error.value);
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: theme.colorScheme.onPrimary,
+                          ),
+                          child: controller.isUpdating.value
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('Update'),
                         ),
-                        child: const Text('Update'),
                       ),
                     ),
                   ],
@@ -1503,6 +1643,7 @@ class ICTRequestDetailPage extends StatelessWidget {
               ],
             ),
           ),
+        ),
         ),
       ),
     ).then((_) {

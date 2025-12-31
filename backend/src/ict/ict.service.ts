@@ -136,7 +136,7 @@ export class ICTService {
     await stockHistory.save();
 
     // Check for low stock and send notification if needed
-    await this.checkAndNotifyLowStock(item);
+    await this.checkAndNotifyLowStock(item, userId);
 
     return item;
   }
@@ -253,7 +253,7 @@ export class ICTService {
     }
   }
 
-  private async checkAndNotifyLowStock(item: ICTItemDocument): Promise<void> {
+  private async checkAndNotifyLowStock(item: ICTItemDocument, userId?: string): Promise<void> {
     if (item.quantity <= item.lowStockThreshold && item.isAvailable) {
       // Get users who should be notified (DDICT, DGS, SO)
       const users = await this.usersService.findAll();
@@ -263,23 +263,58 @@ export class ICTService {
         ),
       );
 
+      // Get performer name if userId is provided
+      let performerName = '';
+      if (userId) {
+        try {
+          const performer = await this.usersService.findOne(userId);
+          performerName = performer ? performer.name : '';
+        } catch (error) {
+          console.error('Error fetching performer user:', error);
+        }
+      }
+
+      // Format message with user info if available
+      const baseMessage = `Item "${item.name}" is running low. Current quantity: ${item.quantity}, Threshold: ${item.lowStockThreshold}`;
+      const message = performerName 
+        ? `${baseMessage}. Action performed by ${performerName}.`
+        : baseMessage;
+
+      // 24 hours ago timestamp for duplicate check
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
       for (const user of notifiedUsers) {
         try {
-          const userId = (user as any)._id?.toString() || (user as any).id?.toString();
-          if (!userId) continue;
+          const targetUserId = (user as any)._id?.toString() || (user as any).id?.toString();
+          if (!targetUserId) continue;
+
+          // Check for duplicate notification within last 24 hours
+          const existingNotification = await this.notificationModel.findOne({
+            userId: new Types.ObjectId(targetUserId),
+            type: NotificationType.LOW_STOCK,
+            requestType: RequestType.ICT,
+            message: { $regex: new RegExp(`"${item.name}"`, 'i') },
+            createdAt: { $gte: twentyFourHoursAgo },
+          }).exec();
+
+          // Skip if duplicate notification exists
+          if (existingNotification) {
+            console.log(`[ICT Service] Skipping duplicate low stock notification for user ${targetUserId} and item "${item.name}"`);
+            continue;
+          }
           
           await this.notificationsService.createNotification(
-            userId,
+            targetUserId,
             NotificationType.LOW_STOCK,
             'Low Stock Alert',
-            `Item "${item.name}" is running low. Current quantity: ${item.quantity}, Threshold: ${item.lowStockThreshold}`,
+            message,
             undefined,
             RequestType.ICT,
             true,
           );
         } catch (error) {
-          const userId = (user as any)._id?.toString() || (user as any).id?.toString();
-          console.error(`Error sending low stock notification to user ${userId}:`, error);
+          const targetUserId = (user as any)._id?.toString() || (user as any).id?.toString();
+          console.error(`Error sending low stock notification to user ${targetUserId}:`, error);
         }
       }
     }
@@ -1282,7 +1317,7 @@ export class ICTService {
       await stockHistory.save();
 
       // Check for low stock after fulfillment
-      await this.checkAndNotifyLowStock(item);
+      await this.checkAndNotifyLowStock(item, userId);
 
       // Update request item fulfillment with actual quantity fulfilled
       requestItem.fulfilledQuantity += actualQuantityToFulfill;
@@ -1351,6 +1386,47 @@ export class ICTService {
       );
     } catch (error) {
       console.error('Error sending fulfillment notification:', error);
+    }
+
+    // Notify DDICT users about fulfilled items
+    try {
+      // Collect fulfilled items from the fulfillment operation
+      const fulfilledItemsList = [];
+      for (const fulfillmentItem of fulfillDto.items) {
+        const item = await this.findOneItem(fulfillmentItem.itemId);
+        const actualQuantity = Math.min(fulfillmentItem.quantityFulfilled, item.quantity);
+        fulfilledItemsList.push({
+          name: item.name,
+          quantityFulfilled: actualQuantity,
+        });
+      }
+
+      // Find all DDICT users
+      const allUsers = await this.usersService.findAll();
+      const ddictUsers = allUsers.filter((u) => u.roles.includes(UserRole.DDICT));
+
+      // Send notification to each DDICT user
+      for (const ddictUser of ddictUsers) {
+        const ddictUserId = (ddictUser as any)._id?.toString() || (ddictUser as any).id?.toString();
+        if (!ddictUserId) continue;
+
+        const itemsList = fulfilledItemsList
+          .map((item) => `- ${item.name}: ${item.quantityFulfilled} units`)
+          .join('\n');
+        
+        const message = `ICT items have been issued by ${user.name} (${userRoles[0]}):\n${itemsList}\nRequest ID: ${requestId.substring(0, 8)}...`;
+
+        await this.notificationsService.createNotification(
+          ddictUserId,
+          NotificationType.REQUEST_UPDATED,
+          'ICT Items Issued',
+          message,
+          requestId,
+          RequestType.ICT,
+        );
+      }
+    } catch (error) {
+      console.error('Error sending DDICT fulfillment notification:', error);
     }
 
     return savedRequest;

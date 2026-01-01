@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 
 enum ButtonType { primary, secondary, outlined, text }
 
-class CustomButton extends StatelessWidget {
+class CustomButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final ButtonType type;
@@ -26,177 +27,292 @@ class CustomButton extends StatelessWidget {
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final width = isFullWidth ? double.infinity : null;
-    final isDisabled = onPressed == null || isLoading;
+  State<CustomButton> createState() => _CustomButtonState();
+}
 
-    switch (type) {
+class _CustomButtonState extends State<CustomButton> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    if (widget.onPressed != null && !widget.isLoading) {
+      setState(() => _isPressed = true);
+      _animationController.forward();
+      HapticFeedback.lightImpact();
+    }
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    if (_isPressed) {
+      setState(() => _isPressed = false);
+      _animationController.reverse();
+    }
+  }
+
+  void _handleTapCancel() {
+    if (_isPressed) {
+      setState(() => _isPressed = false);
+      _animationController.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final width = widget.isFullWidth ? double.infinity : null;
+    final isDisabled = widget.onPressed == null || widget.isLoading;
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: GestureDetector(
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        onTap: isDisabled ? null : widget.onPressed,
+        child: _buildButton(context, theme, isDark, width, isDisabled),
+      ),
+    );
+  }
+
+  Widget _buildButton(BuildContext context, ThemeData theme, bool isDark, double? width, bool isDisabled) {
+    switch (widget.type) {
       case ButtonType.primary:
         return Container(
           width: width,
           decoration: BoxDecoration(
-            color: backgroundColor ?? AppColors.primary,
-            borderRadius: BorderRadius.circular(12),
+            color: isDisabled
+                ? (widget.backgroundColor ?? AppColors.primary).withOpacity(0.5)
+                : (widget.backgroundColor ?? (isDark ? AppColors.primaryLight : AppColors.primary)),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: isDisabled
+                ? null
+                : [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withOpacity(0.3)
+                          : (widget.backgroundColor ?? AppColors.primary).withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
+                    ),
+                  ],
           ),
           child: Material(
             color: Colors.transparent,
-            child: InkWell(
-              onTap: isDisabled ? null : onPressed,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-                constraints: const BoxConstraints(
-                  minHeight: 48,
-                ),
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (icon != null) ...[
-                            Icon(icon, size: 22, color: textColor ?? Colors.white),
-                            const SizedBox(width: 12),
-                      ],
-                          Text(
-                            text,
-                            style: TextStyle(
-                              color: textColor ?? Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.75,
-                              height: 1.2,
-                            ),
-                          ),
-                    ],
-                      ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+              constraints: const BoxConstraints(
+                minHeight: 52,
               ),
-                  ),
+              child: widget.isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.icon != null) ...[
+                          Icon(widget.icon, size: 22, color: widget.textColor ?? Colors.white),
+                          const SizedBox(width: 12),
+                        ],
+                        Text(
+                          widget.text,
+                          style: TextStyle(
+                            color: widget.textColor ?? Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ),
         );
 
       case ButtonType.secondary:
-        return SizedBox(
+        return Container(
           width: width,
-          child: ElevatedButton(
-            onPressed: isDisabled ? null : onPressed,
-            style: ElevatedButton.styleFrom(
-              elevation: 0,
-              backgroundColor: backgroundColor ?? AppColors.secondary,
-              foregroundColor: textColor ?? AppColors.textOnPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              minimumSize: const Size(88, 48),
-            ),
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          decoration: BoxDecoration(
+            color: isDisabled
+                ? (widget.backgroundColor ?? AppColors.secondary).withOpacity(0.5)
+                : (widget.backgroundColor ?? (isDark ? AppColors.secondaryLight : AppColors.secondary)),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: isDisabled
+                ? null
+                : [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withOpacity(0.3)
+                          : (widget.backgroundColor ?? AppColors.secondary).withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
                     ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (icon != null) ...[
-                        Icon(icon, size: 20),
-                        const SizedBox(width: 8),
+                  ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+              constraints: const BoxConstraints(minHeight: 52),
+              child: widget.isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.icon != null) ...[
+                          Icon(widget.icon, size: 20, color: widget.textColor ?? Colors.white),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          widget.text,
+                          style: TextStyle(
+                            color: widget.textColor ?? Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
-                      Text(text),
-                    ],
-                  ),
+                    ),
+            ),
           ),
         );
 
       case ButtonType.outlined:
-        return SizedBox(
+        return Container(
           width: width,
-          child: OutlinedButton(
-            onPressed: isDisabled ? null : onPressed,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: textColor ?? AppColors.primary,
-              side: BorderSide(
-                color: backgroundColor ?? AppColors.primary,
-                width: 1.5,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              minimumSize: const Size(88, 48),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDisabled
+                  ? (widget.backgroundColor ?? AppColors.primary).withOpacity(0.3)
+                  : widget.backgroundColor ?? (isDark ? AppColors.primaryLight : AppColors.primary),
+              width: 2,
             ),
-            child: isLoading
-                ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        textColor ?? AppColors.primary,
-                      ),
+            boxShadow: isDisabled
+                ? null
+                : [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withOpacity(0.2)
+                          : (widget.backgroundColor ?? AppColors.primary).withOpacity(0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
                     ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (icon != null) ...[
-                        Icon(icon, size: 20),
-                        const SizedBox(width: 8),
+                  ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+              constraints: const BoxConstraints(minHeight: 52),
+              child: widget.isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          widget.textColor ?? AppColors.primary,
+                        ),
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.icon != null) ...[
+                          Icon(widget.icon, size: 20, color: widget.textColor ?? AppColors.primary),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          widget.text,
+                          style: TextStyle(
+                            color: widget.textColor ?? AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
-                      Text(text),
-                    ],
-                  ),
+                    ),
+            ),
           ),
         );
 
       case ButtonType.text:
-        return SizedBox(
-          width: width,
-          child: TextButton(
-            onPressed: isDisabled ? null : onPressed,
-            style: TextButton.styleFrom(
-              foregroundColor: textColor ?? AppColors.primary,
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isDisabled ? null : widget.onPressed,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: width,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              minimumSize: const Size(88, 48),
-            ),
-            child: isLoading
-                ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        textColor ?? AppColors.primary,
+              constraints: const BoxConstraints(minHeight: 48),
+              child: widget.isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          widget.textColor ?? AppColors.primary,
+                        ),
                       ),
-                    ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (icon != null) ...[
-                        Icon(icon, size: 20),
-                        const SizedBox(width: 8),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.icon != null) ...[
+                          Icon(widget.icon, size: 20, color: widget.textColor ?? AppColors.primary),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          widget.text,
+                          style: TextStyle(
+                            color: widget.textColor ?? AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
-                      Text(text),
-                    ],
-                  ),
+                    ),
+            ),
           ),
         );
     }

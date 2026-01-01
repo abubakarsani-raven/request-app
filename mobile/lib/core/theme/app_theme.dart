@@ -69,17 +69,9 @@ class AppTheme {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: AppColors.border.withOpacity(0.6), // More defined
-            width: 1.5, // Slightly thicker
+            color: AppColors.border.withOpacity(0.3),
+            width: 1.5,
           ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18), // Increased padding
       ),
@@ -192,12 +184,13 @@ class AppTheme {
           fontSize: 22,
           fontWeight: FontWeight.w600,
           letterSpacing: -0.5,
+          shadows: [], // Remove any text shadows that could cause glowing
         ),
         // Add subtle bottom border for flat design (more defined)
         shape: Border(
           bottom: BorderSide(
-            color: AppColors.darkBorderDefined.withOpacity(0.5),
-            width: 1.5, // Match light theme
+            color: AppColors.darkBorderDefined.withOpacity(0.3),
+            width: 1,
           ),
         ),
         iconTheme: IconThemeData(
@@ -240,20 +233,12 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5), // Match light theme
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: AppColors.darkBorderDefined.withOpacity(0.3),
+            width: 1.5,
           ),
-          textStyle: AppTextStyles.button,
-          minimumSize: const Size(88, 48),
         ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18), // Increased padding
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(

@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/services/storage_service.dart';
 import '../../firebase_options.dart';
 
 // Top-level function for background message handling
@@ -27,6 +28,7 @@ class FCMService extends GetxService {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
   Completer<void>? _initializationCompleter;
+  bool _isTokenRegistered = false;
 
   @override
   Future<void> onInit() async {
@@ -75,6 +77,8 @@ class FCMService extends GetxService {
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
         print('🔄 FCM: Token refreshed');
         _fcmToken = newToken;
+        // Note: We don't have userId here, so we'll register on next login
+        // The token refresh listener will try to register if we have a stored userId
         _updateTokenOnBackend(newToken);
       });
 
@@ -106,7 +110,12 @@ class FCMService extends GetxService {
     }
   }
 
-  Future<void> registerToken(String userId) async {
+  /// Register FCM token with retry logic
+  /// Returns true if registration was successful, false otherwise
+  /// IMPORTANT: Token remains registered on backend even after logout
+  Future<bool> registerToken(String userId) async {
+    print('🔔 FCM: Starting token registration for user $userId');
+    
     // Wait for initialization to complete if not already done
     if (!_isInitialized && _initializationCompleter != null) {
       try {
@@ -125,30 +134,82 @@ class FCMService extends GetxService {
     if (_fcmToken == null) {
       try {
         _fcmToken = await _firebaseMessaging.getToken();
+        if (_fcmToken == null) {
+          print('❌ FCM: Failed to get token');
+          return false;
+        }
+        print('✅ FCM: Token obtained (${_fcmToken!.substring(0, 20)}...)');
       } catch (e) {
         print('❌ FCM: Failed to get token: $e');
-        return;
+        return false;
       }
     }
 
-    // Register token on backend
+    // Register token on backend with retry logic
+    // This token will remain registered even after logout
     if (_fcmToken != null) {
-      await _updateTokenOnBackend(_fcmToken!);
+      final success = await _updateTokenOnBackendWithRetry(_fcmToken!);
+      if (success) {
+        _isTokenRegistered = true;
+        print('✅ FCM: Token registered on backend (will persist after logout)');
+      } else {
+        print('❌ FCM: Token registration failed after retries');
+      }
+      return success;
     } else {
       print('⚠️ FCM: No token available to register');
+      return false;
     }
   }
 
+  /// Update token on backend with exponential backoff retry
+  /// Token persists in user document even after logout
+  Future<bool> _updateTokenOnBackendWithRetry(String token, {int maxRetries = 3}) async {
+    int attempt = 0;
+    int delayMs = 500; // Start with 500ms delay
+    
+    while (attempt < maxRetries) {
+      try {
+        await _apiService.post(
+          '/notifications/register-token',
+          data: {'fcmToken': token},
+        );
+        print('✅ FCM: Token registered on backend (attempt ${attempt + 1})');
+        return true;
+      } catch (e) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          print('❌ FCM: Error updating token on backend after $maxRetries attempts: $e');
+          return false;
+        }
+        
+        // Exponential backoff: 500ms, 1000ms, 2000ms
+        delayMs = delayMs * 2;
+        print('⚠️ FCM: Token registration failed (attempt $attempt/$maxRetries), retrying in ${delayMs}ms...');
+        await Future.delayed(Duration(milliseconds: delayMs));
+      }
+    }
+    
+    return false;
+  }
+
+  /// Non-blocking version for token refresh (when we don't have userId)
   Future<void> _updateTokenOnBackend(String token) async {
     try {
-      await _apiService.post(
-        '/notifications/register-token',
-        data: {'fcmToken': token},
-      );
-      print('✅ FCM: Token registered on backend');
+      // Only update if we have an auth token (user is logged in)
+      // Otherwise, token will be registered on next login
+      final authToken = await StorageService.getToken();
+      if (authToken != null) {
+        await _apiService.post(
+          '/notifications/register-token',
+          data: {'fcmToken': token},
+        );
+        print('✅ FCM: Token updated on backend');
+      } else {
+        print('ℹ️ FCM: Token refreshed but user not logged in - will register on next login');
+      }
     } catch (e) {
       print('❌ FCM: Error updating token on backend: $e');
-      // Don't throw - allow retry later
     }
   }
 

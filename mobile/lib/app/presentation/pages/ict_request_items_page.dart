@@ -86,12 +86,15 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<ICTRequestController>();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Request Items'),
         elevation: 0,
       ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       body: _cart.isEmpty
           ? Center(
               child: Column(
@@ -100,21 +103,21 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
                   Icon(
                     Icons.shopping_cart_outlined,
                     size: 64,
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   ),
                   const SizedBox(height: AppConstants.spacingL),
                   Text(
                     'No items selected',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: AppConstants.spacingS),
                   Text(
                     'Add items from the catalog to create a request',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -125,10 +128,12 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
                 Container(
                   padding: const EdgeInsets.all(AppConstants.spacingL),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
                     border: Border(
                       bottom: BorderSide(
-                        color: AppColors.border.withOpacity(0.3),
+                        color: isDark 
+                            ? AppColors.darkBorderDefined.withOpacity(0.3)
+                            : AppColors.border.withOpacity(0.3),
                         width: 1,
                       ),
                     ),
@@ -139,16 +144,17 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
                       Flexible(
                         child: Text(
                           'Request Items (${_cart.length} ${_cart.length == 1 ? 'item' : 'items'})',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
                         ),
                       ),
                       Text(
                         'Total: ${_getTotalItems()} ${_getTotalItems() == 1 ? 'item' : 'items'}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -201,16 +207,20 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
                 Container(
                   padding: const EdgeInsets.all(AppConstants.spacingL),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
                     border: Border(
                       top: BorderSide(
-                        color: AppColors.border.withOpacity(0.3),
+                        color: isDark 
+                            ? AppColors.darkBorderDefined.withOpacity(0.3)
+                            : AppColors.border.withOpacity(0.3),
                         width: 1,
                       ),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: isDark
+                            ? Colors.black.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -2),
                       ),
@@ -238,10 +248,36 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
     int quantity,
     int index,
   ) {
-    return Card(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
       margin: const EdgeInsets.only(bottom: AppConstants.spacingS),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark 
+              ? AppColors.darkBorderDefined.withOpacity(0.3)
+              : AppColors.border.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.15)
+                : Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(AppConstants.spacingS),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -257,41 +293,51 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
                     children: [
                       Text(
                         item.name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       // Category Badge (inline)
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              item.category,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.primaryLight.withOpacity(0.15)
+                              : AppColors.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isDark
+                                ? AppColors.primaryLight.withOpacity(0.25)
+                                : AppColors.primary.withOpacity(0.25),
+                            width: 1,
                           ),
-                        ],
+                        ),
+                        child: Text(
+                          item.category,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isDark ? AppColors.primaryLight : AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: AppColors.error,
+                    size: 20,
+                  ),
                   onPressed: () => _removeItem(index),
                   tooltip: 'Remove item',
                   padding: EdgeInsets.zero,
@@ -301,65 +347,79 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
             ),
             // Description (compact)
             if (item.description.isNotEmpty) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 item.description,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  fontSize: 11,
+                  height: 1.3,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
             // Quantity Controls (compact)
-            const SizedBox(height: AppConstants.spacingS),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Quantity',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                      ),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove_circle_outline, size: 20),
+                      icon: Icon(
+                        Icons.remove_circle_outline,
+                        size: 20,
+                        color: isDark ? AppColors.primaryLight : AppColors.primary,
+                      ),
                       onPressed: () => _updateQuantity(index, quantity - 1),
-                      color: AppColors.primary,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppConstants.spacingS,
-                        vertical: 4,
+                        horizontal: 12,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(6),
+                        color: isDark ? AppColors.darkSurfaceLight : AppColors.surfaceElevation1,
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppColors.border.withOpacity(0.3),
+                          color: isDark 
+                              ? AppColors.darkBorderDefined.withOpacity(0.3)
+                              : AppColors.border.withOpacity(0.3),
+                          width: 1,
                         ),
                       ),
                       child: Text(
                         '$quantity',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.add_circle_outline, size: 20),
+                      icon: Icon(
+                        Icons.add_circle_outline,
+                        size: 20,
+                        color: (item.isAvailable && item.quantity > quantity)
+                            ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                            : (isDark ? AppColors.darkTextDisabled : AppColors.textDisabled),
+                      ),
                       onPressed: item.isAvailable && item.quantity > quantity
                           ? () => _updateQuantity(index, quantity + 1)
                           : null,
-                      color: AppColors.primary,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -369,27 +429,42 @@ class _ICTRequestItemsPageState extends State<ICTRequestItemsPage> {
             ),
             // Availability Warning (compact)
             if (!item.isAvailable || item.quantity < quantity) ...[
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 14,
-                    color: AppColors.warning,
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: AppColors.warning.withOpacity(0.25),
+                    width: 1,
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      !item.isAvailable
-                          ? 'Item is currently unavailable'
-                          : 'Requested quantity exceeds available stock',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.warning,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 14,
+                      color: AppColors.warning,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        !item.isAvailable
+                            ? 'Item is currently unavailable'
+                            : 'Requested quantity exceeds available stock',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ],

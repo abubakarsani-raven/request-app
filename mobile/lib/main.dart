@@ -9,6 +9,7 @@ import 'core/utils/orientation_service.dart';
 import 'app/presentation/pages/splash_page.dart';
 import 'app/presentation/pages/login_page.dart';
 import 'app/presentation/pages/dashboard_page.dart';
+import 'core/middleware/auth_middleware.dart';
 import 'app/presentation/pages/request_list_page.dart';
 import 'app/presentation/pages/request_detail_page.dart';
 import 'app/presentation/pages/trip_tracking_page.dart';
@@ -156,6 +157,7 @@ class MyApp extends StatelessWidget {
             }
             return StoreRequestDetailPage(requestId: id);
           },
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/store/fulfill/:id',
@@ -171,6 +173,7 @@ class MyApp extends StatelessWidget {
             }
             return StoreFulfillmentPage(requestId: id);
           },
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/assign/:id',
@@ -186,42 +189,52 @@ class MyApp extends StatelessWidget {
             }
             return AssignmentPage(requestId: id);
           },
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/driver/dashboard',
           page: () => DriverDashboardPage(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/approvals',
           page: () => ApprovalQueuePage(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/assign-vehicles',
           page: () => const AssignVehicleListPage(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/profile',
           page: () => const ProfileScreen(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/notifications',
           page: () => const NotificationsScreen(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/qr-scanner',
           page: () => const QRScannerPage(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/requests/ict/history',
           page: () => const ICTRequestHistoryPage(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/requests/transport/history',
           page: () => const TransportRequestHistoryPage(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/requests/store/history',
           page: () => const StoreRequestHistoryPage(),
+          middlewares: [AuthMiddleware()],
         ),
       ],
     ));

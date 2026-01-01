@@ -22,6 +22,7 @@ class StoreRequestController extends GetxController {
   // Operation-specific loading flags
   final RxBool isApproving = false.obs;
   final RxBool isRejecting = false.obs;
+  final RxBool isCancelling = false.obs;
   final RxBool isFulfilling = false.obs;
   final RxBool isCreating = false.obs;
   final RxBool isUpdating = false.obs;
@@ -107,7 +108,7 @@ class StoreRequestController extends GetxController {
 
   Future<void> loadPendingApprovals() async {
     isLoadingPending.value = true;
-    isLoading.value = true;
+    // Use specific flag instead of generic isLoading to avoid conflicts
     error.value = '';
 
     try {
@@ -117,7 +118,6 @@ class StoreRequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingPending.value = false;
-      isLoading.value = false;
     }
   }
 
@@ -157,7 +157,7 @@ class StoreRequestController extends GetxController {
 
   Future<void> loadFulfillmentQueue() async {
     isLoadingFulfillment.value = true;
-    isLoading.value = true;
+    // Use specific flag instead of generic isLoading to avoid conflicts
     error.value = '';
 
     try {
@@ -169,7 +169,6 @@ class StoreRequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingFulfillment.value = false;
-      isLoading.value = false;
     }
   }
 
@@ -267,6 +266,33 @@ class StoreRequestController extends GetxController {
     } catch (e) {
       error.value = e.toString();
       isRejecting.value = false;
+      isLoading.value = false;
+      return false;
+    }
+  }
+
+  Future<bool> cancelRequest(String id, String reason) async {
+    isCancelling.value = true;
+    isLoading.value = true;
+    try {
+      final result = await _storeService.cancelRequest(id, reason);
+      if (result['success'] == true) {
+        isReloading.value = true;
+        await loadRequest(id);
+        await loadStoreRequests();
+        isReloading.value = false;
+        isCancelling.value = false;
+        isLoading.value = false;
+        return true;
+      } else {
+        error.value = result['message'] ?? 'Failed to cancel request';
+        isCancelling.value = false;
+        isLoading.value = false;
+        return false;
+      }
+    } catch (e) {
+      error.value = e.toString();
+      isCancelling.value = false;
       isLoading.value = false;
       return false;
     }

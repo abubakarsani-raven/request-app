@@ -136,13 +136,43 @@ class AssignmentService extends GetxService {
 
   Future<List<dynamic>> getDriverTrips(String driverId) async {
     try {
+      print('[AssignmentService] ===== FETCHING DRIVER TRIPS =====');
+      print('[AssignmentService] Driver ID: $driverId');
       final response = await _apiService.get('/vehicles/requests?driverId=$driverId');
+      print('[AssignmentService] Response status: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
-        return response.data as List;
+        final data = response.data;
+        print('[AssignmentService] Response data type: ${data.runtimeType}');
+        print('[AssignmentService] Response data (raw): $data');
+        
+        if (data is List) {
+          print('[AssignmentService] ✅ Found ${data.length} driver trips');
+          print('[AssignmentService] ===== END FETCHING DRIVER TRIPS =====');
+          return data;
+        } else if (data is Map) {
+          print('[AssignmentService] Response is Map, not List. Keys: ${data.keys}');
+          // Sometimes APIs return { data: [...] } format
+          if (data.containsKey('data') && data['data'] is List) {
+            print('[AssignmentService] Found trips in data field: ${(data['data'] as List).length}');
+            print('[AssignmentService] ===== END FETCHING DRIVER TRIPS =====');
+            return data['data'] as List;
+          }
+        }
+        print('[AssignmentService] ❌ Response is not a List, returning empty list');
+        print('[AssignmentService] ===== END FETCHING DRIVER TRIPS =====');
+        return [];
       }
+      print('[AssignmentService] ❌ Failed to fetch driver trips: Status ${response.statusCode}');
+      if (response.data != null) {
+        print('[AssignmentService] Error response: ${response.data}');
+      }
+      print('[AssignmentService] ===== END FETCHING DRIVER TRIPS =====');
       return [];
-    } catch (e) {
-      print('Error fetching driver trips: $e');
+    } catch (e, stackTrace) {
+      print('[AssignmentService] ❌ EXCEPTION: $e');
+      print('[AssignmentService] Stack trace: $stackTrace');
+      print('[AssignmentService] ===== END FETCHING DRIVER TRIPS =====');
       return [];
     }
   }

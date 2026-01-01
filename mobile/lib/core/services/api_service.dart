@@ -2,11 +2,28 @@ import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart';
 import '../constants/app_constants.dart';
 import '../widgets/custom_toast.dart';
+import '../utils/app_logger.dart';
 import 'storage_service.dart';
 
 class ApiService extends GetxService {
   late dio.Dio _dio;
   bool _isRefreshing = false;
+
+  /// Sanitize data to remove sensitive information before logging
+  Map<String, dynamic> _sanitizeData(dynamic data) {
+    if (data == null) return {};
+    if (data is! Map) return {'data': '[non-map data]'};
+    
+    final sanitized = Map<String, dynamic>.from(data);
+    // Remove sensitive fields
+    final sensitiveKeys = ['password', 'access_token', 'refresh_token', 'token', 'authorization'];
+    for (final key in sensitiveKeys) {
+      if (sanitized.containsKey(key)) {
+        sanitized[key] = '[REDACTED]';
+      }
+    }
+    return sanitized;
+  }
 
   @override
   void onInit() {
@@ -22,32 +39,38 @@ class ApiService extends GetxService {
 
     _dio.interceptors.add(dio.InterceptorsWrapper(
       onRequest: (options, handler) async {
-        print('📤 [API Request] ${options.method} ${options.baseUrl}${options.path}');
-        if (options.data != null) {
-          print('📦 [Request Data] ${options.data}');
-        }
-        final token = StorageService.getToken();
+        AppLogger.apiRequest(
+          options.method,
+          '${options.baseUrl}${options.path}',
+          options.data != null ? _sanitizeData(options.data) : null,
+        );
+        final token = await StorageService.getToken();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
       },
       onResponse: (response, handler) {
-        print('✅ [API Response] ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.path}');
-        if (response.data != null) {
-          print('📥 [Response Data] ${response.data}');
-        }
+        AppLogger.apiResponse(
+          response.statusCode ?? 0,
+          response.requestOptions.method,
+          response.requestOptions.path,
+          response.data != null ? _sanitizeData(response.data) : null,
+        );
         return handler.next(response);
       },
       onError: (error, handler) async {
-        print('❌ [API Error] ${error.requestOptions.method} ${error.requestOptions.baseUrl}${error.requestOptions.path}');
-        print('❌ [Error Type] ${error.type}');
-        print('❌ [Error Message] ${error.message}');
+        AppLogger.apiError(
+          error.requestOptions.method,
+          '${error.requestOptions.baseUrl}${error.requestOptions.path}',
+          error.message ?? 'Unknown error',
+          error.response?.statusCode,
+        );
         if (error.response != null) {
-          print('❌ [Status Code] ${error.response?.statusCode}');
-          print('❌ [Response Data] ${error.response?.data}');
+          final sanitized = _sanitizeData(error.response?.data);
+          AppLogger.debug('Response Data: $sanitized', 'API');
         } else {
-          print('❌ [No Response] Connection error - ${error.message}');
+          AppLogger.warning('No Response - Connection error: ${error.message}', 'API');
         }
         
         // Skip refresh logic for refresh endpoint itself to prevent infinite loop
@@ -122,7 +145,7 @@ class ApiService extends GetxService {
       ));
       
       // Get the current token and add it to the request
-      final token = StorageService.getToken();
+      final token = await StorageService.getToken();
       if (token == null) {
         print('❌ [Refresh] No token found');
         return false;
@@ -142,13 +165,13 @@ class ApiService extends GetxService {
         final newToken = response.data['access_token'];
         if (newToken != null) {
           await StorageService.saveToken(newToken);
-          print('✅ [Refresh] Token refreshed successfully');
+          AppLogger.info('Token refreshed successfully', 'Auth');
           return true;
         }
       }
-      print('❌ [Refresh] Invalid response: ${response.statusCode}');
-    } catch (e) {
-      print('❌ [Refresh] Error: $e');
+      AppLogger.error('Invalid response: ${response.statusCode}', null, null, 'Auth');
+    } catch (e, stackTrace) {
+      AppLogger.error('Token refresh error', e, stackTrace, 'Auth');
     }
     return false;
   }

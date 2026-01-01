@@ -23,6 +23,7 @@ class ICTRequestController extends GetxController {
   // Operation-specific loading flags
   final RxBool isApproving = false.obs;
   final RxBool isRejecting = false.obs;
+  final RxBool isCancelling = false.obs;
   final RxBool isFulfilling = false.obs;
   final RxBool isCreating = false.obs;
   final RxBool isUpdating = false.obs;
@@ -49,8 +50,9 @@ class ICTRequestController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Load catalog items on init (needed for create request page)
     loadCatalogItems();
-    loadICTRequests();
+    // Don't load requests on init - load only when needed (lazy loading)
   }
 
   Future<void> loadCatalogItems({String? category}) async {
@@ -63,26 +65,49 @@ class ICTRequestController extends GetxController {
       List<CatalogItemModel> items;
       try {
         items = await _ictService.getCatalogItems(category: category);
+        print('[ICT Controller] Loaded ${items.length} catalog items${category != null ? ' for category: $category' : ''}');
       } catch (e) {
+        print('[ICT Controller] Error loading catalog items with category filter: $e');
         // Fallback: load all items and filter client-side
-        final allItems = await _ictService.getCatalogItems();
-        if (category != null && category.isNotEmpty) {
-          items = allItems.where((item) => item.category == category).toList();
-        } else {
-          items = allItems;
+        try {
+          final allItems = await _ictService.getCatalogItems();
+          print('[ICT Controller] Loaded ${allItems.length} total catalog items');
+          if (category != null && category.isNotEmpty) {
+            items = allItems.where((item) => item.category == category).toList();
+            print('[ICT Controller] Filtered to ${items.length} items for category: $category');
+          } else {
+            items = allItems;
+          }
+        } catch (fallbackError) {
+          print('[ICT Controller] Error in fallback loading: $fallbackError');
+          error.value = 'Failed to load catalog items: ${fallbackError.toString()}';
+          catalogItems.value = [];
+          return;
         }
+      }
+
+      if (items.isEmpty) {
+        print('[ICT Controller] Warning: No catalog items found${category != null ? ' for category: $category' : ''}');
       }
 
       catalogItems.value = items;
 
       // Extract unique categories (load all items for category list)
       if (categories.isEmpty) {
-        final allItems = await _ictService.getCatalogItems();
-        final uniqueCategories = allItems.map((item) => item.category).toSet().toList();
-        categories.value = uniqueCategories;
+        try {
+          final allItems = await _ictService.getCatalogItems();
+          final uniqueCategories = allItems.map((item) => item.category).where((cat) => cat.isNotEmpty).toSet().toList()..sort();
+          categories.value = uniqueCategories;
+          print('[ICT Controller] Found ${uniqueCategories.length} categories: $uniqueCategories');
+        } catch (e) {
+          print('[ICT Controller] Error loading categories: $e');
+          // Don't fail if categories can't be loaded, just use empty list
+        }
       }
     } catch (e) {
+      print('[ICT Controller] Unexpected error in loadCatalogItems: $e');
       error.value = e.toString();
+      catalogItems.value = [];
     } finally {
       isLoadingCatalog.value = false;
       isLoading.value = false;
@@ -142,7 +167,7 @@ class ICTRequestController extends GetxController {
 
   Future<void> loadDepartmentRequests(String departmentId) async {
     isLoadingDepartment.value = true;
-    isLoading.value = true;
+    // Use specific flag instead of generic isLoading to avoid conflicts
     error.value = '';
 
     try {
@@ -152,13 +177,12 @@ class ICTRequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingDepartment.value = false;
-      isLoading.value = false;
     }
   }
 
   Future<void> loadStageSpecificRequests(String workflowStage) async {
     isLoadingStage.value = true;
-    isLoading.value = true;
+    // Use specific flag instead of generic isLoading to avoid conflicts
     error.value = '';
 
     try {
@@ -170,13 +194,12 @@ class ICTRequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingStage.value = false;
-      isLoading.value = false;
     }
   }
 
   Future<void> loadFulfillmentQueue() async {
     isLoadingFulfillment.value = true;
-    isLoading.value = true;
+    // Use specific flag instead of generic isLoading to avoid conflicts
     error.value = '';
 
     try {
@@ -188,13 +211,12 @@ class ICTRequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingFulfillment.value = false;
-      isLoading.value = false;
     }
   }
 
   Future<void> loadUnfulfilledRequests() async {
     isLoadingUnfulfilled.value = true;
-    isLoading.value = true;
+    // Use specific flag instead of generic isLoading to avoid conflicts
     error.value = '';
 
     try {
@@ -204,7 +226,6 @@ class ICTRequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingUnfulfilled.value = false;
-      isLoading.value = false;
     }
   }
 
@@ -307,6 +328,33 @@ class ICTRequestController extends GetxController {
     }
   }
 
+  Future<bool> cancelRequest(String id, String reason) async {
+    isCancelling.value = true;
+    isLoading.value = true;
+    try {
+      final result = await _ictService.cancelRequest(id, reason);
+      if (result['success'] == true) {
+        isReloading.value = true;
+        await loadRequest(id);
+        await loadICTRequests();
+        isReloading.value = false;
+        isCancelling.value = false;
+        isLoading.value = false;
+        return true;
+      } else {
+        error.value = result['message'] ?? 'Failed to cancel request';
+        isCancelling.value = false;
+        isLoading.value = false;
+        return false;
+      }
+    } catch (e) {
+      error.value = e.toString();
+      isCancelling.value = false;
+      isLoading.value = false;
+      return false;
+    }
+  }
+
   Future<bool> fulfillRequest(String id, Map<String, int> fulfillmentData) async {
     isFulfilling.value = true;
     isLoading.value = true;
@@ -373,23 +421,24 @@ class ICTRequestController extends GetxController {
       final result = await _ictService.updateRequestItems(id, itemsList);
       if (result['success'] == true) {
         isReloading.value = true;
-        await loadRequest(id);
-        await loadICTRequests();
-        isReloading.value = false;
-        isUpdating.value = false;
-        isLoading.value = false;
+        try {
+          await loadRequest(id);
+          await loadICTRequests();
+        } finally {
+          isReloading.value = false;
+        }
         return true;
       } else {
         error.value = result['message'] ?? 'Failed to update request items';
-        isUpdating.value = false;
-        isLoading.value = false;
         return false;
       }
     } catch (e) {
       error.value = e.toString();
+      return false;
+    } finally {
+      // Always clear loading flags
       isUpdating.value = false;
       isLoading.value = false;
-      return false;
     }
   }
 

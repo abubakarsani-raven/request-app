@@ -31,7 +31,8 @@ class ICTRequestDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ictController = Get.put(ICTRequestController());
+    // Use Get.find() - controller already registered in InitialBinding
+    final ictController = Get.find<ICTRequestController>();
     final authController = Get.find<AuthController>();
 
     // Load request details
@@ -1616,7 +1617,7 @@ class ICTRequestDetailPage extends StatelessWidget {
                                   if (success) {
                                     Get.back();
                                     CustomToast.success('Quantities updated successfully');
-                                    await controller.loadRequest(request.id);
+                                    // Note: loadRequest is already called in updateRequestItems, no need to call again
                                   } else {
                                     CustomToast.error(controller.error.value);
                                   }

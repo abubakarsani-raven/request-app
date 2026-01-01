@@ -77,7 +77,8 @@ class ApprovalQueuePage extends StatelessWidget {
     dynamic user,
     PermissionService permissionService,
   ) {
-    final requestController = Get.put(RequestController());
+    // Use Get.find() - controller already registered in InitialBinding
+    final requestController = Get.find<RequestController>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Use role-specific endpoint for pending approvals
@@ -165,7 +166,10 @@ class ApprovalQueuePage extends StatelessWidget {
                   Get.to(() => ICTRequestDetailPage(
                     requestId: request.id,
                     source: RequestDetailSource.pendingApprovals,
-                  ));
+                  ))?.then((_) {
+                    // Reload pending approvals when coming back
+                    ictController.loadPendingApprovals();
+                  });
                 },
               ),
             );
@@ -180,7 +184,8 @@ class ApprovalQueuePage extends StatelessWidget {
     dynamic user,
     PermissionService permissionService,
   ) {
-    final storeController = Get.put(StoreRequestController());
+    // Use Get.find() - controller already registered in InitialBinding
+    final storeController = Get.find<StoreRequestController>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Use pending approvals endpoint which handles role-based filtering

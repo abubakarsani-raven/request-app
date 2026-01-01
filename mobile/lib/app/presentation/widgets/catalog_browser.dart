@@ -14,11 +14,13 @@ import '../pages/ict_request_items_page.dart';
 class CatalogBrowser extends StatefulWidget {
   final Function(List<Map<String, dynamic>>) onItemsSelected;
   final List<Map<String, dynamic>> selectedItems;
+  final VoidCallback? onFilterTap;
 
   const CatalogBrowser({
     Key? key,
     required this.onItemsSelected,
     this.selectedItems = const [],
+    this.onFilterTap,
   }) : super(key: key);
 
   @override
@@ -217,84 +219,78 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                 ),
               ),
             ),
-            // Category Filter Button
+            // Active Filter Badge (if filter is active and not in AppBar)
             Obx(
               () {
-                final categories = controller.categories;
+                // Use controller's reactive variable, not local state
+                final selectedCategory = controller.selectedCategory.value;
+                final hasActiveFilter = selectedCategory.isNotEmpty;
                 
-                if (categories.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppConstants.spacingM,
-                    horizontal: AppConstants.spacingL,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark 
-                        ? AppColors.darkSurface 
-                        : theme.colorScheme.surface,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: isDark 
-                            ? AppColors.darkBorderDefined.withOpacity(0.5)
-                            : AppColors.border.withOpacity(0.5),
-                        width: 1.5,
+                if (hasActiveFilter && widget.onFilterTap == null) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.spacingL,
+                      vertical: AppConstants.spacingS,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.primaryLight.withOpacity(0.15)
+                          : AppColors.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3),
+                        width: 1,
                       ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showCategoryFilterBottomSheet(context, controller, categories),
-                          icon: Icon(
-                            Icons.filter_list_rounded,
-                            size: 20,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                          label: Text(
-                            _selectedCategory.isEmpty ? 'All Categories' : _selectedCategory,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.category_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            selectedCategory,
                             style: TextStyle(
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                              fontWeight: FontWeight.w500,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
                             ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppConstants.spacingM,
-                              vertical: AppConstants.spacingM,
-                            ),
-                            side: BorderSide(
-                              color: isDark 
-                                  ? AppColors.darkBorderDefined
-                                  : AppColors.border,
-                              width: 1.5,
-                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ),
-                      if (_selectedCategory.isNotEmpty) ...[
-                        const SizedBox(width: AppConstants.spacingS),
-                        IconButton(
-                          onPressed: () {
+                        GestureDetector(
+                          onTap: () {
                             setState(() {
                               _selectedCategory = '';
                             });
                             controller.selectedCategory.value = '';
                             controller.loadCatalogItems();
                           },
-                          icon: Icon(
-                            Icons.clear,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
                           ),
-                          tooltip: 'Clear filter',
                         ),
                       ],
-                    ],
-                  ),
-                );
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
               },
             ),
             // Catalog Items List
@@ -303,6 +299,47 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                 () {
                   if (controller.isLoading.value) {
                     return const Center(child: CircularProgressIndicator());
+                  }
+
+                  // Show error if catalog items failed to load
+                  if (controller.error.isNotEmpty && controller.catalogItems.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppConstants.spacingL),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: isDark ? AppColors.error : AppColors.error,
+                            ),
+                            const SizedBox(height: AppConstants.spacingM),
+                            Text(
+                              'Failed to load catalog items',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: AppConstants.spacingS),
+                            Text(
+                              controller.error.value,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: AppConstants.spacingM),
+                            ElevatedButton.icon(
+                              onPressed: () => controller.loadCatalogItems(category: _selectedCategory.isEmpty ? null : _selectedCategory),
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }
 
                   // Filter items by search query
@@ -323,7 +360,9 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                           : 'No items available',
                       message: _searchQuery.isNotEmpty
                           ? 'Try a different search term'
-                          : 'Try selecting a different category',
+                          : controller.catalogItems.isEmpty
+                              ? 'Catalog items are not available. Please contact administrator.'
+                              : 'Try selecting a different category',
                       type: _searchQuery.isNotEmpty
                           ? EmptyStateType.noResults
                           : EmptyStateType.noData,
@@ -406,7 +445,7 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
     );
   }
 
-  void _showCategoryFilterBottomSheet(
+  void _showModernFilterBottomSheet(
     BuildContext context,
     ICTRequestController controller,
     List<String> categories,
@@ -417,137 +456,386 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => StandardBottomSheet(
-        title: 'Select Category',
-        initialChildSize: 0.5,
-        minChildSize: 0.3,
-        maxChildSize: 0.7,
-        child: Column(
-          children: [
-            // All Categories option
-            _buildCategoryOption(
-              context: context,
-              label: 'All',
-              icon: Icons.apps_rounded,
-              isSelected: _selectedCategory.isEmpty,
-              onTap: () {
-                setState(() {
-                  _selectedCategory = '';
-                });
-                controller.selectedCategory.value = '';
-                controller.loadCatalogItems();
-                Navigator.pop(context);
-                SheetHaptics.selectionClick();
-              },
-            ),
-            const Divider(height: 1),
-            // Category options
-            Expanded(
-              child: ListView.builder(
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  final category = categories[index];
-                  final isSelected = _selectedCategory == category;
-                  
-                  return Column(
-                    children: [
-                      _buildCategoryOption(
-                        context: context,
-                        label: category,
-                        icon: _getCategoryIcon(category),
-                        isSelected: isSelected,
-                        onTap: () {
-                          setState(() {
-                            _selectedCategory = category;
-                          });
-                          controller.selectedCategory.value = category;
-                          controller.loadCatalogItems(category: category);
-                          Navigator.pop(context);
-                          SheetHaptics.selectionClick();
-                        },
-                      ),
-                      if (index < categories.length - 1)
-                        const Divider(height: 1),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
+      builder: (context) => FilterBottomSheet(
+        title: 'Filter Items',
+        applyText: 'Apply Filters',
+        clearText: _selectedCategory.isNotEmpty ? 'Clear' : null,
+        activeFilterCount: _selectedCategory.isNotEmpty ? 1 : 0,
+        onApply: () => Navigator.pop(context),
+        onClear: () {
+          setState(() {
+            _selectedCategory = '';
+          });
+          controller.selectedCategory.value = '';
+          controller.loadCatalogItems();
+          Navigator.pop(context);
+          SheetHaptics.selectionClick();
+        },
+        initialChildSize: 0.6,
+        child: _ModernFilterContent(
+          categories: categories,
+          selectedCategory: _selectedCategory,
+          onCategorySelected: (category) {
+            setState(() {
+              _selectedCategory = category;
+            });
+            controller.selectedCategory.value = category;
+            controller.loadCatalogItems(category: category.isEmpty ? null : category);
+            Navigator.pop(context);
+            SheetHaptics.selectionClick();
+          },
         ),
       ),
     );
   }
 
-  Widget _buildCategoryOption({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+  void showFilterBottomSheet(BuildContext context) {
+    if (!Get.isRegistered<ICTRequestController>()) return;
+    
+    final controller = Get.find<ICTRequestController>();
+    final categories = controller.categories;
+    
+    if (categories.isEmpty) return;
+    
+    _showModernFilterBottomSheet(context, controller, categories);
+  }
+
+  Widget _buildItemCard(
+    BuildContext context,
+    CatalogItemModel item,
+    bool isInCart,
+  ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isAvailable = item.isAvailable && item.quantity > 0;
     
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.spacingL,
-            vertical: AppConstants.spacingM,
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 10 * (1 - value)),
+            child: child,
           ),
-          color: isSelected
-              ? (isDark 
-                  ? AppColors.primaryLight.withOpacity(0.1)
-                  : AppColors.primary.withOpacity(0.1))
-              : Colors.transparent,
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                      : (isDark 
-                          ? AppColors.darkSurfaceLight 
-                          : AppColors.surfaceElevation1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: isSelected
-                      ? (isDark ? AppColors.darkSurface : Colors.white)
-                      : (isDark 
-                          ? AppColors.darkTextPrimary 
-                          : AppColors.textPrimary),
-                ),
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.zero,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    AppColors.darkSurface,
+                    AppColors.darkSurfaceLight,
+                  ]
+                : [
+                    theme.colorScheme.surface,
+                    AppColors.surfaceElevation1,
+                  ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark 
+                ? AppColors.darkBorderDefined.withOpacity(0.3)
+                : AppColors.border.withOpacity(0.2),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isAvailable && !isInCart ? () => _addToCart(item) : null,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
               ),
-              const SizedBox(width: AppConstants.spacingM),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isDark 
-                        ? AppColors.darkTextPrimary 
-                        : AppColors.textPrimary,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left side - Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Item Name
+                        Text(
+                          item.name,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            letterSpacing: -0.2,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // Description
+                        if (item.description.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            item.description,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: isDark 
+                                  ? AppColors.darkTextSecondary 
+                                  : AppColors.textSecondary,
+                              fontSize: 12,
+                              height: 1.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        // Category and Availability in one row
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.primaryLight.withOpacity(0.15)
+                                    : AppColors.primary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.primary.withOpacity(0.25),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.category_rounded,
+                                    size: 12,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item.category,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isAvailable
+                                    ? AppColors.success.withOpacity(0.12)
+                                    : AppColors.error.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isAvailable
+                                      ? AppColors.success.withOpacity(0.25)
+                                      : AppColors.error.withOpacity(0.25),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isAvailable
+                                        ? AppIcons.check
+                                        : AppIcons.cancel,
+                                    size: 12,
+                                    color: isAvailable
+                                        ? AppColors.success
+                                        : AppColors.error,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isAvailable ? 'Available' : 'Unavailable',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isAvailable
+                                          ? AppColors.success
+                                          : AppColors.error,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  // Right side - Add to Cart Button
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: isInCart
+                          ? AppColors.success
+                          : isAvailable
+                              ? AppColors.primary
+                              : (isDark 
+                                  ? AppColors.darkSurfaceLight 
+                                  : AppColors.surfaceElevation1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: (!isAvailable && !isInCart)
+                          ? Border.all(
+                              color: isDark 
+                                  ? AppColors.darkBorderDefined 
+                                  : AppColors.border,
+                              width: 1,
+                            )
+                          : null,
+                      boxShadow: (isAvailable || isInCart)
+                          ? [
+                              BoxShadow(
+                                color: (isInCart ? AppColors.success : AppColors.primary)
+                                    .withOpacity(0.25),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: isAvailable
+                            ? () => _addToCart(item)
+                            : null,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 8,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isInCart ? AppIcons.check : AppIcons.add,
+                                size: 18,
+                                color: isInCart || isAvailable
+                                    ? Colors.white
+                                    : (isDark 
+                                        ? AppColors.darkTextDisabled 
+                                        : AppColors.textDisabled),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  isInCart ? 'Added' : 'Add',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isInCart || isAvailable
+                                        ? Colors.white
+                                        : (isDark 
+                                            ? AppColors.darkTextDisabled 
+                                            : AppColors.textDisabled),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              if (isSelected)
-                Icon(
-                  Icons.check_circle,
-                  color: isDark ? AppColors.primaryLight : AppColors.primary,
-                  size: 24,
-                ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ModernFilterContent extends StatelessWidget {
+  final List<String> categories;
+  final String selectedCategory;
+  final Function(String) onCategorySelected;
+
+  const _ModernFilterContent({
+    Key? key,
+    required this.categories,
+    required this.selectedCategory,
+    required this.onCategorySelected,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Category Section
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Text(
+            'Category',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // All Categories option
+        _ModernFilterOption(
+          label: 'All Categories',
+          icon: Icons.apps_rounded,
+          isSelected: selectedCategory.isEmpty,
+          onTap: () => onCategorySelected(''),
+        ),
+        const SizedBox(height: 8),
+        // Category options
+        ...categories.map((category) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ModernFilterOption(
+              label: category,
+              icon: _getCategoryIcon(category),
+              isSelected: selectedCategory == category,
+              onTap: () => onCategorySelected(category),
+            ),
+          );
+        }),
+      ],
     );
   }
 
@@ -575,193 +863,175 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
       return Icons.category_rounded;
     }
   }
+}
 
+class _ModernFilterOption extends StatefulWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-  Widget _buildItemCard(
-    BuildContext context,
-    CatalogItemModel item,
-    bool isInCart,
-  ) {
+  const _ModernFilterOption({
+    Key? key,
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<_ModernFilterOption> createState() => _ModernFilterOptionState();
+}
+
+class _ModernFilterOptionState extends State<_ModernFilterOption> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isAvailable = item.isAvailable && item.quantity > 0;
-    
-    return Card(
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDark 
-              ? AppColors.darkBorderDefined.withOpacity(0.5)
-              : AppColors.border.withOpacity(0.5),
-          width: 1.5,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.spacingM),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left side - Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Item Name
-                  Text(
-                    item.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: theme.colorScheme.onSurface,
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: GestureDetector(
+        onTapDown: (_) => _controller.forward(),
+        onTapUp: (_) {
+          _controller.reverse();
+          widget.onTap();
+        },
+        onTapCancel: () => _controller.reverse(),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+          decoration: BoxDecoration(
+            gradient: widget.isSelected
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary.withOpacity(0.15),
+                      AppColors.primaryLight.withOpacity(0.1),
+                    ],
+                  )
+                : null,
+            color: widget.isSelected
+                ? null
+                : (isDark ? AppColors.darkSurfaceLight : AppColors.surfaceElevation1),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: widget.isSelected
+                  ? AppColors.primary.withOpacity(0.4)
+                  : (isDark 
+                      ? AppColors.darkBorderDefined.withOpacity(0.3)
+                      : AppColors.border.withOpacity(0.2)),
+              width: widget.isSelected ? 2 : 1.5,
+            ),
+            boxShadow: widget.isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  ]
+                : null,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: widget.isSelected
+                      ? LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primaryLight,
+                          ],
+                        )
+                      : null,
+                  color: widget.isSelected
+                      ? null
+                      : (isDark 
+                          ? AppColors.darkSurface 
+                          : AppColors.surface),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: widget.isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Icon(
+                  widget.icon,
+                  size: 22,
+                  color: widget.isSelected
+                      ? Colors.white
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w600,
+                    color: widget.isSelected
+                        ? AppColors.primary
+                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                   ),
-                  // Description
-                  if (item.description.isNotEmpty) ...[
-                    const SizedBox(height: AppConstants.spacingXS),
-                    Text(
-                      item.description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark 
-                            ? AppColors.darkTextSecondary 
-                            : AppColors.textSecondary,
-                        fontSize: 13,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: AppConstants.spacingS),
-                  // Category and Availability in one row
-                  Wrap(
-                    spacing: AppConstants.spacingS,
-                    runSpacing: AppConstants.spacingXS,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppConstants.spacingS,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (isDark 
-                              ? AppColors.primaryLight 
-                              : AppColors.primary).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          item.category,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark 
-                                ? AppColors.primaryLight 
-                                : AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isAvailable
-                                ? AppIcons.check
-                                : AppIcons.cancel,
-                            size: 14,
-                            color: isAvailable
-                                ? AppColors.success
-                                : AppColors.error,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isAvailable ? 'Available' : 'Unavailable',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isAvailable
-                                  ? AppColors.success
-                                  : AppColors.error,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                ),
+              ),
+              if (widget.isSelected)
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            // Right side - Add to Cart Button
-            const SizedBox(width: AppConstants.spacingS),
-            SizedBox(
-              width: 90,
-              child: OutlinedButton(
-                onPressed: isAvailable
-                    ? () => _addToCart(item)
-                    : null,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppConstants.spacingS,
-                    horizontal: AppConstants.spacingS,
+                  child: const Icon(
+                    Icons.check,
+                    size: 16,
+                    color: Colors.white,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  side: BorderSide(
-                    color: isInCart
-                        ? AppColors.success
-                        : (isAvailable 
-                            ? theme.colorScheme.primary 
-                            : (isDark 
-                                ? AppColors.darkBorderDefined 
-                                : AppColors.border)),
-                    width: 1.5,
-                  ),
-                  backgroundColor: isInCart
-                      ? AppColors.success.withOpacity(0.1)
-                      : null,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isInCart ? AppIcons.check : AppIcons.add,
-                      size: AppIcons.sizeSmall,
-                      color: isInCart
-                          ? AppColors.success
-                          : (isAvailable 
-                              ? theme.colorScheme.primary 
-                              : (isDark 
-                                  ? AppColors.darkTextDisabled 
-                                  : AppColors.textDisabled)),
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        isInCart ? 'Added' : 'Add',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isInCart
-                              ? AppColors.success
-                              : (isAvailable 
-                                  ? theme.colorScheme.primary 
-                                  : (isDark 
-                                      ? AppColors.darkTextDisabled 
-                                      : AppColors.textDisabled)),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+
 }

@@ -74,11 +74,7 @@ export class RequestsController {
     @CurrentUser() user: any,
     @Body() body: { reason?: string },
   ) {
-    // Cancel is essentially a reject with a specific reason
-    const rejectDto: RejectRequestDto = {
-      comment: body.reason || 'Request cancelled by user',
-    };
-    return this.vehiclesService.rejectRequest(id, user._id || user.id, user.roles, rejectDto);
+    return this.vehiclesService.cancelRequest(id, user._id || user.id, user.roles, body);
   }
 
   @Get('vehicle/:id')
@@ -140,10 +136,7 @@ export class RequestsController {
     @CurrentUser() user: any,
     @Body() body: { reason?: string },
   ) {
-    const rejectDto: RejectRequestDto = {
-      comment: body.reason || 'Request cancelled by user',
-    };
-    return this.ictService.rejectRequest(id, user._id || user.id, user.roles, rejectDto);
+    return this.ictService.cancelRequest(id, user._id || user.id, user.roles, body);
   }
 
   @Get('ict/:id')
@@ -205,10 +198,7 @@ export class RequestsController {
     @CurrentUser() user: any,
     @Body() body: { reason?: string },
   ) {
-    const rejectDto: RejectRequestDto = {
-      comment: body.reason || 'Request cancelled by user',
-    };
-    return this.storeService.rejectRequest(id, user._id || user.id, user.roles, rejectDto);
+    return this.storeService.cancelRequest(id, user._id || user.id, user.roles, body);
   }
 
   @Get('store/:id')

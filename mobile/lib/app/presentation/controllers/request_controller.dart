@@ -40,7 +40,8 @@ class RequestController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadVehicleRequests();
+    // Don't load on init - load only when needed (lazy loading)
+    // This prevents unnecessary API calls when controller is created but not used
   }
 
   Future<void> loadVehicleRequests({bool myRequests = false, bool pending = false}) async {
@@ -83,29 +84,22 @@ class RequestController extends GetxController {
 
   Future<void> loadPendingApprovals() async {
     isLoadingPending.value = true;
-    isLoading.value = true;
+    // Don't set isLoading to avoid conflicts - use specific flag
     error.value = '';
 
     try {
-      print('🔄 [RequestController] Loading pending approvals...');
       final requests = await _requestService.getPendingApprovals();
-      print('✅ [RequestController] Received ${requests.length} pending approvals');
       vehicleRequests.value = requests;
-      print('✅ [RequestController] Updated vehicleRequests with ${vehicleRequests.length} items');
-    } catch (e, stackTrace) {
-      print('❌ [RequestController] Error loading pending approvals: $e');
-      print('❌ [RequestController] Stack trace: $stackTrace');
+    } catch (e) {
       error.value = e.toString();
     } finally {
       isLoadingPending.value = false;
-      isLoading.value = false;
-      print('🏁 [RequestController] Finished loading pending approvals');
     }
   }
 
   Future<void> loadDepartmentRequests(String departmentId) async {
     isLoadingDepartment.value = true;
-    isLoading.value = true;
+    // Use specific flag instead of generic isLoading to avoid conflicts
     error.value = '';
 
     try {
@@ -115,13 +109,12 @@ class RequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingDepartment.value = false;
-      isLoading.value = false;
     }
   }
 
   Future<void> loadStageSpecificRequests(String workflowStage) async {
     isLoadingStage.value = true;
-    isLoading.value = true;
+    // Use specific flag instead of generic isLoading to avoid conflicts
     error.value = '';
 
     try {
@@ -133,7 +126,6 @@ class RequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingStage.value = false;
-      isLoading.value = false;
     }
   }
 
@@ -262,6 +254,35 @@ class RequestController extends GetxController {
     } catch (e) {
       error.value = e.toString();
       isRejecting.value = false;
+      isLoading.value = false;
+      return false;
+    }
+  }
+
+  final RxBool isCancelling = false.obs;
+
+  Future<bool> cancelRequest(String id, String reason) async {
+    isCancelling.value = true;
+    isLoading.value = true;
+    try {
+      final result = await _requestService.cancelRequest(id, reason);
+      if (result['success'] == true) {
+        isReloading.value = true;
+        await loadRequest(id);
+        await loadVehicleRequests();
+        isReloading.value = false;
+        isCancelling.value = false;
+        isLoading.value = false;
+        return true;
+      } else {
+        error.value = result['message'] ?? 'Failed to cancel request';
+        isCancelling.value = false;
+        isLoading.value = false;
+        return false;
+      }
+    } catch (e) {
+      error.value = e.toString();
+      isCancelling.value = false;
       isLoading.value = false;
       return false;
     }

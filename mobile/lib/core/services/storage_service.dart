@@ -1,19 +1,29 @@
 import 'package:get_storage/get_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class StorageService {
   static final GetStorage _storage = GetStorage();
+  // Secure storage for sensitive data (tokens)
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+    ),
+  );
   
-  // Token Management
+  // Token Management - Using secure storage
   static Future<void> saveToken(String token) async {
-    await _storage.write('auth_token', token);
+    await _secureStorage.write(key: 'auth_token', value: token);
   }
   
-  static String? getToken() {
-    return _storage.read('auth_token');
+  static Future<String?> getToken() async {
+    return await _secureStorage.read(key: 'auth_token');
   }
   
   static Future<void> removeToken() async {
-    await _storage.remove('auth_token');
+    await _secureStorage.delete(key: 'auth_token');
   }
   
   // User Data
@@ -29,13 +39,13 @@ class StorageService {
     await _storage.remove('user_data');
   }
   
-  // FCM Token
+  // FCM Token - Using secure storage
   static Future<void> saveFcmToken(String token) async {
-    await _storage.write('fcm_token', token);
+    await _secureStorage.write(key: 'fcm_token', value: token);
   }
   
-  static String? getFcmToken() {
-    return _storage.read('fcm_token');
+  static Future<String?> getFcmToken() async {
+    return await _secureStorage.read(key: 'fcm_token');
   }
   
   // Generic Methods

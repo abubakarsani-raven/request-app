@@ -18,6 +18,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/custom_toast.dart';
+import '../../../core/widgets/bottom_sheet_wrapper.dart';
 import '../../data/services/office_service.dart';
 
 class CreateRequestPage extends StatefulWidget {
@@ -40,10 +41,15 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
   final _purposeController = TextEditingController();
   final _startPointController = TextEditingController();
   final _dropOffController = TextEditingController();
-  late final RequestController _requestController;
-  late final ICTRequestController _ictController;
-  late final StoreRequestController _storeController;
+  RequestController? _requestController;
+  ICTRequestController? _ictController;
+  StoreRequestController? _storeController;
   final OfficeService _officeService = OfficeService();
+  
+  // Getters to safely access controllers
+  RequestController get requestController => _requestController ??= Get.find<RequestController>();
+  ICTRequestController get ictController => _ictController ??= Get.find<ICTRequestController>();
+  StoreRequestController get storeController => _storeController ??= Get.find<StoreRequestController>();
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
@@ -81,12 +87,11 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
   @override
   void initState() {
     super.initState();
-    // Ensure controllers are initialized
-    _requestController = Get.put(RequestController());
-    _ictController = Get.put(ICTRequestController());
-    _storeController = Get.put(StoreRequestController());
-    
-    if (widget.type == 'vehicle') {
+    // Use Get.find() - controllers already registered in InitialBinding
+    // Initialize only if not already initialized (prevents LateInitializationError on rebuild)
+    _requestController ??= Get.find<RequestController>();
+    _ictController ??= Get.find<ICTRequestController>();
+    _storeController ??= Get.find<StoreRequestController>();
       // Check if we have pre-filled data from repeating a request
       final params = Get.parameters;
       
@@ -164,7 +169,6 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
       }
       
       _initializeOfficeLocation();
-    }
   }
   
   Future<void> _initializeOfficeLocation() async {
@@ -1067,7 +1071,7 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
         }).toList();
       }
 
-      final success = await _requestController.createVehicleRequest(data);
+      final success = await requestController.createVehicleRequest(data);
 
       if (success) {
         // Refresh notifications after successful request creation
@@ -1086,8 +1090,8 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
         );
       } else {
         CustomToast.error(
-          _requestController.error.value.isNotEmpty
-              ? _requestController.error.value
+          requestController.error.value.isNotEmpty
+              ? requestController.error.value
               : 'Failed to create request',
           title: 'Error',
         );
@@ -1101,7 +1105,7 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
         return;
       }
 
-      final success = await _ictController.createICTRequest(_selectedItems);
+      final success = await ictController.createICTRequest(_selectedItems);
 
       if (success) {
         // Refresh notifications after successful request creation
@@ -1120,8 +1124,8 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
         );
       } else {
         CustomToast.error(
-          _ictController.error.value.isNotEmpty
-              ? _ictController.error.value
+          ictController.error.value.isNotEmpty
+              ? ictController.error.value
               : 'Failed to create request',
           title: 'Error',
         );
@@ -1135,7 +1139,7 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
         return;
       }
 
-      final success = await _storeController.createStoreRequest(_selectedItems);
+      final success = await storeController.createStoreRequest(_selectedItems);
 
       if (success) {
         // Refresh notifications after successful request creation
@@ -1154,8 +1158,8 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
         );
       } else {
         CustomToast.error(
-          _storeController.error.value.isNotEmpty
-              ? _storeController.error.value
+          storeController.error.value.isNotEmpty
+              ? storeController.error.value
               : 'Failed to create request',
           title: 'Error',
         );
@@ -1190,9 +1194,9 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
       controller: _drawerController,
       child: Obx(
         () => LoadingOverlay(
-          isLoading: (widget.type == 'vehicle' && _requestController.isCreating.value) ||
-                     (widget.type == 'ict' && _ictController.isCreating.value) ||
-                     (widget.type == 'store' && _storeController.isCreating.value),
+          isLoading: (widget.type == 'vehicle' && requestController.isCreating.value) ||
+                     (widget.type == 'ict' && ictController.isCreating.value) ||
+                     (widget.type == 'store' && storeController.isCreating.value),
           message: 'Creating request...',
           child: Scaffold(
             appBar: AppBar(
@@ -1201,6 +1205,41 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
                 onPressed: () => Get.back(),
               ),
               title: Text(title),
+              actions: widget.type == 'ict'
+                  ? [
+                      Obx(
+                        () {
+                          final controller = Get.find<ICTRequestController>();
+                          final hasActiveFilter = controller.selectedCategory.value.isNotEmpty;
+                          return IconButton(
+                            icon: Stack(
+                              children: [
+                                const Icon(Icons.filter_list_rounded),
+                                if (hasActiveFilter)
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const SizedBox(
+                                        width: 8,
+                                        height: 8,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            onPressed: () => _showICTFilterBottomSheet(),
+                            tooltip: 'Filter items',
+                          );
+                        },
+                      ),
+                    ]
+                  : null,
             ),
             body: body,
           ),
@@ -1286,40 +1325,31 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
                         width: 1,
                       ),
                     ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.primary,
-                        radius: 16,
-                        child: Text(
-                          '${point['order']}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                    padding: const EdgeInsets.all(AppConstants.spacingS),
+                    child: Row(
+                      children: [
+                        Icon(Icons.place, size: 18, color: AppColors.primary),
+                        const SizedBox(width: AppConstants.spacingS),
+                        Expanded(
+                          child: Text(
+                            point['name'] ?? 'Pickup Point ${index + 1}',
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ),
-                      ),
-                      title: Text(
-                        point['address'] as String,
-                        style: const TextStyle(fontSize: 14),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 18),
-                            onPressed: () => _showPickupPointPicker(index),
-                            color: AppColors.primary,
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, size: 18),
-                            onPressed: () => _removePickupPoint(index),
-                            color: AppColors.error,
-                          ),
-                        ],
-                      ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          color: AppColors.error,
+                          onPressed: () {
+                            setState(() {
+                              _pickupPoints.removeAt(index);
+                              if (index < _pickupLocationNotifiers.length) {
+                                _pickupLocationNotifiers[index].dispose();
+                                _pickupLocationNotifiers.removeAt(index);
+                              }
+                            });
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -1478,10 +1508,10 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
               () => CustomButton(
                 text: 'Submit Request',
                 icon: Icons.send,
-                onPressed: _requestController.isLoading.value
+                onPressed: requestController.isLoading.value
                     ? null
                     : _submitRequest,
-                isLoading: _requestController.isLoading.value,
+                isLoading: requestController.isLoading.value,
               ),
             ),
           ],
@@ -1490,10 +1520,236 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
     );
   }
 
+  Widget _buildModernFilterContent(
+    BuildContext context,
+    List<String> categories,
+    String selectedCategory,
+    ICTRequestController controller,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Text(
+            'Category',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildFilterOption(
+          context,
+          label: 'All Categories',
+          icon: Icons.apps_rounded,
+          isSelected: selectedCategory.isEmpty,
+          onTap: () {
+            controller.selectedCategory.value = '';
+            controller.loadCatalogItems();
+            Navigator.pop(context);
+          },
+        ),
+        const SizedBox(height: 8),
+        ...categories.map((category) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _buildFilterOption(
+              context,
+              label: category,
+              icon: _getCategoryIcon(category),
+              isSelected: selectedCategory == category,
+              onTap: () {
+                controller.selectedCategory.value = category;
+                controller.loadCatalogItems(category: category);
+                Navigator.pop(context);
+              },
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildFilterOption(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? null
+              : (isDark ? AppColors.darkSurfaceLight : AppColors.surfaceElevation1),
+          gradient: isSelected
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary.withOpacity(0.15),
+                    AppColors.primaryLight.withOpacity(0.1),
+                  ],
+                )
+              : null,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary.withOpacity(0.4)
+                : (isDark 
+                    ? AppColors.darkBorderDefined.withOpacity(0.3)
+                    : AppColors.border.withOpacity(0.2)),
+            width: isSelected ? 2 : 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: [
+                          AppColors.primary,
+                          AppColors.primaryLight,
+                        ],
+                      )
+                    : null,
+                color: isSelected
+                    ? null
+                    : (isDark ? AppColors.darkSurface : AppColors.surface),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected
+                      ? AppColors.primary
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                ),
+              ),
+            ),
+            if (isSelected)
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    final lowerCategory = category.toLowerCase();
+    if (lowerCategory.contains('printer') || lowerCategory.contains('print')) {
+      return Icons.print_rounded;
+    } else if (lowerCategory.contains('laptop') || lowerCategory.contains('computer')) {
+      return Icons.laptop_mac_rounded;
+    } else if (lowerCategory.contains('phone') || lowerCategory.contains('mobile')) {
+      return Icons.phone_android_rounded;
+    } else if (lowerCategory.contains('monitor') || lowerCategory.contains('screen') || lowerCategory.contains('display')) {
+      return Icons.monitor_rounded;
+    } else if (lowerCategory.contains('network') || lowerCategory.contains('router')) {
+      return Icons.router_rounded;
+    } else if (lowerCategory.contains('cable') || lowerCategory.contains('wire')) {
+      return Icons.cable_rounded;
+    } else if (lowerCategory.contains('keyboard') || lowerCategory.contains('mouse') || lowerCategory.contains('accessories')) {
+      return Icons.mouse_rounded;
+    } else if (lowerCategory.contains('toner') || lowerCategory.contains('cartridge')) {
+      return Icons.auto_fix_high_rounded;
+    } else if (lowerCategory.contains('storage') || lowerCategory.contains('hard drive')) {
+      return Icons.storage_rounded;
+    } else {
+      return Icons.category_rounded;
+    }
+  }
+
   Widget _buildICTRequestForm() {
     return CatalogBrowser(
       onItemsSelected: _onItemsSelected,
       selectedItems: _selectedItems,
+      onFilterTap: _showICTFilterBottomSheet,
+    );
+  }
+
+  void _showICTFilterBottomSheet() {
+    if (!Get.isRegistered<ICTRequestController>()) return;
+    
+    final controller = Get.find<ICTRequestController>();
+    final categories = controller.categories;
+    final selectedCategory = controller.selectedCategory.value;
+    
+    if (categories.isEmpty) {
+      // Load categories first
+      controller.loadCatalogItems().then((_) {
+        if (controller.categories.isNotEmpty && mounted) {
+          _showFilterSheet(controller, controller.categories, selectedCategory);
+        }
+      });
+      return;
+    }
+    
+    _showFilterSheet(controller, categories, selectedCategory);
+  }
+
+  void _showFilterSheet(ICTRequestController controller, List<String> categories, String selectedCategory) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FilterBottomSheet(
+        title: 'Filter Items',
+        applyText: 'Apply Filters',
+        clearText: selectedCategory.isNotEmpty ? 'Clear' : null,
+        activeFilterCount: selectedCategory.isNotEmpty ? 1 : 0,
+        onApply: () => Navigator.pop(context),
+        onClear: () {
+          controller.selectedCategory.value = '';
+          controller.loadCatalogItems();
+          Navigator.pop(context);
+        },
+        initialChildSize: 0.6,
+        child: _buildModernFilterContent(
+          context,
+          categories,
+          selectedCategory,
+          controller,
+        ),
+      ),
     );
   }
 
@@ -1521,10 +1777,10 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
             () => CustomButton(
               text: 'Submit Request',
               icon: Icons.send,
-              onPressed: _storeController.isLoading.value || _selectedItems.isEmpty
+              onPressed: storeController.isLoading.value || _selectedItems.isEmpty
                   ? null
                   : _submitRequest,
-              isLoading: _storeController.isLoading.value,
+              isLoading: storeController.isLoading.value,
             ),
           ),
         ),

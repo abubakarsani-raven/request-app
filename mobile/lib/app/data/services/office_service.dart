@@ -55,7 +55,7 @@ class OfficeService {
   OfficeService() {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = StorageService.getToken();
+        final token = await StorageService.getToken();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }

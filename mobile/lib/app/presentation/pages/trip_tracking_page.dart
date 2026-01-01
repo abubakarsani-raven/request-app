@@ -22,13 +22,20 @@ class TripTrackingPage extends StatefulWidget {
 }
 
 class _TripTrackingPageState extends State<TripTrackingPage> {
-  final TripController tripController = Get.put(TripController());
-  final TripModeController modeController = Get.put(TripModeController());
+  // Use Get.find() for controllers already registered in bindings
+  // Use Get.put() only for page-specific controllers that need fresh instances
+  late final TripController tripController;
+  late final TripModeController modeController;
   GoogleMapController? _mapController;
 
   @override
   void initState() {
     super.initState();
+    // Get or create controllers
+    tripController = Get.find<TripController>();
+    // TripModeController is page-specific, create new instance
+    modeController = Get.put(TripModeController());
+    
     // Load trip details and initialize mode
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await tripController.loadTripDetails(widget.requestId);

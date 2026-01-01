@@ -5,7 +5,8 @@
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
 3. Enable the following APIs:
-   - **Maps SDK for Android**
+   - **Maps SDK for Android** (for Android)
+   - **Maps SDK for iOS** (for iOS)
    - **Geocoding API** (for address lookups)
    - **Places API** (if you need place search)
 
@@ -14,6 +15,7 @@
 
 ## Step 2: Restrict Your API Key (Recommended for Production)
 
+### For Android:
 1. Click on your API key to edit it
 2. Under **Application restrictions**, select **Android apps**
 3. Click **Add an item**
@@ -21,6 +23,13 @@
 5. Get your SHA-1 certificate fingerprint (see below)
 6. Add the SHA-1 fingerprint
 7. Under **API restrictions**, restrict to only the APIs you need
+
+### For iOS:
+1. Click on your API key to edit it
+2. Under **Application restrictions**, select **iOS apps**
+3. Click **Add an item**
+4. Enter your bundle ID: `com.nsc.requestapp`
+5. Under **API restrictions**, restrict to only the APIs you need
 
 ## Step 3: Get SHA-1 Certificate Fingerprint
 
@@ -42,7 +51,9 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 keytool -list -v -keystore /path/to/your/keystore.jks -alias your-key-alias
 ```
 
-## Step 4: Add API Key to AndroidManifest.xml
+## Step 4: Add API Key to Your App
+
+### For Android:
 
 1. Open `android/app/src/main/AndroidManifest.xml`
 2. Find the `<application>` tag
@@ -54,10 +65,24 @@ keytool -list -v -keystore /path/to/your/keystore.jks -alias your-key-alias
     android:value="YOUR_ACTUAL_API_KEY_HERE"/>
 ```
 
+### For iOS:
+
+1. Open `ios/Runner/Info.plist`
+2. Add the API key (already configured):
+
+```xml
+<key>GMSApiKey</key>
+<string>YOUR_ACTUAL_API_KEY_HERE</string>
+```
+
+The API key is already configured in `Info.plist` as: `AIzaSyD3apWjzMf9iPAdZTSGR4ln2pU7U6Lo7_I`
+
 ## Step 5: Replace the Placeholder
 
 In `android/app/src/main/AndroidManifest.xml`, replace:
 - `YOUR_GOOGLE_MAPS_API_KEY_HERE` with your actual API key
+
+**Note:** iOS API key is already configured in `Info.plist`.
 
 ## Important Notes:
 
@@ -96,8 +121,16 @@ android {
 
 ## Troubleshooting:
 
+### Android:
 - **"API key not found"**: Make sure the meta-data is inside the `<application>` tag
 - **"API key invalid"**: Check that you've enabled the correct APIs
 - **"This API key is not authorized"**: Add your SHA-1 fingerprint to the API key restrictions
 - **Maps not loading**: Check your internet connection and API quota
+
+### iOS:
+- **"API key not found"**: Verify `GMSApiKey` is in `Info.plist`
+- **"API key invalid"**: Check that Maps SDK for iOS is enabled in Google Cloud Console
+- **"This API key is not authorized"**: Add your bundle ID (`com.nsc.requestapp`) to the API key restrictions
+- **Maps not loading**: Check your internet connection and API quota
+- **Build errors**: Ensure CocoaPods dependencies are installed (`pod install` in `ios/` directory)
 

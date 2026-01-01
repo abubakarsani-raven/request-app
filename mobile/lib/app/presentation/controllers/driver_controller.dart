@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../data/services/assignment_service.dart';
 import '../../data/models/request_model.dart';
+import '../../data/models/ict_request_model.dart';
 import '../controllers/auth_controller.dart';
 import '../../../core/services/websocket_service.dart';
 
@@ -9,13 +10,18 @@ class DriverController extends GetxController {
   final AuthController _authController = Get.find<AuthController>();
 
   final RxList<VehicleRequestModel> assignedTrips = <VehicleRequestModel>[].obs;
+  final RxList<ICTRequestModel> ictRequestsForPickup = <ICTRequestModel>[].obs;
   final RxBool isLoading = false.obs;
+  final RxBool isLoadingICT = false.obs;
   final RxString error = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
     loadAssignedTrips();
+    // ICT requests removed - requesters pick up their own requests
+    // Drivers no longer see ICT requests for pickup
+    // loadICTRequestsForPickup();
     _setupWebSocketListeners();
   }
 
@@ -39,12 +45,33 @@ class DriverController extends GetxController {
       }
 
       final trips = await _assignmentService.getDriverTrips(userId);
+      print('[Driver Controller] Received ${trips.length} trips from service');
+      
       // Include all trips (including completed) - getters will filter them
-      assignedTrips.value = trips
-          .map((json) => VehicleRequestModel.fromJson(json))
-          .toList();
-    } catch (e) {
+      // Handle parsing errors for individual items gracefully
+      final parsedTrips = <VehicleRequestModel>[];
+      for (var i = 0; i < trips.length; i++) {
+        try {
+          final tripJson = trips[i];
+          if (tripJson is Map<String, dynamic>) {
+            parsedTrips.add(VehicleRequestModel.fromJson(tripJson));
+          } else {
+            print('[Driver Controller] ⚠️ Trip at index $i is not a Map: ${tripJson.runtimeType}');
+          }
+        } catch (e, stackTrace) {
+          print('[Driver Controller] ❌ Error parsing trip at index $i: $e');
+          print('[Driver Controller] Stack trace: $stackTrace');
+          // Continue parsing other trips even if one fails
+        }
+      }
+      
+      print('[Driver Controller] Successfully parsed ${parsedTrips.length} out of ${trips.length} trips');
+      assignedTrips.value = parsedTrips;
+    } catch (e, stackTrace) {
+      print('[Driver Controller] ❌ Error loading assigned trips: $e');
+      print('[Driver Controller] Stack trace: $stackTrace');
       error.value = e.toString();
+      assignedTrips.value = [];
     } finally {
       isLoading.value = false;
     }
@@ -76,5 +103,30 @@ class DriverController extends GetxController {
             trip.status == RequestStatus.completed) // Include trips marked as completed
         .toList();
   }
-}
 
+  /// Load ICT requests that are approved and ready for pickup
+  /// DEPRECATED: ICT requests are no longer shown to drivers
+  /// Requesters pick up their own ICT requests
+  /// This method is kept for backward compatibility but is no longer called
+  Future<void> loadICTRequestsForPickup() async {
+    isLoadingICT.value = true;
+    try {
+      // Always return empty list - drivers no longer see ICT requests
+      ictRequestsForPickup.value = [];
+      print('[Driver Controller] ICT requests no longer loaded for drivers - requesters pick up their own requests');
+    } catch (e) {
+      print('[Driver Controller] Error loading ICT requests: $e');
+      ictRequestsForPickup.value = [];
+    } finally {
+      isLoadingICT.value = false;
+    }
+  }
+
+  /// Get ICT requests related to a specific trip
+  /// DEPRECATED: ICT requests are no longer shown to drivers
+  /// This method is kept for backward compatibility but always returns empty list
+  List<ICTRequestModel> getICTRequestsForTrip(VehicleRequestModel trip) {
+    // Always return empty - drivers no longer see ICT requests
+    return [];
+  }
+}

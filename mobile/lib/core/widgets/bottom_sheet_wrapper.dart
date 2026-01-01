@@ -255,10 +255,36 @@ class FormBottomSheet extends StatelessWidget {
                 ),
               ),
             if (cancelText != null) const SizedBox(width: 12),
-            Expanded(
-              flex: cancelText != null ? 1 : 0,
-              child: SizedBox(
-                width: cancelText == null ? double.infinity : null,
+            if (cancelText == null)
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: (isSubmitEnabled && !isLoading && onSubmit != null)
+                      ? onSubmit
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(submitText),
+                ),
+              )
+            else
+              Expanded(
+                flex: 1,
                 child: ElevatedButton(
                   onPressed: (isSubmitEnabled && !isLoading && onSubmit != null)
                       ? onSubmit
@@ -284,7 +310,6 @@ class FormBottomSheet extends StatelessWidget {
                       : Text(submitText),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -359,10 +384,25 @@ class FilterBottomSheet extends StatelessWidget {
               ),
             if (clearText != null && (activeFilterCount == null || activeFilterCount! > 0))
               const SizedBox(width: 12),
-            Expanded(
-              flex: clearText != null ? 1 : 0,
-              child: SizedBox(
-                width: clearText == null ? double.infinity : null,
+            if (clearText == null)
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: onApply,
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(applyText),
+                ),
+              )
+            else
+              Expanded(
+                flex: 1,
                 child: ElevatedButton(
                   onPressed: onApply,
                   style: ElevatedButton.styleFrom(
@@ -377,7 +417,6 @@ class FilterBottomSheet extends StatelessWidget {
                   child: Text(applyText),
                 ),
               ),
-            ),
           ],
         ),
       ),

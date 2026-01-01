@@ -25,6 +25,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/widgets/custom_toast.dart';
 import '../../../core/services/permission_service.dart';
+import '../../../core/utils/app_logger.dart';
 
 class RequestListPage extends StatefulWidget {
   final bool myRequests;
@@ -54,10 +55,10 @@ class _RequestListPageState extends State<RequestListPage> {
   @override
   void initState() {
     super.initState();
-    // Ensure controllers are initialized
-    vehicleController = Get.put(RequestController());
-    ictController = Get.put(ICTRequestController());
-    storeController = Get.put(StoreRequestController());
+    // Use Get.find() - controllers already registered in InitialBinding
+    vehicleController = Get.find<RequestController>();
+    ictController = Get.find<ICTRequestController>();
+    storeController = Get.find<StoreRequestController>();
     
     // IMPORTANT: For "My Requests", ensure filter is set to 'all' to show all statuses
     // Users should see all their requests regardless of status (pending, approved, completed, etc.)
@@ -77,35 +78,27 @@ class _RequestListPageState extends State<RequestListPage> {
     // For "My Requests", always load ALL request types (ICT, Store, Transport)
     // regardless of user role - users should see all requests they created
     if (widget.myRequests) {
-      print('[RequestListPage] Loading My Requests for user: ${user.id}');
-      await vehicleController.loadVehicleRequests(
-        myRequests: true,
-        pending: false,
-      );
-      print('[RequestListPage] Vehicle requests loaded: ${vehicleController.vehicleRequests.length}');
-      
-      await ictController.loadICTRequests(
-        myRequests: true,
-        pending: false,
-      );
-      print('[RequestListPage] ICT requests loaded: ${ictController.ictRequests.length}');
-      
-      await storeController.loadStoreRequests(
-        myRequests: true,
-        pending: false,
-      );
-      print('[RequestListPage] Store requests loaded: ${storeController.storeRequests.length}');
-      
-      // Debug: Print all requester IDs from loaded requests
-      print('[RequestListPage] User ID: ${user.id}');
-      if (ictController.ictRequests.isNotEmpty) {
-        print('[RequestListPage] ICT Request requester IDs: ${ictController.ictRequests.map((r) => r.requesterId).toList()}');
-      }
-      if (storeController.storeRequests.isNotEmpty) {
-        print('[RequestListPage] Store Request requester IDs: ${storeController.storeRequests.map((r) => r.requesterId).toList()}');
-      }
-      if (vehicleController.vehicleRequests.isNotEmpty) {
-        print('[RequestListPage] Vehicle Request requester IDs: ${vehicleController.vehicleRequests.map((r) => r.requesterId).toList()}');
+      // OPTIMIZED: Load all request types in parallel (3x faster than sequential)
+      try {
+        await Future.wait([
+          vehicleController.loadVehicleRequests(
+            myRequests: true,
+            pending: false,
+          ),
+          ictController.loadICTRequests(
+            myRequests: true,
+            pending: false,
+          ),
+          storeController.loadStoreRequests(
+            myRequests: true,
+            pending: false,
+          ),
+        ]);
+      } catch (e) {
+        // If parallel loading fails, fall back to sequential
+        await vehicleController.loadVehicleRequests(myRequests: true, pending: false);
+        await ictController.loadICTRequests(myRequests: true, pending: false);
+        await storeController.loadStoreRequests(myRequests: true, pending: false);
       }
       return;
     }
@@ -125,24 +118,32 @@ class _RequestListPageState extends State<RequestListPage> {
     // (requests they're involved in) instead of all requests
     final shouldShowPending = !widget.pending && isRoleBasedUser;
 
-    // Only load request types the user can see
+    // OPTIMIZED: Load all visible request types in parallel (much faster than sequential)
+    final loadTasks = <Future<void>>[];
+    final pendingParam = widget.pending || shouldShowPending;
+    
     if (visibleTypes.contains(RequestType.vehicle)) {
-      await vehicleController.loadVehicleRequests(
+      loadTasks.add(vehicleController.loadVehicleRequests(
         myRequests: false,
-        pending: widget.pending || shouldShowPending,
-      );
+        pending: pendingParam,
+      ));
     }
     if (visibleTypes.contains(RequestType.ict)) {
-      await ictController.loadICTRequests(
+      loadTasks.add(ictController.loadICTRequests(
         myRequests: false,
-        pending: widget.pending || shouldShowPending,
-      );
+        pending: pendingParam,
+      ));
     }
     if (visibleTypes.contains(RequestType.store)) {
-      await storeController.loadStoreRequests(
+      loadTasks.add(storeController.loadStoreRequests(
         myRequests: false,
-        pending: widget.pending || shouldShowPending,
-      );
+        pending: pendingParam,
+      ));
+    }
+    
+    // Execute all loads in parallel
+    if (loadTasks.isNotEmpty) {
+      await Future.wait(loadTasks);
     }
   }
 
@@ -377,7 +378,7 @@ class _RequestListPageState extends State<RequestListPage> {
                     allRequests = _computeAllRequests();
                     filteredRequests = _computeFilteredRequests(allRequests);
                   } catch (e) {
-                    print('Error computing requests: $e');
+                    AppLogger.error('Error computing requests', e, null, 'RequestList');
                     return AppErrorWidget(
                       title: 'Error Loading Requests',
                       message: 'An error occurred while loading requests',
@@ -720,5 +721,156 @@ class _RequestListPageState extends State<RequestListPage> {
     
     // Show create Store request bottom sheet with pre-filled items
     CreateStoreRequestBottomSheet.showWithItems(context, items);
+  }
+
+  Future<void> _showCancelConfirmationDialog(
+    BuildContext context,
+    dynamic request,
+    RequestType type,
+  ) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final reasonController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
+        title: Text(
+          'Cancel Request',
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to cancel this request?',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppConstants.spacingM),
+            Text(
+              'Request Type: ${type == RequestType.vehicle ? 'Vehicle' : type == RequestType.ict ? 'ICT' : 'Store'}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppConstants.spacingS),
+            Text(
+              'Created: ${DateFormat('MMM dd, yyyy').format(request.createdAt)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppConstants.spacingM),
+            TextField(
+              controller: reasonController,
+              decoration: InputDecoration(
+                labelText: 'Reason (Optional)',
+                labelStyle: TextStyle(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+                hintText: 'Enter cancellation reason...',
+                hintStyle: TextStyle(
+                  color: isDark 
+                      ? AppColors.darkTextSecondary.withOpacity(0.5)
+                      : AppColors.textSecondary.withOpacity(0.5),
+                ),
+                filled: true,
+                fillColor: isDark ? AppColors.darkSurfaceLight : AppColors.surfaceElevation1,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDark 
+                        ? AppColors.darkBorderDefined.withOpacity(0.3)
+                        : AppColors.border.withOpacity(0.3),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDark 
+                        ? AppColors.darkBorderDefined.withOpacity(0.3)
+                        : AppColors.border.withOpacity(0.3),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
+              ),
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Keep Request',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop(true);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Cancel Request'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _cancelRequest(request, type, reasonController.text.trim());
+    }
+
+    reasonController.dispose();
+  }
+
+  Future<void> _cancelRequest(dynamic request, RequestType type, String reason) async {
+    try {
+      bool success = false;
+
+      if (type == RequestType.vehicle) {
+        success = await vehicleController.cancelRequest(request.id, reason);
+      } else if (type == RequestType.ict) {
+        success = await ictController.cancelRequest(request.id, reason);
+      } else if (type == RequestType.store) {
+        success = await storeController.cancelRequest(request.id, reason);
+      }
+
+      if (success) {
+        CustomToast.success('Request cancelled successfully');
+        // Reload requests
+        await _loadAllRequests();
+      } else {
+        final errorMessage = type == RequestType.vehicle
+            ? vehicleController.error.value
+            : type == RequestType.ict
+                ? ictController.error.value
+                : storeController.error.value;
+        CustomToast.error(errorMessage.isNotEmpty ? errorMessage : 'Failed to cancel request');
+      }
+    } catch (e) {
+      CustomToast.error('Error cancelling request: ${e.toString()}');
+    }
   }
 }

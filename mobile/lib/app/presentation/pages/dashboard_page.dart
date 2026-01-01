@@ -33,23 +33,9 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     // Controllers are now eagerly initialized in InitialBinding
-    // Add safety checks to ensure they're available before accessing
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        // Ensure controllers are registered (should be, but add safety check)
-        if (!Get.isRegistered<NotificationController>()) {
-          Get.put(NotificationController());
-        }
-        if (!Get.isRegistered<RequestController>()) {
-          Get.put(RequestController());
-        }
-        if (!Get.isRegistered<ICTRequestController>()) {
-          Get.put(ICTRequestController());
-        }
-        if (!Get.isRegistered<StoreRequestController>()) {
-          Get.put(StoreRequestController());
-        }
-        
+        // Controllers are already registered in InitialBinding
         final notificationController = Get.find<NotificationController>();
         notificationController.loadUnreadCount();
         
@@ -463,7 +449,9 @@ class _DashboardPageState extends State<DashboardPage> {
           'Delete All Requests',
           Icons.delete_forever,
           AppColors.error,
-          () => _showDeleteAllDialog(context),
+          () {
+            _showDeleteAllDialog(context);
+          },
         ),
       );
     }
@@ -481,123 +469,6 @@ class _DashboardPageState extends State<DashboardPage> {
       mainAxisSpacing: AppConstants.spacingM,
       childAspectRatio: 1.05,
       children: evenActions,
-    );
-  }
-
-  Widget _buildActionCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap, {
-    int? badge,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    return RepaintBoundary(
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.0, end: 1.0),
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-        builder: (context, value, child) {
-          return Opacity(
-            opacity: value,
-            child: child,
-          );
-        },
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: isDark 
-                    ? AppColors.darkSurface 
-                    : theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark 
-                      ? AppColors.darkBorderDefined.withOpacity(0.5)
-                      : AppColors.border.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onTap,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            icon,
-                            size: 28,
-                            color: color,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Flexible(
-                          child: Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                  height: 1.2,
-                                  color: isDark 
-                                      ? AppColors.darkTextPrimary 
-                                      : AppColors.textPrimary,
-                                ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // Badge
-            if (badge != null && badge > 0)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 18,
-                    minHeight: 18,
-                  ),
-                  child: Text(
-                    badge > 99 ? '99+' : badge.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -656,6 +527,170 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap, {
+    int? badge,
+  }) {
+    return RepaintBoundary(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: value,
+            child: Transform.scale(
+              scale: 0.9 + (0.1 * value),
+              child: Transform.translate(
+                offset: Offset(0, 10 * (1 - value)),
+                child: child,
+              ),
+            ),
+          );
+        },
+        child: _SimpleActionCard(
+          title: title,
+          icon: icon,
+          color: color,
+          onTap: onTap,
+          badge: badge,
+        ),
+      ),
+    );
+  }
+}
+
+class _SimpleActionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final int? badge;
+
+  const _SimpleActionCard({
+    Key? key,
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.badge,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: isDark 
+                ? AppColors.darkSurface 
+                : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark 
+                  ? AppColors.darkBorderDefined.withOpacity(0.3)
+                  : AppColors.border.withOpacity(0.2),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 28,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Flexible(
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          height: 1.3,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Badge
+        if (badge != null && badge! > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isDark ? AppColors.darkSurface : Colors.white,
+                  width: 2,
+                ),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
+              child: Text(
+                badge! > 99 ? '99+' : badge!.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

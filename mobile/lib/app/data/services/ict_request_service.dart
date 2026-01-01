@@ -217,6 +217,24 @@ class ICTRequestService extends GetxService {
     }
   }
 
+  Future<Map<String, dynamic>> cancelRequest(String id, String reason) async {
+    try {
+      final response = await _apiService.put(
+        '/requests/ict/$id/cancel',
+        data: {'reason': reason},
+      );
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': response.data};
+      }
+      return {'success': false, 'message': 'Failed to cancel request'};
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString().replaceAll('Exception: ', ''),
+      };
+    }
+  }
+
   Future<Map<String, dynamic>> rejectRequest(String id, String comment) async {
     try {
       final response = await _apiService.put(

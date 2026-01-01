@@ -14,9 +14,9 @@ class WebSocketService extends GetxService {
     connect();
   }
 
-  void connect() {
+  Future<void> connect() async {
     try {
-      final token = StorageService.getToken();
+      final token = await StorageService.getToken();
       if (token == null) {
         return;
       }

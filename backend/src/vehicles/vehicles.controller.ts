@@ -313,6 +313,15 @@ export class VehiclesController {
     return this.vehiclesService.correctRequest(id, user._id || user.id, user.roles, correctDto);
   }
 
+  @Put('requests/:id/cancel')
+  cancelRequest(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() body: { reason?: string },
+  ) {
+    return this.vehiclesService.cancelRequest(id, user._id || user.id, user.roles, body);
+  }
+
   @Put('requests/:id/priority')
   setPriority(
     @Param('id') id: string,

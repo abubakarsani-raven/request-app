@@ -4,19 +4,23 @@ import 'package:intl/intl.dart';
 import '../../data/models/request_model.dart';
 import 'status_badge.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/animations/sheet_animations.dart';
 import '../pages/request_detail_page.dart';
+import '../controllers/request_controller.dart';
 
 class RequestCard extends StatefulWidget {
   final VehicleRequestModel request;
   final VoidCallback? onTap;
   final RequestDetailSource? source;
+  final VoidCallback? onCancel;
 
   const RequestCard({
     Key? key,
     required this.request,
     this.onTap,
     this.source,
+    this.onCancel,
   }) : super(key: key);
 
   @override
@@ -92,10 +96,22 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: widget.onTap ?? () => Get.to(() => RequestDetailPage(
-              requestId: widget.request.id,
-              source: widget.source,
-            )),
+            onTap: widget.onTap ?? () {
+              Get.to(() => RequestDetailPage(
+                requestId: widget.request.id,
+                source: widget.source,
+              ))?.then((_) {
+                // Reload pending approvals if we came from pending approvals page
+                if (widget.source == RequestDetailSource.pendingApprovals) {
+                  try {
+                    final requestController = Get.find<RequestController>();
+                    requestController.loadPendingApprovals();
+                  } catch (e) {
+                    // Controller might not be available, ignore
+                  }
+                }
+              });
+            },
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -365,31 +381,61 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
             ),
           ),
         ],
-        // Repeat Request button (only show in My Requests)
+        // Action buttons (only show in My Requests)
         if (widget.source == RequestDetailSource.myRequests) ...[
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _repeatVehicleRequest(),
-              icon: Icon(
-                Icons.repeat, 
-                size: 18,
-                color: isDark ? AppColors.primaryLight : AppColors.primary,
-              ),
-              label: Text(
-                'Repeat Request',
-                style: TextStyle(
-                  color: isDark ? AppColors.primaryLight : AppColors.primary,
+          Row(
+            children: [
+              // Cancel button (if callback provided)
+              if (widget.onCancel != null)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: widget.onCancel,
+                    icon: Icon(
+                      Icons.cancel_outlined,
+                      size: 18,
+                      color: AppColors.error,
+                    ),
+                    label: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: AppColors.error,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
+                ),
+              if (widget.onCancel != null)
+                const SizedBox(width: AppConstants.spacingS),
+              // Repeat Request button
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _repeatVehicleRequest(),
+                  icon: Icon(
+                    Icons.repeat, 
+                    size: 18,
+                    color: isDark ? AppColors.primaryLight : AppColors.primary,
+                  ),
+                  label: Text(
+                    'Repeat',
+                    style: TextStyle(
+                      color: isDark ? AppColors.primaryLight : AppColors.primary,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(
+                      color: isDark ? AppColors.primaryLight : AppColors.primary,
+                    ),
+                  ),
                 ),
               ),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                side: BorderSide(
-                  color: isDark ? AppColors.primaryLight : AppColors.primary,
-                ),
-              ),
-            ),
+            ],
           ),
         ],
       ],

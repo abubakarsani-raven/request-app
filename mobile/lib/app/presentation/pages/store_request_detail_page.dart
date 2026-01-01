@@ -30,7 +30,8 @@ class StoreRequestDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final storeController = Get.put(StoreRequestController());
+    // Use Get.find() - controller already registered in InitialBinding
+    final storeController = Get.find<StoreRequestController>();
     final authController = Get.find<AuthController>();
 
     // Load request details
@@ -480,6 +481,9 @@ class StoreRequestDetailPage extends StatelessWidget {
     final canApprove = canApproveAtStage &&
         (request.status == RequestStatus.pending || request.status == RequestStatus.corrected);
 
+    // Check if user can cancel request
+    final canCancel = permissionService.canCancelRequest(user, RequestType.store, request);
+
     return Column(
       children: [
         if (canFulfill) ...[
@@ -522,6 +526,20 @@ class StoreRequestDetailPage extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+        if (canCancel) ...[
+          if (canFulfill || canApprove) const SizedBox(height: AppConstants.spacingM),
+          CustomButton(
+            text: 'Cancel Request',
+            icon: Icons.cancel_outlined,
+            type: ButtonType.outlined,
+            backgroundColor: AppColors.warning,
+            textColor: AppColors.warning,
+            isLoading: storeController.isCancelling.value,
+            onPressed: storeController.isCancelling.value
+                ? null
+                : () => _showCancelDialog(context, storeController, request.id),
           ),
         ],
       ],
@@ -1005,6 +1023,129 @@ class StoreRequestDetailPage extends StatelessWidget {
       if (!isDisposed) {
         isDisposed = true;
         commentController.dispose();
+      }
+    });
+  }
+
+  void _showCancelDialog(
+    BuildContext context,
+    StoreRequestController controller,
+    String requestId,
+  ) {
+    final reasonController = TextEditingController();
+    bool isDisposed = false;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    Get.dialog(
+      WillPopScope(
+        onWillPop: () async => !controller.isCancelling.value,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Cancel Request'),
+              content: Obx(
+                () => controller.isCancelling.value
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Cancelling request...',
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Are you sure you want to cancel this request? This action cannot be undone.',
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: reasonController,
+                            decoration: const InputDecoration(
+                              labelText: 'Cancellation Reason',
+                              hintText: 'Please provide a reason for cancellation',
+                              border: OutlineInputBorder(),
+                            ),
+                            maxLines: 3,
+                          ),
+                        ],
+                      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: controller.isCancelling.value
+                      ? null
+                      : () {
+                          if (!isDisposed) {
+                            isDisposed = true;
+                            reasonController.dispose();
+                          }
+                          Get.back();
+                        },
+                  child: const Text('Back'),
+                ),
+                Expanded(
+                  child: Obx(
+                    () => ElevatedButton(
+                      onPressed: controller.isCancelling.value
+                          ? null
+                          : () async {
+                              final reason = reasonController.text.trim();
+                              if (reason.isEmpty) {
+                                CustomToast.error('Please provide a cancellation reason');
+                                return;
+                              }
+                              setState(() {});
+                              final success = await controller.cancelRequest(requestId, reason);
+                              if (success) {
+                                if (!isDisposed) {
+                                  isDisposed = true;
+                                  reasonController.dispose();
+                                }
+                                Get.back();
+                                CustomToast.success('Request cancelled');
+                              } else {
+                                setState(() {});
+                                CustomToast.error(controller.error.value);
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.warning,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: controller.isCancelling.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text('Cancel Request'),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      barrierDismissible: false,
+    ).then((_) {
+      if (!isDisposed) {
+        isDisposed = true;
+        reasonController.dispose();
       }
     });
   }

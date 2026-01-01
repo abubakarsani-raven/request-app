@@ -4,6 +4,7 @@ import '../controllers/store_request_controller.dart';
 import '../../data/models/inventory_item_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../widgets/empty_state.dart';
 
 class InventoryBrowser extends StatelessWidget {
   final Function(List<Map<String, dynamic>>) onItemsSelected;
@@ -18,6 +19,8 @@ class InventoryBrowser extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<StoreRequestController>();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -27,6 +30,17 @@ class InventoryBrowser extends StatelessWidget {
               ? Container(
                   height: 50,
                   padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingL),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark 
+                            ? AppColors.darkBorderDefined.withOpacity(0.5)
+                            : AppColors.border.withOpacity(0.5),
+                        width: 1,
+                      ),
+                    ),
+                  ),
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: controller.categories.length + 1,
@@ -37,6 +51,15 @@ class InventoryBrowser extends StatelessWidget {
                           child: FilterChip(
                             label: const Text('All'),
                             selected: controller.selectedCategory.value.isEmpty,
+                            selectedColor: isDark 
+                                ? AppColors.primaryLight.withOpacity(0.2)
+                                : AppColors.primary.withOpacity(0.2),
+                            checkmarkColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                            labelStyle: TextStyle(
+                              color: controller.selectedCategory.value.isEmpty
+                                  ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                                  : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                            ),
                             onSelected: (selected) {
                               controller.selectedCategory.value = '';
                               controller.loadInventoryItems();
@@ -45,11 +68,21 @@ class InventoryBrowser extends StatelessWidget {
                         );
                       }
                       final category = controller.categories[index - 1];
+                      final isSelected = controller.selectedCategory.value == category;
                       return Padding(
                         padding: const EdgeInsets.only(right: AppConstants.spacingS),
                         child: FilterChip(
                           label: Text(category),
-                          selected: controller.selectedCategory.value == category,
+                          selected: isSelected,
+                          selectedColor: isDark 
+                              ? AppColors.primaryLight.withOpacity(0.2)
+                              : AppColors.primary.withOpacity(0.2),
+                          checkmarkColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                                : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                          ),
                           onSelected: (selected) {
                             controller.selectedCategory.value = category;
                             controller.loadInventoryItems(category: category);
@@ -70,8 +103,11 @@ class InventoryBrowser extends StatelessWidget {
               }
 
               if (controller.inventoryItems.isEmpty) {
-                return const Center(
-                  child: Text('No inventory items available'),
+                return EmptyState(
+                  title: 'No inventory items available',
+                  message: 'Try selecting a different category',
+                  type: EmptyStateType.noData,
+                  icon: Icons.inventory_2_outlined,
                 );
               }
 
@@ -90,18 +126,40 @@ class InventoryBrowser extends StatelessWidget {
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: AppConstants.spacingM),
+                    color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: isDark 
+                            ? AppColors.darkBorderDefined.withOpacity(0.5)
+                            : AppColors.border.withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                    ),
                     child: ListTile(
-                      title: Text(item.name),
+                      title: Text(
+                        item.name,
+                        style: TextStyle(
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item.description),
+                          Text(
+                            item.description,
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             'Category: ${item.category}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                           ),
                           Text(
@@ -120,7 +178,10 @@ class InventoryBrowser extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.remove),
+                                  icon: Icon(
+                                    Icons.remove,
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                  ),
                                   onPressed: () {
                                     final newItems = List<Map<String, dynamic>>.from(selectedItems);
                                     final itemIndex = newItems.indexWhere(
@@ -136,9 +197,18 @@ class InventoryBrowser extends StatelessWidget {
                                     }
                                   },
                                 ),
-                                Text('${selectedItem['quantity']}'),
+                                Text(
+                                  '${selectedItem['quantity']}',
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 IconButton(
-                                  icon: const Icon(Icons.add),
+                                  icon: Icon(
+                                    Icons.add,
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                  ),
                                   onPressed: () {
                                     if (selectedItem['quantity'] < item.quantity) {
                                       final newItems = List<Map<String, dynamic>>.from(selectedItems);
@@ -160,7 +230,12 @@ class InventoryBrowser extends StatelessWidget {
                               ],
                             )
                           : IconButton(
-                              icon: const Icon(Icons.add),
+                              icon: Icon(
+                                Icons.add,
+                                color: item.isAvailable && item.quantity > 0
+                                    ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                                    : (isDark ? AppColors.darkTextDisabled : AppColors.textDisabled),
+                              ),
                               onPressed: item.isAvailable && item.quantity > 0
                                   ? () {
                                       final newItems = List<Map<String, dynamic>>.from(selectedItems);
@@ -184,10 +259,18 @@ class InventoryBrowser extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppConstants.spacingL),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
+              border: Border(
+                top: BorderSide(
+                  color: isDark 
+                      ? AppColors.darkBorderDefined.withOpacity(0.5)
+                      : AppColors.border.withOpacity(0.5),
+                  width: 1.5,
+                ),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),
@@ -198,7 +281,10 @@ class InventoryBrowser extends StatelessWidget {
               children: [
                 Text(
                   'Selected Items: ${selectedItems.length}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 ...selectedItems.map((item) {
@@ -219,7 +305,10 @@ class InventoryBrowser extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
                       '${inventoryItem.name}: ${item['quantity']}',
-                      style: const TextStyle(fontSize: 12),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
                     ),
                   );
                 }),

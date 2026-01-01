@@ -4,6 +4,7 @@ import '../../../core/services/websocket_service.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/services/notification_service.dart' as local_notification_service;
 import '../../../core/services/fcm_service.dart';
+import '../../../core/services/request_fetch_service.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/request_service.dart';
 import '../../data/services/ict_request_service.dart';

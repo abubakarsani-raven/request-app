@@ -20,7 +20,8 @@ class DriverDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final driverController = Get.put(DriverController());
+    // Use Get.find() - controller already registered in InitialBinding
+    final driverController = Get.find<DriverController>();
     final theme = Theme.of(context);
 
     return AppDrawer(
@@ -108,6 +109,9 @@ class DriverDashboardPage extends StatelessWidget {
                     }),
                   ],
 
+                  // ICT Requests removed - requesters pick up their own requests
+                  // Drivers no longer see ICT requests for pickup
+
                   // Completed Trips
                   if (driverController.completedTrips.isNotEmpty) ...[
                     _buildSectionHeader(context, 'Completed Trips'),
@@ -130,7 +134,7 @@ class DriverDashboardPage extends StatelessWidget {
                     }),
                   ],
 
-                  if (driverController.assignedTrips.isEmpty)
+                  if (driverController.assignedTrips.isEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.all(AppConstants.spacingXXL),
                       child: EmptyState(
@@ -140,6 +144,7 @@ class DriverDashboardPage extends StatelessWidget {
                         icon: AppIcons.vehicleFilled,
                       ),
                     ),
+                  ],
                 ],
               );
             },
@@ -366,4 +371,3 @@ class DriverDashboardPage extends StatelessWidget {
     );
   }
 }
-

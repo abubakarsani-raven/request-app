@@ -4,6 +4,7 @@ import '../../../core/services/fcm_service.dart';
 import '../../../core/widgets/custom_toast.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/models/user_model.dart';
+import 'notification_controller.dart';
 
 class AuthController extends GetxController {
   final AuthService _authService = Get.find<AuthService>();
@@ -24,8 +25,8 @@ class AuthController extends GetxController {
     checkAuth();
   }
 
-  void checkAuth() {
-    final token = StorageService.getToken();
+  Future<void> checkAuth() async {
+    final token = await StorageService.getToken();
     final userData = StorageService.getUser();
     
     if (token != null && userData != null) {
@@ -48,20 +49,60 @@ class AuthController extends GetxController {
         isLoggingIn.value = false;
         isLoading.value = false;
         
-        // Register FCM token after successful login
+        // Register FCM token after successful login - wait for completion
+        // Token will remain registered even after logout
         try {
           final fcmService = Get.find<FCMService>();
           final userId = user.value?.id;
           if (userId != null) {
+            print('🔔 Auth: Registering FCM token for user $userId');
             // Ensure FCM is initialized before registering
             if (!fcmService.isInitialized) {
               await fcmService.initialize();
             }
-            await fcmService.registerToken(userId);
+            // Wait for token registration to complete with retry logic
+            // This ensures token is registered before user can approve requests
+            final registrationSuccess = await fcmService.registerToken(userId);
+            if (registrationSuccess) {
+              print('✅ Auth: FCM token registered successfully (will persist after logout)');
+            } else {
+              print('⚠️ Auth: FCM token registration failed, but login continues');
+              // Token registration will be retried on next login or token refresh
+            }
           }
         } catch (e) {
           print('⚠️ Auth: Error registering FCM token: $e');
           // Don't fail login if FCM registration fails
+          // Token will be registered on next login attempt
+        }
+        
+        // Load pending notifications after successful login
+        // This ensures user sees notifications that arrived while logged out
+        try {
+          print('📬 Auth: Loading pending notifications after login');
+          // Ensure NotificationController is available
+          if (Get.isRegistered<NotificationController>()) {
+            final notificationController = Get.find<NotificationController>();
+            // Load all notifications and show unread ones as local notifications
+            // This ensures users see pending requests immediately on login
+            await notificationController.loadNotifications(
+              unreadOnly: false,
+              showUnreadNotifications: true, // Show unread notifications as local notifications
+            );
+            await notificationController.loadUnreadCount();
+            
+            final unreadCount = notificationController.unreadCount.value;
+            if (unreadCount > 0) {
+              print('📬 Auth: Found $unreadCount unread notifications');
+              print('📬 Auth: Unread notifications will be shown as local notifications');
+            }
+          } else {
+            print('⚠️ Auth: NotificationController not registered yet');
+            // Controller will be initialized when dashboard loads
+          }
+        } catch (e) {
+          print('⚠️ Auth: Error loading notifications after login: $e');
+          // Don't fail login if notification loading fails
         }
         
         CustomToast.success('Login successful!');
@@ -95,10 +136,21 @@ class AuthController extends GetxController {
   }
 
   Future<void> logout() async {
-    await _authService.logout();
-    user.value = null;
-    isAuthenticated.value = false;
-    Get.offAllNamed('/login');
+    isLoggingOut.value = true;
+    try {
+      // Logout clears local auth token and user data
+      // BUT FCM token remains registered on backend for notifications
+      await _authService.logout();
+      user.value = null;
+      isAuthenticated.value = false;
+      
+      print('ℹ️ Auth: User logged out - FCM token remains registered on backend');
+      print('ℹ️ Auth: Notifications will still be received for this user');
+      
+      Get.offAllNamed('/login');
+    } finally {
+      isLoggingOut.value = false;
+    }
   }
 
   Future<void> loadProfile() async {

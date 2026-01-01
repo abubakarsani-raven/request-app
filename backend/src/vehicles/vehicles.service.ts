@@ -1375,6 +1375,119 @@ export class VehiclesService {
     return savedRequest;
   }
 
+  /**
+   * Cancel a vehicle request
+   * Only allowed if:
+   * - Workflow stage is SUBMITTED, SUPERVISOR_REVIEW, or DGS_REVIEW (for requester)
+   * - No approvals have been made (approvals array is empty)
+   * - User is the requester OR Supervisor (for lower level officers) OR DGS (for higher level officers)
+   */
+  async cancelRequest(
+    requestId: string,
+    userId: string,
+    userRoles: UserRole[],
+    cancelDto: { reason?: string },
+  ): Promise<VehicleRequest> {
+    const request = await this.findOneRequest(requestId);
+    const user = await this.usersService.findOne(userId);
+
+    // Check if user is the requester
+    const isRequester = request.requesterId.toString() === userId;
+    const hasNoApprovals = !request.approvals || request.approvals.length === 0;
+
+    // Define allowed stages for requester cancellation
+    const allowedStagesForRequester = [
+      WorkflowStage.SUBMITTED,
+      WorkflowStage.SUPERVISOR_REVIEW,
+      WorkflowStage.DGS_REVIEW,
+    ];
+
+    let canCancel = false;
+    let cancelerRole: UserRole = userRoles[0];
+
+    // Check if requester can cancel (no approvals and stage is allowed)
+    if (isRequester && hasNoApprovals && allowedStagesForRequester.includes(request.workflowStage)) {
+      canCancel = true;
+      cancelerRole = userRoles[0];
+    } else if (!isRequester) {
+      // For non-requester cancellation, check existing Supervisor/DGS logic
+      // Can only cancel if still at SUBMITTED stage
+      if (request.workflowStage !== WorkflowStage.SUBMITTED) {
+        throw new BadRequestException('Cannot cancel request: workflow has already started');
+      }
+
+      // Get requester to check their level
+      const requester = await this.usersService.findOne(request.requesterId.toString());
+      const requesterLevel = requester.level;
+
+      // Check if user can cancel:
+      // - Supervisor can cancel for lower level officers (level < 14)
+      // - DGS can cancel for higher level officers (level >= 14)
+      const isSupervisor = this.capabilityService.canActAsSupervisor(user, userRoles);
+      const isDGS = userRoles.includes(UserRole.DGS);
+      const isLowerLevel = requesterLevel < 14;
+
+      if (isLowerLevel && isSupervisor) {
+        // Lower level: Supervisor can cancel
+        canCancel = true;
+      } else if (!isLowerLevel && isDGS) {
+        // Higher level: DGS can cancel
+        canCancel = true;
+      }
+    }
+
+    if (!canCancel) {
+      if (isRequester) {
+        throw new ForbiddenException(
+          'You cannot cancel this request. Cancellation is only allowed if no approvals have been made and the request is at SUBMITTED, SUPERVISOR_REVIEW, or DGS_REVIEW stage.'
+        );
+      } else {
+        throw new ForbiddenException(
+          'You do not have permission to cancel this request. Only Supervisor can cancel requests from lower level officers, and only DGS can cancel requests from higher level officers.'
+        );
+      }
+    }
+
+    // Add cancellation
+    const approval = {
+      approverId: new Types.ObjectId(userId),
+      role: cancelerRole,
+      status: 'REJECTED' as const,
+      comment: cancelDto.reason || 'Request cancelled',
+      timestamp: new Date(),
+    };
+
+    request.approvals.push(approval);
+    request.status = RequestStatus.REJECTED;
+
+    // Add canceller as participant (use 'rejected' action type)
+    this.addParticipant(request, userId, cancelerRole, 'rejected');
+    const savedRequest = await request.save();
+
+    // Notify all participants (use 'rejected' action type)
+    const requesterId = typeof request.requesterId === 'string'
+      ? request.requesterId
+      : request.requesterId.toString();
+    
+    // Create appropriate notification message
+    const notificationMessage = isRequester
+      ? `Request cancelled by requester ${user.name}. ${cancelDto.reason ? `Reason: ${cancelDto.reason}` : 'No reason provided.'}`
+      : `Request cancelled by ${user.name} (${cancelerRole}). ${cancelDto.reason ? `Reason: ${cancelDto.reason}` : 'No reason provided.'}`;
+
+    await this.notifyWorkflowProgress(
+      savedRequest,
+      'rejected',
+      {
+        userId,
+        name: user.name,
+        role: cancelerRole.toString(),
+      },
+      notificationMessage,
+    );
+
+    return savedRequest;
+  }
+
   async assignVehicle(
     requestId: string,
     userId: string,

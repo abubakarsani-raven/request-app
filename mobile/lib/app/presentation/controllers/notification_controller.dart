@@ -22,6 +22,9 @@ class NotificationController extends GetxController {
   final RxBool isLoadingNotifications = false.obs;
   final RxBool isLoadingUnreadCount = false.obs;
   final RxBool isMarkingAsRead = false.obs;
+  
+  // Track notifications that have been shown as local notifications to avoid duplicates
+  final Set<String> _shownNotificationIds = <String>{};
 
   @override
   void onInit() {
@@ -94,17 +97,26 @@ class NotificationController extends GetxController {
         requestType: requestType,
       );
 
-      // Add to beginning of list
-      notifications.insert(0, notification);
-      
-      // Update unread count locally
-      unreadCount.value = unreadCount.value + 1;
+      // Check if notification already exists to avoid duplicates
+      final existingIndex = notifications.indexWhere((n) => n.id == notificationId);
+      if (existingIndex != -1) {
+        // Update existing notification instead of adding duplicate
+        notifications[existingIndex] = notification;
+      } else {
+        // Add to beginning of list only if it doesn't exist
+        notifications.insert(0, notification);
+        // Update unread count locally only if it's a new notification
+        unreadCount.value = unreadCount.value + 1;
+      }
 
       // Sync unread count with server to ensure accuracy
       loadUnreadCount();
 
-      // Show native notification
-      _showNativeNotification(notification);
+      // Show native notification only if not already shown
+      if (!_shownNotificationIds.contains(notificationId)) {
+        _showNativeNotification(notification);
+        _shownNotificationIds.add(notificationId);
+      }
     } catch (e) {
       print('Error handling WebSocket notification: $e');
     }
@@ -124,8 +136,10 @@ class NotificationController extends GetxController {
       final requestType = _parseRequestType(requestTypeStr);
 
       // Create notification from workflow progress
+      // Use a more stable ID based on requestId and action to avoid duplicates
+      final notificationId = 'progress_${requestId}_${action}';
       final notification = NotificationModel(
-        id: 'progress_${requestId}_${DateTime.now().millisecondsSinceEpoch}',
+        id: notificationId,
         type: _mapNotificationTypeFromAction(action),
         title: _getTitleFromAction(action, requestTypeStr ?? ''),
         message: message,
@@ -135,32 +149,58 @@ class NotificationController extends GetxController {
         createdAt: DateTime.now(),
       );
 
-      // Add to beginning of list
-      notifications.insert(0, notification);
-      
-      // Update unread count locally
-      unreadCount.value = unreadCount.value + 1;
+      // Check if notification already exists to avoid duplicates
+      final existingIndex = notifications.indexWhere((n) => n.id == notificationId);
+      if (existingIndex != -1) {
+        // Update existing notification instead of adding duplicate
+        notifications[existingIndex] = notification;
+      } else {
+        // Add to beginning of list only if it doesn't exist
+        notifications.insert(0, notification);
+        // Update unread count locally only if it's a new notification
+        unreadCount.value = unreadCount.value + 1;
+      }
 
       // Sync unread count with server to ensure accuracy
       loadUnreadCount();
 
-      // Show native notification
-      _showNativeNotification(notification);
+      // Show native notification only if not already shown
+      if (!_shownNotificationIds.contains(notificationId)) {
+        _showNativeNotification(notification);
+        _shownNotificationIds.add(notificationId);
+      }
 
-      // Refresh notifications to get latest from server
-      loadNotifications(unreadOnly: false);
+      // Don't reload all notifications here - it's unnecessary and causes old notifications
+      // to be re-processed. The notification is already added to the list above.
+      // Only reload if we need to sync with server for other reasons (which we don't here)
     } catch (e) {
       print('Error handling workflow progress: $e');
     }
   }
 
   void _showNativeNotification(NotificationModel notification) {
+    // Only show local notification if it hasn't been shown before
+    // This prevents duplicate notifications from being shown multiple times
+    if (_shownNotificationIds.contains(notification.id)) {
+      print('ℹ️ [NotificationController] Notification ${notification.id} already shown, skipping local notification');
+      return;
+    }
+    
     _notificationIdCounter++;
     _localNotificationService.showNotification(
       id: _notificationIdCounter,
       title: notification.title,
       body: notification.message,
     );
+    
+    // Mark as shown to prevent duplicates
+    _shownNotificationIds.add(notification.id);
+    print('✅ [NotificationController] Shown local notification for ${notification.id}');
+  }
+  
+  /// Clear shown notification IDs (useful for testing or reset)
+  void clearShownNotificationIds() {
+    _shownNotificationIds.clear();
   }
 
   NotificationType _mapNotificationType(String type) {
@@ -234,14 +274,63 @@ class NotificationController extends GetxController {
     }
   }
 
-  Future<void> loadNotifications({bool unreadOnly = false}) async {
+  Future<void> loadNotifications({bool unreadOnly = false, bool showUnreadNotifications = false}) async {
     isLoadingNotifications.value = true;
     isLoading.value = true;
     error.value = '';
 
     try {
       final result = await _notificationService.getNotifications(unreadOnly: unreadOnly);
-      notifications.value = result;
+      
+      // Track which notifications were already in our list before this load
+      final Set<String> existingIds = notifications.map((n) => n.id).toSet();
+      
+      // Deduplicate notifications by ID to prevent showing duplicates
+      final Map<String, NotificationModel> uniqueNotifications = {};
+      
+      // First, keep existing notifications that aren't in the server response
+      // (in case server response is incomplete)
+      for (final existing in notifications) {
+        uniqueNotifications[existing.id] = existing;
+      }
+      
+      // Then, update/add notifications from server (server data takes precedence)
+      for (final notification in result) {
+        uniqueNotifications[notification.id] = notification;
+      }
+      
+      // Convert to list and sort by createdAt (newest first)
+      final sortedNotifications = uniqueNotifications.values.toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      notifications.value = sortedNotifications;
+      
+      // Only mark notifications as "already shown" if they were already in our list
+      // OR if they're read (read notifications shouldn't show as local notifications)
+      // This allows new unread notifications to show as local notifications
+      for (final notification in sortedNotifications) {
+        if (existingIds.contains(notification.id) || notification.isRead) {
+          // This notification was already loaded before, or it's read - mark as shown
+          _shownNotificationIds.add(notification.id);
+        }
+        // If showUnreadNotifications is true and notification is unread and not too old, show it
+        else if (showUnreadNotifications && !notification.isRead) {
+          // Only show notifications created in the last 24 hours to avoid showing very old notifications
+          final hoursSinceCreation = DateTime.now().difference(notification.createdAt).inHours;
+          if (hoursSinceCreation <= 24 && !_shownNotificationIds.contains(notification.id)) {
+            _showNativeNotification(notification);
+            _shownNotificationIds.add(notification.id);
+          } else {
+            // Mark old unread notifications as shown to prevent showing them later
+            _shownNotificationIds.add(notification.id);
+          }
+        } else {
+          // For new notifications that we don't want to show immediately, mark as shown
+          // to prevent them from showing later when workflow progress triggers
+          _shownNotificationIds.add(notification.id);
+        }
+      }
+      
       // Reload unread count after loading notifications to keep it in sync
       await loadUnreadCount();
     } catch (e) {

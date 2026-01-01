@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../app/data/models/user_model.dart';
 import '../../app/data/models/request_model.dart';
+import '../utils/id_utils.dart';
 
 enum UserRole {
   dgs,
@@ -534,6 +535,82 @@ class PermissionService extends GetxService {
     
     // DGS and TO can end trips (override) - but typically only driver should
     return roles.contains(UserRole.dgs) || roles.contains(UserRole.to);
+  }
+
+  /// Check if user can cancel a request
+  /// Rules:
+  /// - Requester can cancel if no approvals exist and stage is in allowed stages
+  /// - Allowed stages for requester: SUBMITTED, SUPERVISOR_REVIEW, DGS_REVIEW (Vehicle/Store) or DDICT_REVIEW (ICT)
+  /// - Store/Vehicle: Supervisor (for lower level) or DGS (for higher level)
+  /// - ICT: Supervisor (for lower level) or DDICT (for higher level)
+  bool canCancelRequest(UserModel user, RequestType type, dynamic request) {
+    final workflowStage = request.workflowStage ?? 'SUBMITTED';
+    final roles = _getUserRoles(user);
+    
+    // Check if user is the requester
+    final isRequester = IdUtils.areIdsEqual(request.requesterId, user.id);
+    final hasNoApprovals = request.approvals == null || request.approvals.isEmpty;
+
+    // Define allowed stages for requester cancellation based on request type
+    final allowedStages = type == RequestType.ict
+        ? ['SUBMITTED', 'SUPERVISOR_REVIEW', 'DDICT_REVIEW']
+        : ['SUBMITTED', 'SUPERVISOR_REVIEW', 'DGS_REVIEW'];
+
+    // Allow requester to cancel if no approvals exist and stage is allowed
+    if (isRequester && hasNoApprovals && allowedStages.contains(workflowStage)) {
+      return true;
+    }
+
+    // For non-requester cancellation, check existing Supervisor/DGS/DDICT logic
+    // Can only cancel if still at SUBMITTED stage
+    if (workflowStage != 'SUBMITTED') {
+      return false;
+    }
+    
+    // Get requester level (if available)
+    int? requesterLevel;
+    if (request.requesterId is Map) {
+      requesterLevel = (request.requesterId as Map)['level'] as int?;
+    }
+    
+    // If we can't determine requester level, we can't determine if user can cancel
+    // In this case, we'll check if user has the appropriate role
+    if (requesterLevel == null) {
+      // For Store/Vehicle: DGS can cancel
+      if (type == RequestType.store || type == RequestType.vehicle) {
+        return roles.contains(UserRole.dgs) || canActAsSupervisor(user);
+      }
+      // For ICT: DDICT can cancel
+      if (type == RequestType.ict) {
+        return roles.contains(UserRole.ddict) || canActAsSupervisor(user);
+      }
+      return false;
+    }
+
+    final isLowerLevel = requesterLevel < 14;
+    final isSupervisor = canActAsSupervisor(user);
+    final isDGS = roles.contains(UserRole.dgs);
+    final isDDICT = roles.contains(UserRole.ddict);
+
+    if (type == RequestType.store || type == RequestType.vehicle) {
+      // Store/Vehicle: Supervisor (lower level) or DGS (higher level)
+      if (isLowerLevel && isSupervisor) {
+        return true;
+      }
+      if (!isLowerLevel && isDGS) {
+        return true;
+      }
+    } else if (type == RequestType.ict) {
+      // ICT: Supervisor (lower level) or DDICT (higher level)
+      if (isLowerLevel && isSupervisor) {
+        return true;
+      }
+      if (!isLowerLevel && isDDICT) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 

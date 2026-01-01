@@ -11,8 +11,14 @@ class SplashPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
 
-    // Check authentication after a brief delay
-    Future.delayed(const Duration(seconds: 2), () {
+    // Check authentication immediately (no artificial delay)
+    // checkAuth is async, so we handle it in a post-frame callback
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await authController.checkAuth();
+      
+      // Small delay to show splash animation (minimum 500ms for UX)
+      await Future.delayed(const Duration(milliseconds: 500));
+      
       if (authController.isAuthenticated.value) {
         authController.loadProfile();
         // Route to role-specific dashboard

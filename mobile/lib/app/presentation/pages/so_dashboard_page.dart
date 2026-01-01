@@ -12,7 +12,6 @@ import '../../data/models/request_model.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/theme/app_colors.dart';
 import 'ict_request_detail_page.dart';
-import 'qr_scanner_page.dart';
 
 class SODashboardPage extends StatelessWidget {
   final AdvancedDrawerController _drawerController = AdvancedDrawerController();
@@ -21,7 +20,8 @@ class SODashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ictController = Get.put(ICTRequestController());
+    // Use Get.find() - controller already registered in InitialBinding
+    final ictController = Get.find<ICTRequestController>();
     final authController = Get.find<AuthController>();
     final permissionService = Get.find<PermissionService>();
 
@@ -43,7 +43,7 @@ class SODashboardPage extends StatelessWidget {
         body: Obx(() {
           final user = authController.user.value;
           if (user == null || !permissionService.canFulfillRequest(user, RequestType.ict)) {
-            return Center(
+            return const Center(
               child: Text(
                 'You do not have permission to view this page',
                 style: TextStyle(color: AppColors.textSecondary),
@@ -58,7 +58,7 @@ class SODashboardPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   color: AppColors.surface,
-                  child: Row(
+                  child: const Row(
                     children: [
                       Expanded(
                         child: SkeletonStatCard(),
@@ -115,12 +115,12 @@ class SODashboardPage extends StatelessWidget {
           final requests = ictController.unfulfilledRequests;
 
           if (requests.isEmpty) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
-                  const SizedBox(height: 16),
+                   SizedBox(height: 16),
                   Text(
                     'All requests fulfilled!',
                     style: TextStyle(
@@ -129,7 +129,7 @@ class SODashboardPage extends StatelessWidget {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                   SizedBox(height: 8),
                   Text(
                     'There are no unfulfilled items at this time.',
                     style: TextStyle(color: AppColors.textSecondary),

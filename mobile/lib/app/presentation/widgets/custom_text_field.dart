@@ -118,8 +118,8 @@ class CustomTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
             color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.darkBorderDefined.withOpacity(0.5)
-                : AppColors.border.withOpacity(0.5),
+                ? AppColors.darkBorderDefined.withOpacity(0.3)
+                : AppColors.border.withOpacity(0.3),
             width: 1.5,
           ),
         ),
@@ -127,8 +127,8 @@ class CustomTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
             color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.darkBorderDefined.withOpacity(0.5)
-                : AppColors.border.withOpacity(0.5),
+                ? AppColors.darkBorderDefined.withOpacity(0.3)
+                : AppColors.border.withOpacity(0.3),
             width: 1.5,
           ),
         ),
@@ -136,15 +136,15 @@ class CustomTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
             color: Theme.of(context).colorScheme.primary,
-            width: 1.5,
+            width: 2,
           ),
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
             color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.darkBorderDefined.withOpacity(0.3)
-                : AppColors.border.withOpacity(0.3),
+                ? AppColors.darkBorderDefined.withOpacity(0.2)
+                : AppColors.border.withOpacity(0.2),
             width: 1.5,
           ),
         ),

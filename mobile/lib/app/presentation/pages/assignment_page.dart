@@ -28,8 +28,10 @@ class AssignmentPage extends StatefulWidget {
 }
 
 class _AssignmentPageState extends State<AssignmentPage> {
-  final assignmentController = Get.put(AssignmentController());
-  final selectionController = Get.put(AssignmentSelectionController());
+  // Use Get.find() for controllers already registered in bindings
+  late final AssignmentController assignmentController;
+  // Page-specific controller - create new instance
+  late final AssignmentSelectionController selectionController;
   final requestController = Get.find<RequestController>();
   final settingsService = SettingsService();
   final officeService = OfficeService();
@@ -42,9 +44,19 @@ class _AssignmentPageState extends State<AssignmentPage> {
   @override
   void initState() {
     super.initState();
+    // Initialize controllers
+    assignmentController = Get.find<AssignmentController>();
+    selectionController = Get.put(AssignmentSelectionController());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
+  }
+
+  @override
+  void dispose() {
+    // Dispose page-specific controller
+    Get.delete<AssignmentSelectionController>();
+    super.dispose();
   }
 
   Future<void> _loadData() async {

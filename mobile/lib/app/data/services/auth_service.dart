@@ -160,8 +160,9 @@ class AuthService extends GetxService {
     return {};
   }
 
-  bool isAuthenticated() {
-    return StorageService.getToken() != null;
+  Future<bool> isAuthenticated() async {
+    final token = await StorageService.getToken();
+    return token != null;
   }
 }
 

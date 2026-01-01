@@ -10,12 +10,42 @@ The admin web app supports easy switching between **production** (Railway) and *
 
 ```bash
 cd admin-web
-touch .env.local
+cp .env.local.example .env.local
 ```
+
+Or create it manually and add one of the configurations below.
 
 2. **Choose your environment** by adding one of the following:
 
-#### Option 1: Use Environment Variable (Recommended)
+#### Option 1: Use Railway Backend for Local Testing (Recommended for Testing)
+
+**Use Railway backend while developing locally:**
+```env
+NEXT_PUBLIC_API_BASE_URL=https://request-app-production.up.railway.app
+NEXT_PUBLIC_API_URL=https://request-app-production.up.railway.app
+NEXT_PUBLIC_WS_URL=wss://request-app-production.up.railway.app
+```
+
+This allows you to:
+- Test your local frontend changes against the deployed backend
+- Use real production data for testing
+- Avoid running the backend locally
+
+#### Option 2: Use Local Backend (Development)
+
+**Use local backend running on localhost:4000:**
+```env
+NEXT_PUBLIC_ENV=development
+```
+
+Or explicitly set local URLs:
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_WS_URL=ws://localhost:4000
+```
+
+#### Option 3: Use Environment Variable (Auto-select)
 
 **For Production (Railway):**
 ```env
@@ -25,22 +55,6 @@ NEXT_PUBLIC_ENV=production
 **For Development (Local):**
 ```env
 NEXT_PUBLIC_ENV=development
-```
-
-#### Option 2: Manual URL Configuration
-
-**For Production (Railway):**
-```env
-NEXT_PUBLIC_API_BASE_URL=https://request-app-production.up.railway.app
-NEXT_PUBLIC_API_URL=https://request-app-production.up.railway.app
-NEXT_PUBLIC_WS_URL=wss://request-app-production.up.railway.app
-```
-
-**For Development (Local):**
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
-NEXT_PUBLIC_API_URL=http://localhost:4000
-NEXT_PUBLIC_WS_URL=ws://localhost:4000
 ```
 
 ### Default Configuration

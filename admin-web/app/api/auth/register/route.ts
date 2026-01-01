@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+import { API_BASE_URL } from '@/lib/server-config';
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('access_token')?.value;
   if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   const body = await req.json();
-  const res = await fetch(`${API_BASE}/auth/register`, {
+  const res = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),

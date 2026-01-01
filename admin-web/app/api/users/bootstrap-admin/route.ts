@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('access_token')?.value;
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  const res = await fetch(`${API_BASE}/users/bootstrap-admin`, {
+  const res = await fetch(`${API_BASE_URL}/users/bootstrap-admin`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });

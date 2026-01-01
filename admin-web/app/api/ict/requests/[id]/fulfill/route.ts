@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export async function PUT(
   req: NextRequest,
@@ -12,7 +12,7 @@ export async function PUT(
   const { id } = await context.params;
   const body = await req.json();
   
-  const res = await fetch(`${API_BASE}/ict/requests/${id}/fulfill`, {
+  const res = await fetch(`${API_BASE_URL}/ict/requests/${id}/fulfill`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${token}`,

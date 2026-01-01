@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export async function GET(
   request: NextRequest,
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
     }
 
-    const res = await fetch(`${API_BASE}/ict/items/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/ict/items/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
@@ -50,7 +50,7 @@ export async function PUT(
 
     const body = await request.json();
 
-    const res = await fetch(`${API_BASE}/ict/items/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/ict/items/${id}`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -86,7 +86,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
     }
 
-    const res = await fetch(`${API_BASE}/ict/items/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/ict/items/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });

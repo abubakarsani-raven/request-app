@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export async function GET(
   req: NextRequest,
@@ -10,7 +10,7 @@ export async function GET(
   if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   
   const { id } = await context.params;
-  const res = await fetch(`${API_BASE}/maintenance/vehicles/${id}/records`, {
+  const res = await fetch(`${API_BASE_URL}/maintenance/vehicles/${id}/records`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -27,7 +27,7 @@ export async function POST(
   
   const { id } = await context.params;
   const body = await req.json();
-  const res = await fetch(`${API_BASE}/maintenance/vehicles/${id}/records`, {
+  const res = await fetch(`${API_BASE_URL}/maintenance/vehicles/${id}/records`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

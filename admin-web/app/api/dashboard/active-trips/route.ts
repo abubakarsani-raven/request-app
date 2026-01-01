@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('access_token')?.value;
   if (!token) return NextResponse.json(0);
-  const res = await fetch(`${API_BASE}/trips/active`, {
+  const res = await fetch(`${API_BASE_URL}/trips/active`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });

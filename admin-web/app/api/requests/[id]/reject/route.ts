@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const token = req.cookies.get('access_token')?.value;
@@ -10,7 +10,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   if (!body?.rejectionReason) {
     return NextResponse.json({ message: 'rejectionReason is required' }, { status: 400 });
   }
-  const res = await fetch(`${API_BASE}/requests/${id}/reject`, {
+  const res = await fetch(`${API_BASE_URL}/requests/${id}/reject`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ rejectionReason: body.rejectionReason }),

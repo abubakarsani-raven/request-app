@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     
     const body = await req.json();
     const { id } = await context.params;
-    const res = await fetch(`${API_BASE}/users/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/users/${id}`, {
       method: 'PATCH',
       headers: { 
         'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export async function PUT(
   req: NextRequest,
@@ -11,7 +11,7 @@ export async function PUT(
   
   const { id } = await context.params;
   const body = await req.json();
-  const res = await fetch(`${API_BASE}/maintenance/records/${id}`, {
+  const res = await fetch(`${API_BASE_URL}/maintenance/records/${id}`, {
     method: 'PUT',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -31,7 +31,7 @@ export async function DELETE(
   if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   
   const { id } = await context.params;
-  const res = await fetch(`${API_BASE}/maintenance/records/${id}`, {
+  const res = await fetch(`${API_BASE_URL}/maintenance/records/${id}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });

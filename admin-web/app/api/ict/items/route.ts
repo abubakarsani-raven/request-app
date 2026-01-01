@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
 
     const available = request.nextUrl.searchParams.get("available");
     const url = available === "true" 
-      ? `${API_BASE}/ict/items?available=true`
-      : `${API_BASE}/ict/items`;
+      ? `${API_BASE_URL}/ict/items?available=true`
+      : `${API_BASE_URL}/ict/items`;
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const res = await fetch(`${API_BASE}/ict/items`, {
+    const res = await fetch(`${API_BASE_URL}/ict/items`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

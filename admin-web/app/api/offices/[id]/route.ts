@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -9,7 +9,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     
     const { id } = await context.params;
     const body = await req.json();
-    const res = await fetch(`${API_BASE}/offices/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/offices/${id}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     
     const { id } = await context.params;
-    const res = await fetch(`${API_BASE}/offices/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/offices/${id}`, {
       method: 'DELETE',
       headers: { 
         Authorization: `Bearer ${token}`,

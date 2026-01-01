@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { API_BASE_URL } from '@/lib/server-config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const res = await fetch(`${API_BASE}/ict/items/low-stock/all`, {
+    const res = await fetch(`${API_BASE_URL}/ict/items/low-stock/all`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });

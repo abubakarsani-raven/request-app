@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE_URL } from '@/lib/server-config';
+import { getApiBaseUrl } from '@/lib/server-config';
 
 
 export async function GET(request: NextRequest) {
@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const API_BASE_URL = getApiBaseUrl(); // Call at runtime
     const available = request.nextUrl.searchParams.get("available");
     const url = available === "true" 
       ? `${API_BASE_URL}/ict/items?available=true`
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const API_BASE_URL = getApiBaseUrl(); // Call at runtime
     const body = await request.json();
 
     const res = await fetch(`${API_BASE_URL}/ict/items`, {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE_URL } from "@/lib/config";
+import { getApiBaseUrl } from "@/lib/server-config";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       params.append("reportType", "REQUESTS");
     }
 
+    const API_BASE_URL = getApiBaseUrl(); // Call at runtime
     const response = await fetch(`${API_BASE_URL}/reports/requests?${params.toString()}`, {
       headers: {
         Authorization: `Bearer ${token}`,

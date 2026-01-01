@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE_URL } from '@/lib/server-config';
+import { getApiBaseUrl } from '@/lib/server-config';
 
 
 export async function PUT(request: NextRequest) {
@@ -10,6 +10,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const API_BASE_URL = getApiBaseUrl(); // Call at runtime
     const response = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
       method: "PUT",
       headers: {

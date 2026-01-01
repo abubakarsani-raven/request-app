@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, AlertTriangle, Package, ArrowRight } from "lucide-react";
+import { Sparkles, TrendingUp, AlertTriangle, Package, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ItemDetailsDialog } from "./ItemDetailsDialog";
 
 type ICTItem = {
   _id?: string;
@@ -42,8 +45,15 @@ async function getRestockingAdvice(): Promise<RestockingAdvice[]> {
   const lowStockItems: ICTItem[] = await fetchJSON<ICTItem[]>("/api/ict/items/low-stock/all");
   
   // Get request history for demand analysis
-  const requests = await fetchJSON<any[]>("/api/ict/requests?pending=false");
+  const allRequests = await fetchJSON<any[]>("/api/ict-requests");
   
+  const requests = Array.isArray(allRequests) 
+    ? allRequests.filter((req: any) => {
+        const status = req.status?.toUpperCase();
+        return status !== 'PENDING' && status !== 'REJECTED' && status !== 'CANCELLED';
+      })
+    : [];
+    
   // Analyze demand patterns
   const itemDemand: Record<string, number> = {};
   const last30Days = new Date();
@@ -124,6 +134,8 @@ function getItemId(item: ICTItem): string {
 }
 
 export function AIRestockingAdvice() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const { data: advice, isLoading, error } = useQuery<RestockingAdvice[]>({
     queryKey: ["restocking-advice"],
     queryFn: getRestockingAdvice,
@@ -169,21 +181,36 @@ export function AIRestockingAdvice() {
   if (!advice || advice.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            AI Restocking Advice
-          </CardTitle>
-          <CardDescription>
-            Smart recommendations based on demand patterns and stock levels
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>All items are well-stocked. No immediate restocking needed.</p>
-          </div>
-        </CardContent>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    AI Restocking Advice
+                  </CardTitle>
+                </div>
+                {isOpen ? (
+                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <CardDescription>
+                Smart recommendations based on demand patterns and stock levels
+              </CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>All items are well-stocked. No immediate restocking needed.</p>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
     );
   }
@@ -201,75 +228,99 @@ export function AIRestockingAdvice() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-purple-500" />
-          AI Restocking Advice
-        </CardTitle>
-        <CardDescription>
-          Smart recommendations based on demand patterns and stock levels
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {advice.map((item) => {
-          const UrgencyIcon = urgencyIcons[item.urgency];
-          return (
-            <div
-              key={item.itemId}
-              className="border rounded-lg p-4 space-y-3 hover:bg-accent/50 transition-colors"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-semibold">{item.itemName}</h4>
-                    <Badge variant={urgencyColors[item.urgency]}>
-                      <UrgencyIcon className="h-3 w-3 mr-1" />
-                      {item.urgency.toUpperCase()}
-                    </Badge>
-                    <Badge variant="outline">{item.category}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">{item.reason}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Current Stock</p>
-                      <p className="font-semibold">{item.currentStock} {item.unit}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Threshold</p>
-                      <p className="font-semibold">{item.threshold} {item.unit}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Recommended</p>
-                      <p className="font-semibold text-primary">{item.recommendedQuantity} {item.unit}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Days Until Out</p>
-                      <p className="font-semibold">
-                        {item.estimatedDaysUntilOutOfStock === 999 ? "N/A" : item.estimatedDaysUntilOutOfStock}
-                      </p>
-                    </div>
-                  </div>
+    <>
+      <Card>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-500" />
+                    AI Restocking Advice
+                  </CardTitle>
                 </div>
+                {isOpen ? (
+                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                )}
               </div>
-              <div className="flex gap-2 pt-2 border-t">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    // Navigate to inventory page with item selected
-                    window.location.href = `/ict-inventory?item=${item.itemId}`;
-                  }}
-                >
-                  View Item
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+              <CardDescription>
+                Smart recommendations based on demand patterns and stock levels
+              </CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-4">
+              {advice.map((item) => {
+                const UrgencyIcon = urgencyIcons[item.urgency];
+                return (
+                  <div
+                    key={item.itemId}
+                    className="border rounded-lg p-4 space-y-3 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-semibold">{item.itemName}</h4>
+                          <Badge variant={urgencyColors[item.urgency]}>
+                            <UrgencyIcon className="h-3 w-3 mr-1" />
+                            {item.urgency.toUpperCase()}
+                          </Badge>
+                          <Badge variant="outline">{item.category}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{item.reason}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Current Stock</p>
+                            <p className="font-semibold">{item.currentStock} {item.unit}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Threshold</p>
+                            <p className="font-semibold">{item.threshold} {item.unit}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Recommended</p>
+                            <p className="font-semibold text-primary">{item.recommendedQuantity} {item.unit}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Days Until Out</p>
+                            <p className="font-semibold">
+                              {item.estimatedDaysUntilOutOfStock === 999 ? "N/A" : item.estimatedDaysUntilOutOfStock}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedItemId(item.itemId);
+                        }}
+                      >
+                        View Item
+                        <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
+      {selectedItemId && (
+        <ItemDetailsDialog
+          open={!!selectedItemId}
+          itemId={selectedItemId}
+          onClose={() => setSelectedItemId(null)}
+        />
+      )}
+    </>
   );
 }

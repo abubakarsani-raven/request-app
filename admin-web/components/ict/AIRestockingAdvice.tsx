@@ -28,6 +28,7 @@ type RestockingAdvice = {
   urgency: "high" | "medium" | "low";
   reason: string;
   estimatedDaysUntilOutOfStock: number;
+  unit: string;
 };
 
 async function fetchJSON<T>(url: string): Promise<T> {
@@ -107,6 +108,7 @@ async function getRestockingAdvice(): Promise<RestockingAdvice[]> {
       urgency,
       reason,
       estimatedDaysUntilOutOfStock: daysUntilOutOfStock,
+      unit: item.unit,
     });
   });
   

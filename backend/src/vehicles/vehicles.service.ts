@@ -747,6 +747,10 @@ export class VehiclesService {
       const nextStage = savedRequest.workflowStage;
       const approvers = await this.findApproversForStage(nextStage, user.departmentId.toString());
       for (const approver of approvers) {
+        // Add approver to participants so they receive workflow progress notifications
+        // Use 'created' as placeholder action - will be updated to 'approved' when they approve
+        this.addParticipant(savedRequest, approver._id.toString(), approver.roles[0] || UserRole.SUPERVISOR, 'created');
+        
         await this.notificationsService.notifyApprovalRequired(
           approver._id.toString(),
           user.name,
@@ -754,6 +758,8 @@ export class VehiclesService {
           savedRequest._id.toString(),
         );
       }
+      // Save after adding participants
+      await savedRequest.save();
     } catch (error) {
       console.error('Error sending approval required notification:', error);
     }
@@ -796,7 +802,7 @@ export class VehiclesService {
     // Do NOT filter by status - users should see all their requests (pending, approved, completed, etc.)
     let requests = await this.vehicleRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('vehicleId')
       .populate('driverId')
       .sort({ createdAt: -1 })
@@ -817,7 +823,7 @@ export class VehiclesService {
       console.log('[Vehicles Service] findAllRequests: Trying fallback string comparison query');
       const allRequests = await this.vehicleRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('vehicleId')
         .populate('driverId')
         .sort({ createdAt: -1 })
@@ -870,7 +876,7 @@ export class VehiclesService {
     ) {
       return this.vehicleRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('vehicleId')
         .populate('driverId')
         .sort({ createdAt: -1 })
@@ -883,7 +889,7 @@ export class VehiclesService {
       // First, find all requests and populate requesterId, then filter by department
       const allRequests = await this.vehicleRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('vehicleId')
         .populate('driverId')
         .sort({ createdAt: -1 })
@@ -900,7 +906,7 @@ export class VehiclesService {
     query.requesterId = new Types.ObjectId(userId);
     return this.vehicleRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('vehicleId')
       .populate('driverId')
       .sort({ createdAt: -1 })
@@ -910,7 +916,7 @@ export class VehiclesService {
   async findDriverAssignments(driverId: string): Promise<VehicleRequest[]> {
     return this.vehicleRequestModel
       .find({ driverId: new Types.ObjectId(driverId) })
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('vehicleId')
       .populate('driverId')
       .sort({ createdAt: -1 })
@@ -932,7 +938,7 @@ export class VehiclesService {
           .find({
             status: { $in: [RequestStatus.PENDING, RequestStatus.CORRECTED] },
           })
-          .populate('requesterId')
+          .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
           .populate('vehicleId')
           .populate('driverId')
           .sort({ createdAt: -1 })
@@ -992,7 +998,7 @@ export class VehiclesService {
       // Execute single optimized query
       const allRequests = await this.vehicleRequestModel
         .find(query)
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('vehicleId')
         .populate('driverId')
         .sort({ createdAt: -1 })
@@ -1089,7 +1095,7 @@ export class VehiclesService {
   async findOneRequest(id: string): Promise<VehicleRequestDocument> {
     const request = await this.vehicleRequestModel
       .findById(id)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('vehicleId')
       .populate('driverId')
       .exec();
@@ -1291,6 +1297,10 @@ export class VehiclesService {
       try {
         const approvers = await this.findApproversForStage(nextStage, requester.departmentId.toString());
         for (const approver of approvers) {
+          // Add approver to participants so they receive workflow progress notifications
+          // Use 'created' as placeholder action - will be updated to 'approved' when they approve
+          this.addParticipant(savedRequest, approver._id.toString(), approver.roles[0] || UserRole.SUPERVISOR, 'created');
+          
           await this.notificationsService.notifyApprovalRequired(
             approver._id.toString(),
             requester.name,
@@ -1298,6 +1308,8 @@ export class VehiclesService {
             requestId,
           );
         }
+        // Save after adding participants
+        await savedRequest.save();
       } catch (error) {
         console.error('Error sending approval required notification:', error);
       }
@@ -2664,7 +2676,7 @@ export class VehiclesService {
 
     let requests = await this.vehicleRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('vehicleId')
       .populate('driverId')
       .sort({ createdAt: -1 })
@@ -2725,7 +2737,7 @@ export class VehiclesService {
 
     let requests = await this.vehicleRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('vehicleId')
       .populate('driverId')
       .sort({ createdAt: -1 })

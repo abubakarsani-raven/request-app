@@ -157,11 +157,10 @@ export default function IctRequestsPage() {
     return statusMap[statusUpper] || status;
   };
 
-  const getRequesterName = (requesterId: any) => {
-    if (typeof requesterId === "object" && requesterId?.name) {
-      return requesterId.name;
-    }
-    return "Unknown";
+  const getRequesterDisplay = (requesterId: any) => {
+    if (typeof requesterId !== "object" || !requesterId?.name) return "Unknown";
+    const dept = requesterId.departmentId?.name;
+    return dept ? `${requesterId.name} (${dept})` : requesterId.name;
   };
 
   return (
@@ -246,7 +245,7 @@ export default function IctRequestsPage() {
                           {getStatusLabel(r.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{getRequesterName(r.requesterId)}</TableCell>
+                      <TableCell>{getRequesterDisplay(r.requesterId)}</TableCell>
                       <TableCell>
                         {r.createdAt
                           ? new Date(r.createdAt).toLocaleDateString("en-US", {

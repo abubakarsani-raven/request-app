@@ -163,11 +163,11 @@ export function DriverAssignmentsList({ driverId, showHistory = true }: DriverAs
     });
   };
 
-  const getRequesterName = (requester: Assignment["requesterId"]) => {
-    if (typeof requester === "object" && requester !== null) {
-      return requester.name || requester.email || "Unknown";
-    }
-    return "Unknown";
+  const getRequesterDisplay = (requester: Assignment["requesterId"]) => {
+    if (typeof requester !== "object" || requester === null) return "Unknown";
+    const name = requester.name || requester.email || "Unknown";
+    const dept = (requester as { departmentId?: { name: string } }).departmentId?.name;
+    return dept ? `${name} (${dept})` : name;
   };
 
   const getVehicleInfo = (vehicle: Assignment["vehicleId"]) => {
@@ -196,7 +196,7 @@ export function DriverAssignmentsList({ driverId, showHistory = true }: DriverAs
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Request ID</TableHead>
+                    <TableHead>Requester</TableHead>
                     <TableHead>Destination</TableHead>
                     <TableHead>Trip Date</TableHead>
                     <TableHead>Vehicle</TableHead>
@@ -207,7 +207,7 @@ export function DriverAssignmentsList({ driverId, showHistory = true }: DriverAs
                 <TableBody>
                   {activeAssignments.map((assignment) => (
                     <TableRow key={assignment._id}>
-                      <TableCell className="font-mono text-xs">{assignment._id.slice(-8)}</TableCell>
+                      <TableCell>{getRequesterDisplay(assignment.requesterId)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -258,7 +258,7 @@ export function DriverAssignmentsList({ driverId, showHistory = true }: DriverAs
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Request ID</TableHead>
+                    <TableHead>Requester</TableHead>
                     <TableHead>Destination</TableHead>
                     <TableHead>Trip Date</TableHead>
                     <TableHead>Vehicle</TableHead>
@@ -269,7 +269,7 @@ export function DriverAssignmentsList({ driverId, showHistory = true }: DriverAs
                 <TableBody>
                   {completedAssignments.map((assignment) => (
                     <TableRow key={assignment._id}>
-                      <TableCell className="font-mono text-xs">{assignment._id.slice(-8)}</TableCell>
+                      <TableCell>{getRequesterDisplay(assignment.requesterId)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />

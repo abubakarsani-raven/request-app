@@ -27,17 +27,27 @@ class _TripTrackingPageState extends State<TripTrackingPage> {
   late final TripController tripController;
   late final TripModeController modeController;
   GoogleMapController? _mapController;
+  MapType _mapType = MapType.normal;
 
   @override
   void initState() {
     super.initState();
-    // Get or create controllers
-    tripController = Get.find<TripController>();
-    // TripModeController is page-specific, create new instance
+    if (Get.isRegistered<TripController>()) {
+      tripController = Get.find<TripController>();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.isRegistered<TripController>()) {
+          setState(() => tripController = Get.find<TripController>());
+        }
+      });
+      tripController = Get.find<TripController>();
+    }
     modeController = Get.put(TripModeController());
-    
-    // Load trip details and initialize mode
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!Get.isRegistered<TripController>()) return;
+      final tc = Get.find<TripController>();
+      if (tripController != tc) tripController = tc;
       await tripController.loadTripDetails(widget.requestId);
       final trip = tripController.currentTrip.value;
       modeController.updateModeBasedOnTrip(trip);
@@ -289,13 +299,31 @@ class _TripTrackingPageState extends State<TripTrackingPage> {
             myLocationEnabled: trip.tripStarted && !trip.tripCompleted,
             myLocationButtonEnabled: false, // We have custom button
             zoomControlsEnabled: true,
-            mapType: MapType.normal,
+            mapType: _mapType,
             onMapCreated: (GoogleMapController controller) {
               if (mounted) {
                 _mapController = controller;
                 tripController.setMapController(controller);
               }
             },
+          ),
+          Positioned(
+            top: 16,
+            right: 16,
+            child: FloatingActionButton(
+              heroTag: 'mapTypeToggle',
+              mini: true,
+              onPressed: () {
+                setState(() {
+                  _mapType = _mapType == MapType.normal
+                      ? MapType.satellite
+                      : MapType.normal;
+                });
+              },
+              child: Icon(
+                _mapType == MapType.normal ? Icons.satellite_alt : Icons.map,
+              ),
+            ),
           ),
           // Navigation Panel
           if (trip.tripStarted && !trip.tripCompleted)

@@ -61,30 +61,6 @@ export class NotificationsService {
       },
     );
 
-    // Also queue push notification
-    await this.pushNotificationsQueue.add(
-      'send-push',
-      {
-        userId,
-        title,
-        body: message,
-        data: {
-          requestId,
-          requestType,
-          type,
-        },
-      },
-      {
-        attempts: 5,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: true,
-        removeOnFail: false,
-      },
-    );
-
     // Return a placeholder notification object (actual notification will be created by processor)
     // For backward compatibility, we'll still create it synchronously but queue the heavy work
     const notification = new this.notificationModel({
@@ -116,7 +92,32 @@ export class NotificationsService {
       console.error('Error emitting WebSocket notification:', error);
     }
 
-    // Email and push notifications are handled by queue processors
+    // Queue push notification with notificationId to prevent duplicates
+    await this.pushNotificationsQueue.add(
+      'send-push',
+      {
+        userId,
+        title,
+        body: message,
+        data: {
+          notificationId: savedNotification._id.toString(),
+          requestId,
+          requestType,
+          type,
+        },
+      },
+      {
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    );
+
+    // Email notifications are handled by queue processors
 
     return savedNotification;
   }

@@ -12,6 +12,11 @@ type ICTItem = {
   name: string;
 };
 
+type DepartmentRef = { name: string };
+type PerformerRef = { name: string; email?: string; departmentId?: DepartmentRef };
+type RequesterRef = { name: string; departmentId?: DepartmentRef };
+type RequestRef = { _id?: string; requesterId?: RequesterRef };
+
 type StockHistory = {
   _id: string;
   previousQuantity: number;
@@ -19,10 +24,29 @@ type StockHistory = {
   changeAmount: number;
   operation: string;
   reason?: string;
-  performedBy: { name: string; email: string } | string;
-  requestId?: string;
+  performedBy: PerformerRef | string;
+  requestId?: RequestRef | string;
   createdAt: string;
 };
+
+function getPerformerDisplay(performedBy: StockHistory["performedBy"]): string {
+  if (typeof performedBy !== "object" || performedBy === null) return "Unknown";
+  const name = performedBy.name || (performedBy as PerformerRef).email || "Unknown";
+  const dept = (performedBy as PerformerRef).departmentId?.name;
+  return dept ? `${name} (${dept})` : name;
+}
+
+function getReasonDisplay(entry: StockHistory): string {
+  if (entry.operation === "FULFILLMENT" && entry.requestId && typeof entry.requestId === "object") {
+    const req = entry.requestId as RequestRef;
+    const requester = req?.requesterId;
+    if (requester?.name) {
+      const dept = requester.departmentId?.name;
+      return dept ? `Fulfilled request by ${requester.name} (${dept})` : `Fulfilled request by ${requester.name}`;
+    }
+  }
+  return entry.reason || "-";
+}
 
 type StockHistoryModalProps = {
   open: boolean;
@@ -63,13 +87,6 @@ export function StockHistoryModal({ open, item, onClose }: StockHistoryModalProp
 
   function formatDate(dateString: string) {
     return new Date(dateString).toLocaleString();
-  }
-
-  function getUserName(performedBy: StockHistory["performedBy"]) {
-    if (typeof performedBy === "object" && performedBy !== null) {
-      return performedBy.name || performedBy.email || "Unknown";
-    }
-    return "Unknown";
   }
 
   return (
@@ -123,8 +140,8 @@ export function StockHistoryModal({ open, item, onClose }: StockHistoryModalProp
                       {entry.changeAmount}
                     </span>
                   </TableCell>
-                  <TableCell>{getUserName(entry.performedBy)}</TableCell>
-                  <TableCell>{entry.reason || "-"}</TableCell>
+                  <TableCell>{getPerformerDisplay(entry.performedBy)}</TableCell>
+                  <TableCell>{getReasonDisplay(entry)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

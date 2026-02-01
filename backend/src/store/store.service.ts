@@ -172,6 +172,10 @@ export class StoreService {
       const nextStage = finalRequest.workflowStage;
       const approvers = await this.findApproversForStage(nextStage, user.departmentId.toString());
       for (const approver of approvers) {
+        // Add approver to participants so they receive workflow progress notifications
+        // Use 'created' as placeholder action - will be updated to 'approved' when they approve
+        this.addParticipant(finalRequest, approver._id.toString(), approver.roles[0] || UserRole.SUPERVISOR, 'created');
+        
         await this.notificationsService.notifyApprovalRequired(
           approver._id.toString(),
           user.name,
@@ -179,6 +183,8 @@ export class StoreService {
           finalRequest._id.toString(),
         );
       }
+      // Save after adding participants
+      await finalRequest.save();
     } catch (error) {
       console.error('Error sending approval required notification:', error);
     }
@@ -215,7 +221,7 @@ export class StoreService {
     // Do NOT filter by status - users should see all their requests (pending, approved, completed, etc.)
     let requests = await this.storeRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();
@@ -235,7 +241,7 @@ export class StoreService {
       console.log('[Store Service] findAllRequests: Trying fallback string comparison query');
       const allRequests = await this.storeRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -285,7 +291,7 @@ export class StoreService {
     ) {
       return this.storeRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -297,7 +303,7 @@ export class StoreService {
       // First, find all requests and populate requesterId, then filter by department
       const allRequests = await this.storeRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -315,7 +321,7 @@ export class StoreService {
     const query: any = { requesterId: new Types.ObjectId(userId) };
     return this.storeRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();
@@ -336,7 +342,7 @@ export class StoreService {
           .find({
             status: { $in: [RequestStatus.PENDING, RequestStatus.CORRECTED] },
           })
-          .populate('requesterId')
+          .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
           .sort({ createdAt: -1 })
           .exec();
         
@@ -386,7 +392,7 @@ export class StoreService {
       // Execute single optimized query
       const allRequests = await this.storeRequestModel
         .find(query)
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .sort({ createdAt: -1 })
         .exec();
 
@@ -469,7 +475,7 @@ export class StoreService {
   async findOneRequest(id: string): Promise<StoreRequestDocument> {
     const request = await this.storeRequestModel
       .findById(id)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .exec();
 
@@ -514,20 +520,16 @@ export class StoreService {
     // Add approver as participant
     this.addParticipant(request, userId, userRoles[0], 'approved');
 
-    // Special handling for DGS approval - can route directly to SO or through DDGS → ADGS → SO
-    let nextStage: WorkflowStage | null = null;
-    if (userRoles.includes(UserRole.DGS) && request.workflowStage === WorkflowStage.DGS_REVIEW) {
-      // DGS needs to explicitly route (handled by routeRequest method)
-      // For now, default to going through DDGS → ADGS → SO
-      nextStage = WorkflowStage.DDGS_REVIEW;
+    // Advance to next stage (chain includes DGS → DDGS → ADGS → SO → FULFILLMENT; DGS can skip to SO via routeRequest)
+    let nextStage = this.workflowService.getNextStage(request.workflowStage, workflowChain);
+    if (nextStage) {
       request.workflowStage = nextStage;
-    } else {
-      nextStage = this.workflowService.getNextStage(request.workflowStage, workflowChain);
-      if (nextStage) {
-        request.workflowStage = nextStage;
-      } else {
+      // When moving to FULFILLMENT, set status APPROVED so SO can fulfill
+      if (nextStage === WorkflowStage.FULFILLMENT) {
         request.status = RequestStatus.APPROVED;
       }
+    } else {
+      request.status = RequestStatus.APPROVED;
     }
 
     const savedRequest = await request.save();
@@ -563,6 +565,10 @@ export class StoreService {
       try {
         const approvers = await this.findApproversForStage(nextStage, requester.departmentId.toString());
         for (const approver of approvers) {
+          // Add approver to participants so they receive workflow progress notifications
+          // Use 'created' as placeholder action - will be updated to 'approved' when they approve
+          this.addParticipant(savedRequest, approver._id.toString(), approver.roles[0] || UserRole.SUPERVISOR, 'created');
+          
           await this.notificationsService.notifyApprovalRequired(
             approver._id.toString(),
             requester.name,
@@ -570,6 +576,8 @@ export class StoreService {
             requestId,
           );
         }
+        // Save after adding participants
+        await savedRequest.save();
       } catch (error) {
         console.error('Error sending approval required notification:', error);
       }
@@ -922,12 +930,39 @@ export class StoreService {
     message: string,
   ): Promise<void> {
     try {
-      // Get requester and all approvers
+      // Get all unique participant IDs (use participants array like Vehicle service)
       const participantIds = [
         request.requesterId.toString(),
-        ...request.approvals.map((a) => a.approverId.toString()),
+        ...request.participants.map((p) => p.userId.toString()),
       ];
       const uniqueParticipantIds = [...new Set(participantIds)];
+
+      // Get participant details for the progress payload
+      const participants = await Promise.all(
+        uniqueParticipantIds.map(async (id) => {
+          try {
+            const user = await this.usersService.findOne(id);
+            const participant = request.participants.find((p) => p.userId.toString() === id);
+            return {
+              userId: id,
+              name: user?.name || 'Unknown',
+              role: participant?.role || user?.roles[0] || UserRole.SUPERVISOR,
+              action: participant?.action || 'created',
+              timestamp: participant?.timestamp || (request as any).createdAt || new Date(),
+            };
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      const validParticipants = participants.filter((p) => p !== null) as Array<{
+        userId: string;
+        name: string;
+        role: string;
+        action: string;
+        timestamp: Date;
+      }>;
 
       // Emit workflow progress to all participants
       await this.notificationsService.emitWorkflowProgress(uniqueParticipantIds, {
@@ -937,7 +972,7 @@ export class StoreService {
         status: request.status,
         action,
         actionBy,
-        participants: [],
+        participants: validParticipants,
         message,
       });
 
@@ -1095,7 +1130,7 @@ export class StoreService {
 
     let requests = await this.storeRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();
@@ -1155,7 +1190,7 @@ export class StoreService {
 
     let requests = await this.storeRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();

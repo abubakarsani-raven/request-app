@@ -98,7 +98,7 @@ export default function OfficesManagement() {
   const fetchOffices = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/offices')
+      const response = await api.get('/api/offices')
       setOffices(response.data)
       setError('')
     } catch (err: any) {
@@ -187,7 +187,7 @@ export default function OfficesManagement() {
   const handleDelete = async () => {
     if (!selectedOffice) return
     try {
-      await api.delete(`/offices/${selectedOffice._id}`)
+      await api.delete(`/api/offices/${selectedOffice._id}`)
       await fetchOffices()
       setIsDeleteDialogOpen(false)
       setSelectedOffice(null)

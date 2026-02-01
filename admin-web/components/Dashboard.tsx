@@ -38,11 +38,11 @@ export default function Dashboard() {
     try {
       setLoading(true)
       const [usersRes, requestsRes, departmentsRes, vehiclesRes, officesRes] = await Promise.all([
-        api.get('/users').catch(() => ({ data: [] })),
-        api.get('/vehicles/requests').catch(() => ({ data: [] })),
-        api.get('/departments').catch(() => ({ data: [] })),
-        api.get('/vehicles/vehicles').catch(() => ({ data: [] })),
-        api.get('/offices').catch(() => ({ data: [] })),
+        api.get('/api/users').catch(() => ({ data: [] })),
+        api.get('/api/transport/requests').catch(() => ({ data: [] })),
+        api.get('/api/departments').catch(() => ({ data: [] })),
+        api.get('/api/vehicles').catch(() => ({ data: [] })),
+        api.get('/api/offices').catch(() => ({ data: [] })),
       ])
 
       const today = new Date()

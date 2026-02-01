@@ -35,13 +35,23 @@ void main() async {
   
   // Initialize Firebase using FlutterFire CLI generated options
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    print('Firebase initialized successfully');
+    // Check if Firebase is already initialized (e.g., by native code or hot reload)
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      print('Firebase initialized successfully');
+    } else {
+      print('Firebase already initialized');
+    }
   } catch (e) {
-    print('Error initializing Firebase: $e');
-    // Continue even if Firebase fails (for development)
+    // Check if error is due to duplicate initialization
+    if (e.toString().contains('duplicate-app')) {
+      print('Firebase already initialized (duplicate-app error ignored)');
+    } else {
+      print('Error initializing Firebase: $e');
+      // Continue even if Firebase fails (for development)
+    }
   }
   
   // Lock app to portrait orientation only

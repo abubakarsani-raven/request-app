@@ -21,6 +21,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<AuthController>()) {
+      return AppDrawer(
+        controller: _drawerController,
+        child: Scaffold(
+          appBar: AppBar(title: const Text('Profile')),
+          body: const Center(child: Text('Loading...')),
+        ),
+      );
+    }
     final authController = Get.find<AuthController>();
 
     return AppDrawer(
@@ -40,67 +49,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: Text('Not logged in'));
           }
 
+          if (!Get.isRegistered<ThemeController>()) {
+            return _buildProfileContent(context, user, null);
+          }
           final themeController = Get.find<ThemeController>();
-          
-          return ListView(
-            padding: const EdgeInsets.all(AppConstants.spacingL),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppConstants.spacingL),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.name,
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(user.email),
-                      const SizedBox(height: 8),
-                      Text('Level: ${user.level}'),
-                      const SizedBox(height: 8),
-                      Text('Roles: ${user.roles.join(", ")}'),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Dark Mode Toggle
-              Card(
-                child: Obx(() => SwitchListTile(
-                  title: const Text('Dark Mode'),
-                  subtitle: Text(
-                    themeController.isDarkMode 
-                        ? 'Dark theme is enabled' 
-                        : 'Light theme is enabled',
-                  ),
-                  value: themeController.isDarkMode,
-                  onChanged: (value) {
-                    themeController.toggleTheme();
-                  },
-                  secondary: Icon(
-                    themeController.isDarkMode 
-                        ? AppIcons.darkMode 
-                        : AppIcons.lightMode,
-                  ),
-                )),
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                text: 'Logout',
-                icon: AppIcons.logout,
-                backgroundColor: AppColors.error,
-                textColor: AppColors.textOnPrimary,
-                onPressed: () async {
-                  await authController.logout();
-                },
-              ),
-            ],
-          );
+          return _buildProfileContent(context, user, themeController);
         },
       ),
       ),
+    );
+  }
+
+  Widget _buildProfileContent(
+    BuildContext context,
+    dynamic user,
+    ThemeController? themeController,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.all(AppConstants.spacingL),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppConstants.spacingL),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.name,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(user.email),
+                const SizedBox(height: 8),
+                Text('Level: ${user.level}'),
+                const SizedBox(height: 8),
+                Text('Roles: ${user.roles.join(", ")}'),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        if (themeController != null)
+          Card(
+            child: Obx(() => SwitchListTile(
+              title: const Text('Dark Mode'),
+              subtitle: Text(
+                themeController.isDarkMode
+                    ? 'Dark theme is enabled'
+                    : 'Light theme is enabled',
+              ),
+              value: themeController.isDarkMode,
+              onChanged: (value) => themeController.toggleTheme(),
+              secondary: Icon(
+                themeController.isDarkMode
+                    ? AppIcons.darkMode
+                    : AppIcons.lightMode,
+              ),
+            )),
+          ),
+        if (themeController != null) const SizedBox(height: 24),
+        CustomButton(
+          text: 'Logout',
+          icon: AppIcons.logout,
+          backgroundColor: AppColors.error,
+          textColor: AppColors.textOnPrimary,
+          onPressed: () async {
+            if (Get.isRegistered<AuthController>()) {
+              await Get.find<AuthController>().logout();
+            }
+          },
+        ),
+      ],
     );
   }
 }

@@ -1,10 +1,13 @@
 import 'package:get/get.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import '../../data/services/notification_service.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/models/request_model.dart';
 import '../../../core/services/notification_service.dart' as local_notification_service;
 import '../../../core/animations/sheet_animations.dart';
+import '../../../core/utils/error_message_formatter.dart';
 
 class NotificationController extends GetxController {
   final NotificationService _notificationService = Get.find<NotificationService>();
@@ -25,6 +28,10 @@ class NotificationController extends GetxController {
   
   // Track notifications that have been shown as local notifications to avoid duplicates
   final Set<String> _shownNotificationIds = <String>{};
+  
+  // Track processed notification hashes to prevent re-processing duplicates
+  // This uses a hash of content + requestId for more robust duplicate detection
+  final Set<String> _processedNotificationHashes = <String>{};
 
   @override
   void onInit() {
@@ -97,14 +104,60 @@ class NotificationController extends GetxController {
         requestType: requestType,
       );
 
+      // Generate a content hash for robust duplicate detection
+      // This helps catch duplicates even if notificationId is different
+      final contentHash = _generateNotificationHash(title, message, requestId, typeStr);
+      
+      // Check if we've already processed this notification (by hash)
+      if (_processedNotificationHashes.contains(contentHash)) {
+        print('🚫 [NotificationController] Duplicate notification detected by hash: $contentHash (ID: $notificationId)');
+        // Still update the notification in case ID changed, but don't add as new
+        final existingIndex = notifications.indexWhere((n) => n.id == notificationId);
+        if (existingIndex != -1) {
+          notifications[existingIndex] = notification;
+        }
+        return; // Skip processing this duplicate
+      }
+      
       // Check if notification already exists to avoid duplicates
-      final existingIndex = notifications.indexWhere((n) => n.id == notificationId);
+      // First check by ID (most reliable)
+      int existingIndex = notifications.indexWhere((n) => n.id == notificationId);
+      
+      // If not found by ID, check by content hash in existing notifications
+      if (existingIndex == -1) {
+        existingIndex = notifications.indexWhere((n) {
+          final nHash = _generateNotificationHash(n.title, n.message, n.requestId, n.type.toString());
+          return nHash == contentHash;
+        });
+      }
+      
+      // If still not found, check by content (title, message, requestId, timestamp within 10 seconds)
+      // This handles cases where notificationId might be missing or different
+      if (existingIndex == -1) {
+        existingIndex = notifications.indexWhere((n) {
+          final sameTitle = n.title == title;
+          final sameMessage = n.message == message;
+          final sameRequestId = n.requestId == requestId;
+          // Check if timestamps are within 10 seconds (same notification might have slightly different timestamps)
+          final timeDiff = (n.createdAt.difference(createdAt)).abs().inSeconds;
+          final sameTime = timeDiff <= 10;
+          
+          return sameTitle && sameMessage && sameRequestId && sameTime;
+        });
+      }
+      
       if (existingIndex != -1) {
         // Update existing notification instead of adding duplicate
+        print('🔄 [NotificationController] Updating existing notification at index $existingIndex (ID: ${notifications[existingIndex].id} -> $notificationId, Hash: $contentHash)');
         notifications[existingIndex] = notification;
+        // Mark as processed to prevent future duplicates
+        _processedNotificationHashes.add(contentHash);
       } else {
         // Add to beginning of list only if it doesn't exist
+        print('✅ [NotificationController] Adding new notification: $notificationId (Hash: $contentHash)');
         notifications.insert(0, notification);
+        // Mark as processed to prevent future duplicates
+        _processedNotificationHashes.add(contentHash);
         // Update unread count locally only if it's a new notification
         unreadCount.value = unreadCount.value + 1;
       }
@@ -138,10 +191,11 @@ class NotificationController extends GetxController {
       // Create notification from workflow progress
       // Use a more stable ID based on requestId and action to avoid duplicates
       final notificationId = 'progress_${requestId}_${action}';
+      final title = _getTitleFromAction(action, requestTypeStr ?? '');
       final notification = NotificationModel(
         id: notificationId,
         type: _mapNotificationTypeFromAction(action),
-        title: _getTitleFromAction(action, requestTypeStr ?? ''),
+        title: title,
         message: message,
         requestId: requestId,
         requestType: requestType,
@@ -149,14 +203,34 @@ class NotificationController extends GetxController {
         createdAt: DateTime.now(),
       );
 
+      // Generate content hash for duplicate detection
+      final contentHash = _generateNotificationHash(title, message, requestId, action);
+      
+      // Check if we've already processed this notification (by hash)
+      if (_processedNotificationHashes.contains(contentHash)) {
+        print('🚫 [NotificationController] Duplicate workflow progress detected by hash: $contentHash (ID: $notificationId)');
+        // Still update the notification in case ID changed, but don't add as new
+        final existingIndex = notifications.indexWhere((n) => n.id == notificationId);
+        if (existingIndex != -1) {
+          notifications[existingIndex] = notification;
+        }
+        return; // Skip processing this duplicate
+      }
+
       // Check if notification already exists to avoid duplicates
       final existingIndex = notifications.indexWhere((n) => n.id == notificationId);
       if (existingIndex != -1) {
         // Update existing notification instead of adding duplicate
+        print('🔄 [NotificationController] Updating existing workflow progress notification (ID: $notificationId, Hash: $contentHash)');
         notifications[existingIndex] = notification;
+        // Mark as processed to prevent future duplicates
+        _processedNotificationHashes.add(contentHash);
       } else {
         // Add to beginning of list only if it doesn't exist
+        print('✅ [NotificationController] Adding new workflow progress notification: $notificationId (Hash: $contentHash)');
         notifications.insert(0, notification);
+        // Mark as processed to prevent future duplicates
+        _processedNotificationHashes.add(contentHash);
         // Update unread count locally only if it's a new notification
         unreadCount.value = unreadCount.value + 1;
       }
@@ -201,6 +275,20 @@ class NotificationController extends GetxController {
   /// Clear shown notification IDs (useful for testing or reset)
   void clearShownNotificationIds() {
     _shownNotificationIds.clear();
+  }
+  
+  /// Clear processed notification hashes (useful for testing or reset)
+  void clearProcessedNotificationHashes() {
+    _processedNotificationHashes.clear();
+  }
+  
+  /// Generate a hash from notification content for robust duplicate detection
+  /// Uses title + message + requestId + type to create a unique fingerprint
+  String _generateNotificationHash(String title, String message, String? requestId, String type) {
+    final content = '${title}_${message}_${requestId ?? 'no_request'}_${type}';
+    final bytes = utf8.encode(content);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   NotificationType _mapNotificationType(String type) {
@@ -305,6 +393,17 @@ class NotificationController extends GetxController {
       
       notifications.value = sortedNotifications;
       
+      // Track hashes of loaded notifications to prevent duplicates
+      for (final notification in sortedNotifications) {
+        final hash = _generateNotificationHash(
+          notification.title,
+          notification.message,
+          notification.requestId,
+          notification.type.toString(),
+        );
+        _processedNotificationHashes.add(hash);
+      }
+      
       // Only mark notifications as "already shown" if they were already in our list
       // OR if they're read (read notifications shouldn't show as local notifications)
       // This allows new unread notifications to show as local notifications
@@ -334,7 +433,7 @@ class NotificationController extends GetxController {
       // Reload unread count after loading notifications to keep it in sync
       await loadUnreadCount();
     } catch (e) {
-      error.value = e.toString();
+      error.value = ErrorMessageFormatter.getUserFacingMessage(e);
     } finally {
       isLoadingNotifications.value = false;
       isLoading.value = false;
@@ -365,7 +464,7 @@ class NotificationController extends GetxController {
         await loadUnreadCount();
       }
     } catch (e) {
-      error.value = e.toString();
+      error.value = ErrorMessageFormatter.getUserFacingMessage(e);
     } finally {
       isMarkingAsRead.value = false;
     }
@@ -380,7 +479,7 @@ class NotificationController extends GetxController {
         await loadUnreadCount();
       }
     } catch (e) {
-      error.value = e.toString();
+      error.value = ErrorMessageFormatter.getUserFacingMessage(e);
     }
   }
 }

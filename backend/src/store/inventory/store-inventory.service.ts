@@ -176,8 +176,8 @@ export class StoreInventoryService {
   async getStockHistory(itemId: string): Promise<StoreStockHistory[]> {
     return this.stockHistoryModel
       .find({ itemId: new Types.ObjectId(itemId) })
-      .populate('performedBy', 'name email')
-      .populate('requestId', '_id')
+      .populate({ path: 'performedBy', select: 'name email departmentId', populate: { path: 'departmentId', select: 'name' } })
+      .populate({ path: 'requestId', select: 'requesterId', populate: { path: 'requesterId', select: 'name departmentId', populate: { path: 'departmentId', select: 'name' } } })
       .sort({ createdAt: -1 })
       .exec();
   }

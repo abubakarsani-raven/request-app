@@ -9,6 +9,7 @@ interface PushNotificationJobData {
   title: string;
   body: string;
   data?: {
+    notificationId?: string;
     requestId?: string;
     requestType?: string;
     type?: string;

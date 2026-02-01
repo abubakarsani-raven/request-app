@@ -19,6 +19,7 @@ class ICTRequestService extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => CatalogItemModel.fromJson(json))
             .toList();
@@ -62,6 +63,7 @@ class ICTRequestService extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => ICTRequestModel.fromJson(json))
             .toList();
@@ -82,6 +84,7 @@ class ICTRequestService extends GetxService {
         queryParameters: {'pending': 'true'},
       );
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => ICTRequestModel.fromJson(json))
             .toList();
@@ -101,6 +104,7 @@ class ICTRequestService extends GetxService {
         queryParameters: {'departmentId': departmentId},
       );
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => ICTRequestModel.fromJson(json))
             .toList();
@@ -116,6 +120,7 @@ class ICTRequestService extends GetxService {
     try {
       final response = await _apiService.get('/ict/requests/unfulfilled');
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => ICTRequestModel.fromJson(json))
             .toList();
@@ -160,6 +165,7 @@ class ICTRequestService extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => ICTRequestModel.fromJson(json))
             .toList();

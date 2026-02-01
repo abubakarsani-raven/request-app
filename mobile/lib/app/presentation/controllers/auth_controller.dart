@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/services/fcm_service.dart';
+import '../../../core/utils/error_message_formatter.dart';
 import '../../../core/widgets/custom_toast.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/models/user_model.dart';
@@ -121,8 +122,7 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       print('❌ Auth: Login exception: ${e.runtimeType} - $e');
-      
-      final errorMsg = e.toString();
+      final errorMsg = ErrorMessageFormatter.getUserFacingMessage(e);
       error.value = errorMsg;
       isLoggingIn.value = false;
       isLoading.value = false;

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
+import 'package:request_app/app/presentation/controllers/notification_controller.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/services/storage_service.dart';
@@ -29,6 +30,7 @@ class FCMService extends GetxService {
   bool get isInitialized => _isInitialized;
   Completer<void>? _initializationCompleter;
   bool _isTokenRegistered = false;
+  Timer? _apnsRetryTimer;
 
   @override
   Future<void> onInit() async {
@@ -67,16 +69,90 @@ class FCMService extends GetxService {
         return;
       }
 
-      // Get FCM token
-      _fcmToken = await _firebaseMessaging.getToken();
-      if (_fcmToken != null) {
-        print('✅ FCM: Token obtained (${_fcmToken!.substring(0, 20)}...)');
+      // Wait for APNS token on iOS before getting FCM token
+      // Retry getting FCM token with exponential backoff
+      int retryCount = 0;
+      const maxRetries = 10; // Increased retries for iOS
+      int delayMs = 500;
+      
+      while (retryCount < maxRetries && _fcmToken == null) {
+        try {
+          // On iOS, wait for APNS token to be available before getting FCM token
+          if (GetPlatform.isIOS) {
+            String? apnsToken;
+            int apnsRetryCount = 0;
+            const maxApnsRetries = 3;
+            
+            // Try to get APNS token with a few quick retries
+            while (apnsRetryCount < maxApnsRetries && apnsToken == null) {
+              try {
+                apnsToken = await _firebaseMessaging.getAPNSToken();
+                if (apnsToken != null) {
+                  print('✅ FCM: APNS token available');
+                  break;
+                }
+              } catch (e) {
+                // APNS token might not be ready yet
+              }
+              
+              if (apnsToken == null && apnsRetryCount < maxApnsRetries - 1) {
+                await Future.delayed(Duration(milliseconds: 200));
+                apnsRetryCount++;
+              }
+            }
+            
+            // If APNS token is still not available, wait a bit longer before trying FCM token
+            if (apnsToken == null) {
+              print('⚠️ FCM: APNS token not yet available, waiting ${delayMs}ms before retry...');
+              await Future.delayed(Duration(milliseconds: delayMs));
+              retryCount++;
+              if (retryCount < maxRetries) {
+                delayMs = (delayMs * 1.5).round(); // Slower exponential backoff
+              }
+              continue; // Skip FCM token request and retry APNS check
+            }
+          }
+          
+          // Get FCM token (APNS token should be available on iOS at this point)
+          _fcmToken = await _firebaseMessaging.getToken();
+          if (_fcmToken != null) {
+            print('✅ FCM: Token obtained (${_fcmToken!.substring(0, 20)}...)');
+            break;
+          }
+        } catch (e) {
+          retryCount++;
+          if (e.toString().contains('apns-token-not-set')) {
+            print('⚠️ FCM: APNS token not set yet (attempt $retryCount/$maxRetries), retrying in ${delayMs}ms...');
+            if (retryCount < maxRetries) {
+              await Future.delayed(Duration(milliseconds: delayMs));
+              delayMs = (delayMs * 1.5).round(); // Slower exponential backoff
+            } else {
+              print('❌ FCM: Failed to get token after $maxRetries attempts: $e');
+              // Don't fail initialization, just log the error
+              // Token will be retried later when APNS is ready
+            }
+          } else {
+            print('❌ FCM: Error getting token: $e');
+            // For other errors, don't retry
+            break;
+          }
+        }
+      }
+      
+      // If we still don't have a token, set up a listener to retry when APNS is ready
+      if (_fcmToken == null && GetPlatform.isIOS) {
+        print('⚠️ FCM: Token not available yet, will retry when APNS token is set');
+        // Set up periodic check for APNS token availability
+        _retryTokenWhenAPNSReady();
       }
 
       // Listen for token refresh
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
         print('🔄 FCM: Token refreshed');
         _fcmToken = newToken;
+        // Cancel APNS retry timer if token is now available
+        _apnsRetryTimer?.cancel();
+        _apnsRetryTimer = null;
         // Note: We don't have userId here, so we'll register on next login
         // The token refresh listener will try to register if we have a stored userId
         _updateTokenOnBackend(newToken);
@@ -214,6 +290,11 @@ class FCMService extends GetxService {
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
+    print('📨 FCM: Received foreground message: ${message.messageId}');
+    print('📨 FCM: Title: ${message.notification?.title}');
+    print('📨 FCM: Body: ${message.notification?.body}');
+    print('📨 FCM: Data: ${message.data}');
+    
     // Show local notification when app is in foreground
     _localNotificationService.showNotification(
       id: message.hashCode,
@@ -221,9 +302,42 @@ class FCMService extends GetxService {
       body: message.notification?.body ?? '',
     );
 
-    // Handle data payload if needed
-    if (message.data.isNotEmpty) {
-      // Data payload available for custom handling
+    // Add notification to in-app notification list
+    try {
+      // Get NotificationController if available
+      if (Get.isRegistered<NotificationController>()) {
+        final notificationController = Get.find<NotificationController>();
+        
+        // Parse notification data from FCM message
+        final notificationId = message.data['notificationId']?.toString() ?? 
+                               message.messageId ?? 
+                               DateTime.now().millisecondsSinceEpoch.toString();
+        
+        final title = message.notification?.title ?? message.data['title']?.toString() ?? 'Notification';
+        final body = message.notification?.body ?? message.data['body']?.toString() ?? message.data['message']?.toString() ?? '';
+        final requestId = message.data['requestId']?.toString();
+        final requestTypeStr = message.data['requestType']?.toString();
+        final typeStr = message.data['type']?.toString() ?? 'OTHER';
+        
+        // Create notification data map similar to WebSocket format
+        final notificationData = {
+          'notificationId': notificationId,
+          'title': title,
+          'message': body,
+          'type': typeStr,
+          'requestId': requestId,
+          'requestType': requestTypeStr,
+          'timestamp': DateTime.now().toIso8601String(),
+        };
+        
+        // Use the same handler as WebSocket notifications
+        notificationController.handleWebSocketNotification(notificationData);
+        print('✅ FCM: Added notification to in-app list: $notificationId');
+      } else {
+        print('⚠️ FCM: NotificationController not registered yet');
+      }
+    } catch (e) {
+      print('❌ FCM: Error adding notification to in-app list: $e');
     }
   }
 
@@ -254,5 +368,72 @@ class FCMService extends GetxService {
     } catch (e) {
       print('❌ FCM: Error subscribing to topic $topic: $e');
     }
+  }
+
+  /// Retry getting FCM token when APNS token becomes available
+  /// This is called when initialization fails to get token due to missing APNS token
+  void _retryTokenWhenAPNSReady() {
+    // Cancel any existing timer
+    _apnsRetryTimer?.cancel();
+    
+    int attempt = 0;
+    const maxAttempts = 20; // Check for up to 20 seconds (20 * 1 second intervals)
+    
+    _apnsRetryTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      attempt++;
+      
+      if (_fcmToken != null) {
+        // Token is now available, cancel the timer
+        timer.cancel();
+        _apnsRetryTimer = null;
+        print('✅ FCM: Token obtained via retry mechanism');
+        return;
+      }
+      
+      if (attempt >= maxAttempts) {
+        // Stop retrying after max attempts
+        timer.cancel();
+        _apnsRetryTimer = null;
+        print('⚠️ FCM: Stopped retrying token after $maxAttempts attempts');
+        return;
+      }
+      
+      try {
+        // Check if APNS token is now available
+        final apnsToken = await _firebaseMessaging.getAPNSToken();
+        if (apnsToken != null) {
+          print('✅ FCM: APNS token now available, attempting to get FCM token...');
+          
+          try {
+            final token = await _firebaseMessaging.getToken();
+            if (token != null) {
+              _fcmToken = token;
+              timer.cancel();
+              _apnsRetryTimer = null;
+              print('✅ FCM: Token obtained via retry (${token.substring(0, 20)}...)');
+              
+              // Try to register token if user is logged in
+              _updateTokenOnBackend(token);
+            }
+          } catch (e) {
+            // Still can't get token, continue retrying
+            if (attempt % 5 == 0) {
+              print('⚠️ FCM: Still waiting for FCM token (attempt $attempt/$maxAttempts)...');
+            }
+          }
+        }
+      } catch (e) {
+        // APNS token still not available, continue waiting
+        if (attempt % 5 == 0) {
+          print('⚠️ FCM: Still waiting for APNS token (attempt $attempt/$maxAttempts)...');
+        }
+      }
+    });
+  }
+  
+  @override
+  void onClose() {
+    _apnsRetryTimer?.cancel();
+    super.onClose();
   }
 }

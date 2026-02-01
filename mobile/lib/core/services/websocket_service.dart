@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../constants/app_constants.dart';
 import 'storage_service.dart';
+import 'package:request_app/app/presentation/controllers/notification_controller.dart';
 
 class WebSocketService extends GetxService {
   IO.Socket? _socket;
@@ -75,27 +76,26 @@ class WebSocketService extends GetxService {
 
   void _notifyController(String method, dynamic data) {
     try {
-      // Try to find NotificationController using Get.find
-      // Since NotificationController is registered with Get.lazyPut,
-      // it will be created when first accessed
-      try {
-        // Use a type-safe approach by checking if it's registered first
-        // We'll use Get.find which will create it if needed (lazyPut with fenix: true)
-        final controller = Get.find(tag: 'NotificationController');
-        if (controller != null) {
-          if (method == 'handleWebSocketNotification') {
-            (controller as dynamic).handleWebSocketNotification(data);
-          } else if (method == 'handleWorkflowProgress') {
-            (controller as dynamic).handleWorkflowProgress(data);
-          }
-        }
-      } catch (e) {
-        // Controller might not be registered yet or not accessible
-        // This is okay - events will be queued or handled when controller is available
-        print('Could not notify NotificationController: $e');
+      // Check if NotificationController is registered before trying to find it
+      if (!Get.isRegistered<NotificationController>()) {
+        // Controller not registered yet, skip notification
+        // This can happen if WebSocket connects before user logs in
+        return;
+      }
+      
+      // Get the NotificationController instance
+      final controller = Get.find<NotificationController>();
+      
+      // Call the appropriate method
+      if (method == 'handleWebSocketNotification') {
+        controller.handleWebSocketNotification(data);
+      } else if (method == 'handleWorkflowProgress') {
+        controller.handleWorkflowProgress(data);
       }
     } catch (e) {
-      print('Error in _notifyController: $e');
+      // Controller might not be accessible or method call failed
+      // This is okay - events will be handled when controller is available
+      print('Could not notify NotificationController: $e');
     }
   }
 

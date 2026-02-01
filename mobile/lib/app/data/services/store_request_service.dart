@@ -18,6 +18,7 @@ class StoreRequestService extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => InventoryItemModel.fromJson(json))
             .toList();
@@ -61,6 +62,7 @@ class StoreRequestService extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => StoreRequestModel.fromJson(json))
             .toList();
@@ -81,6 +83,7 @@ class StoreRequestService extends GetxService {
         queryParameters: {'pending': 'true'},
       );
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => StoreRequestModel.fromJson(json))
             .toList();
@@ -100,6 +103,7 @@ class StoreRequestService extends GetxService {
         queryParameters: {'departmentId': departmentId},
       );
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => StoreRequestModel.fromJson(json))
             .toList();
@@ -144,6 +148,7 @@ class StoreRequestService extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => StoreRequestModel.fromJson(json))
             .toList();

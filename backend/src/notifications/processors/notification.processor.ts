@@ -42,35 +42,66 @@ export class NotificationProcessor {
         throw new Error(`Invalid user ID format: ${job.data.userId}`);
       }
 
-      // Create notification record
-      const notification = new this.notificationModel({
+      // Check if notification already exists (to prevent duplicates from synchronous creation)
+      // Look for a notification with the same userId, type, title, message, and requestId created in the last 10 seconds
+      // Increased window to handle potential delays in database writes
+      const tenSecondsAgo = new Date(Date.now() - 10000);
+      const query: any = {
         userId: new Types.ObjectId(job.data.userId),
         type: job.data.type,
         title: job.data.title,
         message: job.data.message,
-        requestId: job.data.requestId ? new Types.ObjectId(job.data.requestId) : null,
-        requestType: job.data.requestType || null,
-        isRead: false,
-      });
+        createdAt: { $gte: tenSecondsAgo },
+      };
+      
+      // Only include requestId in query if it's provided (null requestId should match null requestId)
+      if (job.data.requestId) {
+        query.requestId = new Types.ObjectId(job.data.requestId);
+      } else {
+        query.requestId = null;
+      }
+      
+      const existingNotification = await this.notificationModel.findOne(query).sort({ createdAt: -1 });
 
-      const savedNotification = await notification.save();
-      this.logger.log(`Notification created: ${savedNotification._id}`);
+      let savedNotification: NotificationDocument;
 
-      // Emit WebSocket notification
-      try {
-        this.webSocketGateway.emitToUser(job.data.userId, 'notification:new', {
-          notificationId: savedNotification._id.toString(),
-          userId: job.data.userId,
+      if (existingNotification) {
+        // Notification already exists (created synchronously), use it
+        // DO NOT emit WebSocket here - it was already emitted synchronously
+        savedNotification = existingNotification;
+        this.logger.log(`Notification already exists (ID: ${savedNotification._id}), skipping creation and WebSocket emission. Only processing email.`);
+      } else {
+        // Create notification record (this should rarely happen - only if sync creation failed)
+        const notification = new this.notificationModel({
+          userId: new Types.ObjectId(job.data.userId),
           type: job.data.type,
           title: job.data.title,
           message: job.data.message,
-          requestId: job.data.requestId || undefined,
-          requestType: job.data.requestType || undefined,
-          timestamp: (savedNotification as any).createdAt || new Date(),
+          requestId: job.data.requestId ? new Types.ObjectId(job.data.requestId) : null,
+          requestType: job.data.requestType || null,
+          isRead: false,
         });
-      } catch (error) {
-        this.logger.error('Error emitting WebSocket notification:', error);
-        // Don't fail the job if WebSocket fails
+
+        savedNotification = await notification.save();
+        this.logger.log(`Notification created by processor (ID: ${savedNotification._id}) - sync creation may have failed`);
+
+        // Emit WebSocket notification only if we created it here (sync creation failed)
+        try {
+          this.webSocketGateway.emitToUser(job.data.userId, 'notification:new', {
+            notificationId: savedNotification._id.toString(),
+            userId: job.data.userId,
+            type: job.data.type,
+            title: job.data.title,
+            message: job.data.message,
+            requestId: job.data.requestId || undefined,
+            requestType: job.data.requestType || undefined,
+            timestamp: (savedNotification as any).createdAt || new Date(),
+          });
+          this.logger.log(`WebSocket notification emitted by processor for notification ${savedNotification._id}`);
+        } catch (error) {
+          this.logger.error('Error emitting WebSocket notification:', error);
+          // Don't fail the job if WebSocket fails
+        }
       }
 
       // Send email notification if requested

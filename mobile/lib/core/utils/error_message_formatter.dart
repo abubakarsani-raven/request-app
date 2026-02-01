@@ -1,5 +1,39 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
+
 /// Utility class for formatting error messages to be more user-friendly
 class ErrorMessageFormatter {
+  /// Returns a short, safe message for display to users.
+  /// Handles DioException, SocketException; otherwise returns a generic message.
+  static String getUserFacingMessage(Object e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        return data['message'].toString().trim();
+      }
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout) {
+        return 'Connection failed. Please check your network.';
+      }
+      if (e.message != null && e.message!.isNotEmpty) {
+        return e.message!
+            .replaceAll('Exception: ', '')
+            .replaceAll('DioException: ', '')
+            .trim();
+      }
+      return 'Something went wrong. Please try again.';
+    }
+    if (e is SocketException) {
+      return 'No network connection. Please check your connection.';
+    }
+    if (e is String) {
+      return e
+          .replaceAll('Exception: ', '')
+          .replaceAll('DioException: ', '')
+          .trim();
+    }
+    return 'Something went wrong. Please try again.';
+  }
   /// Formats distance-related error messages to be more informative
   /// 
   /// Example input: "You are 10340.0 meters away from the destination. Please get within 5 meters to mark destination as reached."

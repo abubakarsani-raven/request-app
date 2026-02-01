@@ -1,34 +1,47 @@
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 /**
- * Skeleton for table rows
+ * Skeleton for a single table row. Uses span (not div) inside cells to avoid invalid tbody > div.
  */
 export function SkeletonTableRow({ colSpan = 1 }: { colSpan?: number }) {
   return (
     <TableRow>
       <TableCell colSpan={colSpan} className="p-4">
-        <div className="flex items-center space-x-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-2 flex-1">
-            <Skeleton className="h-4 w-[200px]" />
-            <Skeleton className="h-4 w-[150px]" />
-          </div>
-        </div>
+        <span className="inline-flex items-center gap-4">
+          <span className="h-10 w-10 shrink-0 rounded-full bg-accent animate-pulse" aria-hidden />
+          <span className="flex flex-1 flex-col gap-2">
+            <span className="inline-block h-4 w-[200px] rounded-md bg-accent animate-pulse" aria-hidden />
+            <span className="inline-block h-4 w-[150px] rounded-md bg-accent animate-pulse" aria-hidden />
+          </span>
+        </span>
       </TableCell>
     </TableRow>
   );
 }
 
+/** Inline skeleton for table cells (span to avoid div inside tbody). */
+function TableCellSkeleton({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn("inline-block h-4 w-full rounded-md bg-accent animate-pulse", className)}
+      aria-hidden
+    />
+  );
+}
+
 /**
- * Skeleton for multiple table rows
+ * Skeleton for multiple table rows. Must be used inside <TableBody> only;
+ * do not use inside a div. For use in CardContent, wrap in Table + TableBody.
+ * Uses span (not div) inside cells to avoid invalid tbody > div.
  */
-export function SkeletonTableRows({ 
-  rows = 5, 
-  cols = 1 
-}: { 
-  rows?: number; 
+export function SkeletonTableRows({
+  rows = 5,
+  cols = 1,
+}: {
+  rows?: number;
   cols?: number;
 }) {
   return (
@@ -37,7 +50,7 @@ export function SkeletonTableRows({
         <TableRow key={i}>
           {Array.from({ length: cols }).map((_, j) => (
             <TableCell key={j} className="p-4">
-              <Skeleton className="h-4 w-full" />
+              <TableCellSkeleton />
             </TableCell>
           ))}
         </TableRow>

@@ -109,11 +109,10 @@ export default function ICTRequestDetailsPage() {
     return statusMap[statusUpper] || status;
   };
 
-  const getRequesterName = (requesterId: any) => {
-    if (typeof requesterId === "object" && requesterId?.name) {
-      return requesterId.name;
-    }
-    return "Unknown";
+  const getRequesterDisplay = (requesterId: any) => {
+    if (typeof requesterId !== "object" || !requesterId?.name) return "Unknown";
+    const dept = requesterId.departmentId?.name;
+    return dept ? `${requesterId.name} (${dept})` : requesterId.name;
   };
 
   const getItemName = (itemId: any) => {
@@ -331,7 +330,7 @@ export default function ICTRequestDetailsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Requester</Label>
-                  <div className="font-medium">{getRequesterName(request.requesterId)}</div>
+                  <div className="font-medium">{getRequesterDisplay(request.requesterId)}</div>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Request Date</Label>

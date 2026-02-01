@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../app/data/services/auth_service.dart';
 import '../app/data/models/user_model.dart';
+import '../core/utils/error_message_formatter.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService authService;
@@ -22,12 +23,20 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final result = await authService.login(email, password);
-      _user = result['user'] as UserModel;
+      final userData = result['user'];
+      if (userData == null || userData is! Map) {
+        _user = null;
+        _error = 'Invalid login response';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+      _user = UserModel.fromJson(Map<String, dynamic>.from(userData));
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorMessageFormatter.getUserFacingMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -45,7 +54,7 @@ class AuthProvider with ChangeNotifier {
       _user = await authService.getProfile();
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = ErrorMessageFormatter.getUserFacingMessage(e);
       notifyListeners();
     }
   }

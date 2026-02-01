@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Package, AlertTriangle, History, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { SkeletonTableRows } from "@/components/ui/skeleton-variants";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ItemForm } from "@/components/ict/ItemForm";
 import { UpdateQuantityModal } from "@/components/ict/UpdateQuantityModal";
 import { StockHistoryModal } from "@/components/ict/StockHistoryModal";
@@ -48,6 +50,7 @@ async function fetchJSON<T>(url: string): Promise<T> {
 }
 
 export default function ICTInventoryPage() {
+  const router = useRouter();
   const qc = useQueryClient();
   const { success, error } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -188,8 +191,19 @@ export default function ICTInventoryPage() {
                   const isLowStock = item.quantity <= item.lowStockThreshold;
                   const itemId = getItemId(item);
                   return (
-                    <TableRow key={itemId}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableRow
+                      key={itemId}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) return;
+                        if (itemId) router.push(`/ict-inventory/${itemId}`);
+                      }}
+                    >
+                      <TableCell className="font-medium">
+                        <Link href={`/ict-inventory/${itemId}`} className="hover:underline focus:outline-none focus:underline" onClick={(e) => e.stopPropagation()}>
+                          {item.name}
+                        </Link>
+                      </TableCell>
                       <TableCell>{item.category}</TableCell>
                       <TableCell>{item.brand || "-"}</TableCell>
                       <TableCell>{item.sku || "-"}</TableCell>

@@ -4,6 +4,7 @@ import '../../data/models/request_model.dart';
 import '../../data/models/ict_request_model.dart';
 import '../controllers/auth_controller.dart';
 import '../../../core/services/websocket_service.dart';
+import '../../../core/utils/error_message_formatter.dart';
 
 class DriverController extends GetxController {
   final AssignmentService _assignmentService = Get.find<AssignmentService>();
@@ -70,7 +71,7 @@ class DriverController extends GetxController {
     } catch (e, stackTrace) {
       print('[Driver Controller] ❌ Error loading assigned trips: $e');
       print('[Driver Controller] Stack trace: $stackTrace');
-      error.value = e.toString();
+      error.value = ErrorMessageFormatter.getUserFacingMessage(e);
       assignedTrips.value = [];
     } finally {
       isLoading.value = false;

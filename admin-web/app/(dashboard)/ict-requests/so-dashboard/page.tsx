@@ -122,11 +122,10 @@ export default function SODashboardPage() {
     return statusMap[statusUpper] || status;
   };
 
-  const getRequesterName = (requesterId: any) => {
-    if (typeof requesterId === "object" && requesterId?.name) {
-      return requesterId.name;
-    }
-    return "Unknown";
+  const getRequesterDisplay = (requesterId: any) => {
+    if (typeof requesterId !== "object" || !requesterId?.name) return "Unknown";
+    const dept = requesterId.departmentId?.name;
+    return dept ? `${requesterId.name} (${dept})` : requesterId.name;
   };
 
   const getItemName = (itemId: any) => {
@@ -193,7 +192,21 @@ export default function SODashboardPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <SkeletonTableRows rows={5} cols={6} />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Request ID</TableHead>
+                  <TableHead>Requester</TableHead>
+                  <TableHead>Request Date</TableHead>
+                  <TableHead>Unfulfilled Items</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <SkeletonTableRows rows={5} cols={6} />
+              </TableBody>
+            </Table>
           ) : requests.length === 0 ? (
             <div className="text-center py-8">
               <CheckCircle2 className="h-16 w-16 mx-auto text-green-500 mb-4" />
@@ -227,7 +240,7 @@ export default function SODashboardPage() {
                       <TableCell className="font-medium">
                         #{request._id.substring(0, 8)}...
                       </TableCell>
-                      <TableCell>{getRequesterName(request.requesterId)}</TableCell>
+                      <TableCell>{getRequesterDisplay(request.requesterId)}</TableCell>
                       <TableCell>
                         {request.createdAt
                           ? new Date(request.createdAt).toLocaleDateString("en-US", {

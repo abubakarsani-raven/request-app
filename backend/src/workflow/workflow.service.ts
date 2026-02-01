@@ -87,9 +87,9 @@ export class WorkflowService {
 
   /**
    * Store Request Workflow
-   * Lower-Level: Requester → Supervisor → DGS → (SO or DDGS → ADGS → SO)
-   * Senior: Requester → DGS → (SO or DDGS → ADGS → SO)
-   * Note: DGS can route directly to SO or through DDGS → ADGS → SO
+   * Lower-Level: Requester → Supervisor → DGS → DDGS → ADGS → SO → Fulfillment
+   * Senior: Requester → DGS → DDGS → ADGS → SO → Fulfillment
+   * Note: DGS can route directly to SO via routeRequest(directToSO: true), skipping DDGS/ADGS
    */
   private getStoreWorkflow(isSeniorStaff: boolean): WorkflowStep[] {
     const steps: WorkflowStep[] = [
@@ -106,8 +106,10 @@ export class WorkflowService {
 
     steps.push(
       { stage: WorkflowStage.DGS_REVIEW, role: UserRole.DGS, description: 'DGS Review' },
-      // DGS can route to SO directly or through DDGS → ADGS → SO
-      // This will be handled in the service logic
+      { stage: WorkflowStage.DDGS_REVIEW, role: UserRole.DDGS, description: 'DDGS Review' },
+      { stage: WorkflowStage.ADGS_REVIEW, role: UserRole.ADGS, description: 'ADGS Review' },
+      { stage: WorkflowStage.SO_REVIEW, role: UserRole.SO, description: 'Store Officer Review' },
+      { stage: WorkflowStage.FULFILLMENT, role: UserRole.SO, description: 'Fulfillment' },
     );
 
     return steps;

@@ -27,6 +27,7 @@ class RequestService extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => VehicleRequestModel.fromJson(json))
             .toList();
@@ -89,6 +90,7 @@ class RequestService extends GetxService {
         queryParameters: {'departmentId': departmentId},
       );
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => VehicleRequestModel.fromJson(json))
             .toList();
@@ -133,6 +135,7 @@ class RequestService extends GetxService {
       );
 
       if (response.statusCode == 200) {
+        if (response.data is! List) return [];
         return (response.data as List)
             .map((json) => VehicleRequestModel.fromJson(json))
             .toList();

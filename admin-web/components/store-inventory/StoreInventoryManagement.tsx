@@ -149,7 +149,20 @@ export function StoreInventoryManagement() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <SkeletonTableRows rows={5} cols={6} />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <SkeletonTableRows rows={5} cols={5} />
+              </TableBody>
+            </Table>
           ) : filtered.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No items found</div>
           ) : (

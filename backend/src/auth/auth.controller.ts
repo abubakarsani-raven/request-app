@@ -29,8 +29,6 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 attempts per minute
   async login(@Body() loginDto: LoginDto) {
     this.logger.log(`Login attempt for email: ${loginDto.email}`);
-    this.logger.log(`Received email: ${loginDto.email}, password length: ${loginDto.password?.length || 0}`);
-    this.logger.log(`Password preview: ${loginDto.password?.substring(0, 3)}***`);
     try {
       const result = await this.authService.login(loginDto);
       this.logger.log(`Login successful for email: ${loginDto.email}`);

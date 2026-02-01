@@ -9,6 +9,12 @@ class SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<AuthController>()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.isRegistered<AuthController>()) Get.forceAppUpdate();
+      });
+      return _buildSplashBody(context);
+    }
     final authController = Get.find<AuthController>();
 
     // Check authentication immediately (no artificial delay)
@@ -24,9 +30,13 @@ class SplashPage extends StatelessWidget {
         // Route to role-specific dashboard
         final user = authController.user.value;
         if (user != null) {
-          final permissionService = Get.find<PermissionService>();
-          if (permissionService.isDriver(user)) {
-            Get.offAllNamed('/driver/dashboard');
+          if (Get.isRegistered<PermissionService>()) {
+            final permissionService = Get.find<PermissionService>();
+            if (permissionService.isDriver(user)) {
+              Get.offAllNamed('/driver/dashboard');
+            } else {
+              Get.offAllNamed('/dashboard');
+            }
           } else {
             Get.offAllNamed('/dashboard');
           }
@@ -38,6 +48,10 @@ class SplashPage extends StatelessWidget {
       }
     });
 
+    return _buildSplashBody(context);
+  }
+
+  static Widget _buildSplashBody(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(

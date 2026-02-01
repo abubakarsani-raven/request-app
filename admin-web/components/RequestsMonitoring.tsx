@@ -116,7 +116,7 @@ export default function RequestsMonitoring() {
   const fetchRequests = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/vehicles/requests')
+      const response = await api.get('/api/transport/requests')
       setRequests(response.data)
       setError('')
     } catch (err: any) {
@@ -128,7 +128,7 @@ export default function RequestsMonitoring() {
 
   const fetchAvailableVehicles = async () => {
     try {
-      const response = await api.get('/vehicles/vehicles?available=true')
+      const response = await api.get('/api/assignments/available-vehicles')
       setAvailableVehicles(response.data)
     } catch (err) {
       console.error('Failed to fetch vehicles', err)
@@ -137,7 +137,7 @@ export default function RequestsMonitoring() {
 
   const fetchAvailableDrivers = async () => {
     try {
-      const response = await api.get('/vehicles/drivers?available=true')
+      const response = await api.get('/api/assignments/available-drivers')
       setAvailableDrivers(response.data)
     } catch (err) {
       console.error('Failed to fetch drivers', err)
@@ -157,7 +157,7 @@ export default function RequestsMonitoring() {
 
   const handleViewDetails = async (requestId: string) => {
     try {
-      const response = await api.get(`/vehicles/requests/${requestId}`)
+      const response = await api.get(`/api/transport/requests/${requestId}`)
       setSelectedRequest(response.data)
       setIsDetailsDialogOpen(true)
     } catch (err: any) {
@@ -169,7 +169,7 @@ export default function RequestsMonitoring() {
     if (!selectedRequest) return
     try {
       setIsSubmitting(true)
-      await api.put(`/vehicles/requests/${selectedRequest._id}/approve`, {
+      await api.put(`/api/transport/requests/${selectedRequest._id}/approve`, {
         comment: approveComment || undefined,
       })
       await fetchRequests()
@@ -187,7 +187,7 @@ export default function RequestsMonitoring() {
     if (!selectedRequest) return
     try {
       setIsSubmitting(true)
-      await api.put(`/vehicles/requests/${selectedRequest._id}/reject`, {
+      await api.put(`/api/transport/requests/${selectedRequest._id}/reject`, {
         comment: rejectComment,
       })
       await fetchRequests()
@@ -205,7 +205,7 @@ export default function RequestsMonitoring() {
     if (!selectedRequest || !selectedVehicleId) return
     try {
       setIsSubmitting(true)
-      await api.put(`/vehicles/requests/${selectedRequest._id}/assign`, {
+      await api.put(`/api/transport/requests/${selectedRequest._id}/assign`, {
         vehicleId: selectedVehicleId,
         driverId: selectedDriverId || undefined,
       })

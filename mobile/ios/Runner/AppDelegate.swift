@@ -9,8 +9,8 @@ import FirebaseMessaging
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Initialize Firebase
-    FirebaseApp.configure()
+    // Firebase is initialized by Flutter in main.dart
+    // Don't initialize here to avoid duplicate initialization error
     
     // Configure Firebase Messaging
     if #available(iOS 10.0, *) {

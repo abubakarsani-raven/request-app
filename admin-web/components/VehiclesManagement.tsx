@@ -192,7 +192,7 @@ export default function VehiclesManagement() {
   const fetchVehicles = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/vehicles/vehicles')
+      const response = await api.get('/api/vehicles')
       setVehicles(response.data)
       setError('')
     } catch (err: any) {
@@ -255,7 +255,7 @@ export default function VehiclesManagement() {
   const handleDelete = async () => {
     if (!selectedVehicle) return
     try {
-      await api.delete(`/vehicles/vehicles/${selectedVehicle._id}`)
+      await api.delete(`/api/vehicles/${selectedVehicle._id}`)
       await fetchVehicles()
       setIsDeleteDialogOpen(false)
       setSelectedVehicle(null)
@@ -298,7 +298,7 @@ export default function VehiclesManagement() {
     if (!selectedVehicle) return
     try {
       setIsSubmitting(true)
-      await api.post(`/vehicles/vehicles/${selectedVehicle._id}/maintenance/reminder`, data)
+      await api.post(`/api/vehicles/${selectedVehicle._id}/maintenance/reminder`, data)
       await fetchVehicles()
       setIsMaintenanceDialogOpen(false)
       reminderForm.reset()
@@ -313,7 +313,7 @@ export default function VehiclesManagement() {
     if (!selectedVehicle) return
     try {
       setIsSubmitting(true)
-      await api.post(`/vehicles/vehicles/${selectedVehicle._id}/maintenance/log`, data)
+      await api.post(`/api/vehicles/${selectedVehicle._id}/maintenance/log`, data)
       await fetchVehicles()
       setIsLogDialogOpen(false)
       logForm.reset()
@@ -328,7 +328,7 @@ export default function VehiclesManagement() {
     if (!selectedVehicle) return
     try {
       setIsSubmitting(true)
-      await api.post(`/vehicles/vehicles/${selectedVehicle._id}/issues`, data)
+      await api.post(`/api/vehicles/${selectedVehicle._id}/issues`, data)
       await fetchVehicles()
       setIsIssueDialogOpen(false)
       issueForm.reset()
@@ -341,7 +341,7 @@ export default function VehiclesManagement() {
 
   const handleViewVehicle = async (vehicleId: string) => {
     try {
-      const response = await api.get(`/vehicles/vehicles/${vehicleId}`)
+      const response = await api.get(`/api/vehicles/${vehicleId}`)
       setSelectedVehicle(response.data)
       setViewVehicleId(vehicleId)
     } catch (err: any) {

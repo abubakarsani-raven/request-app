@@ -76,8 +76,8 @@ class ApiService extends GetxService {
         // Skip refresh logic for refresh endpoint itself to prevent infinite loop
         if (error.requestOptions.path == '/auth/refresh') {
           // Refresh failed, logout user
-          StorageService.removeToken();
-          StorageService.removeUser();
+          await StorageService.removeToken();
+          await StorageService.removeUser();
           CustomToast.error('Your session has expired. Please login again.', title: 'Session Expired');
           Get.offAllNamed('/login');
           return handler.next(error);
@@ -92,7 +92,7 @@ class ApiService extends GetxService {
           if (refreshed) {
             // Retry the request
             final opts = error.requestOptions;
-            final token = StorageService.getToken();
+            final token = await StorageService.getToken();
             if (token != null) {
               opts.headers['Authorization'] = 'Bearer $token';
             }
@@ -109,8 +109,8 @@ class ApiService extends GetxService {
               return handler.resolve(response);
             } catch (retryError) {
               // Retry also failed, logout
-              StorageService.removeToken();
-              StorageService.removeUser();
+              await StorageService.removeToken();
+              await StorageService.removeUser();
               CustomToast.error('Your session has expired. Please login again.', title: 'Session Expired');
               Get.offAllNamed('/login');
               if (retryError is dio.DioException) {
@@ -121,8 +121,8 @@ class ApiService extends GetxService {
             }
           } else {
             // Token refresh failed, logout user
-            StorageService.removeToken();
-            StorageService.removeUser();
+            await StorageService.removeToken();
+            await StorageService.removeUser();
             CustomToast.error('Your session has expired. Please login again.', title: 'Session Expired');
             Get.offAllNamed('/login');
           }

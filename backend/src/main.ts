@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, BadRequestException } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { UsersService } from './users/users.service';
@@ -41,8 +41,12 @@ async function bootstrap() {
   }
   
   // Enable CORS for mobile and web clients
+  const corsOrigin =
+    process.env.NODE_ENV === 'production' && process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+      : true;
   app.enableCors({
-    origin: true,
+    origin: corsOrigin,
     credentials: true,
   });
 
@@ -76,7 +80,10 @@ async function bootstrap() {
       transform: true,
       exceptionFactory: (errors) => {
         logger.error('Validation failed', errors);
-        return errors;
+        const message = errors
+          .map((e) => Object.values(e.constraints || {}).join(', '))
+          .join('; ');
+        throw new BadRequestException(message || 'Validation failed');
       },
     }),
   );

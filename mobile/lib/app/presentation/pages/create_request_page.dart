@@ -1074,16 +1074,16 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
       final success = await requestController.createVehicleRequest(data);
 
       if (success) {
-        // Refresh notifications after successful request creation
-        try {
-          final notificationController = Get.find<NotificationController>();
-          await notificationController.loadNotifications(unreadOnly: false);
-          await notificationController.loadUnreadCount();
-        } catch (e) {
-          print('Error refreshing notifications: $e');
+        if (Get.isRegistered<NotificationController>()) {
+          try {
+            final notificationController = Get.find<NotificationController>();
+            await notificationController.loadNotifications(unreadOnly: false);
+            await notificationController.loadUnreadCount();
+          } catch (e) {
+            // Non-fatal: continue without refresh
+          }
         }
-        
-        Get.back(); // Close the page first
+        Get.back();
         CustomToast.success(
           'Vehicle request created successfully',
           title: 'Success',
@@ -1108,16 +1108,16 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
       final success = await ictController.createICTRequest(_selectedItems);
 
       if (success) {
-        // Refresh notifications after successful request creation
-        try {
-          final notificationController = Get.find<NotificationController>();
-          await notificationController.loadNotifications(unreadOnly: false);
-          await notificationController.loadUnreadCount();
-        } catch (e) {
-          print('Error refreshing notifications: $e');
+        if (Get.isRegistered<NotificationController>()) {
+          try {
+            final notificationController = Get.find<NotificationController>();
+            await notificationController.loadNotifications(unreadOnly: false);
+            await notificationController.loadUnreadCount();
+          } catch (e) {
+            // Non-fatal: continue without refresh
+          }
         }
-        
-        Get.back(); // Close the page first
+        Get.back();
         CustomToast.success(
           'ICT request created successfully',
           title: 'Success',
@@ -1142,16 +1142,16 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
       final success = await storeController.createStoreRequest(_selectedItems);
 
       if (success) {
-        // Refresh notifications after successful request creation
-        try {
-          final notificationController = Get.find<NotificationController>();
-          await notificationController.loadNotifications(unreadOnly: false);
-          await notificationController.loadUnreadCount();
-        } catch (e) {
-          print('Error refreshing notifications: $e');
+        if (Get.isRegistered<NotificationController>()) {
+          try {
+            final notificationController = Get.find<NotificationController>();
+            await notificationController.loadNotifications(unreadOnly: false);
+            await notificationController.loadUnreadCount();
+          } catch (e) {
+            // Non-fatal: continue without refresh
+          }
         }
-        
-        Get.back(); // Close the page first
+        Get.back();
         CustomToast.success(
           'Store request created successfully',
           title: 'Success',
@@ -1209,6 +1209,9 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
                   ? [
                       Obx(
                         () {
+                          if (!Get.isRegistered<ICTRequestController>()) {
+                            return const SizedBox.shrink();
+                          }
                           final controller = Get.find<ICTRequestController>();
                           final hasActiveFilter = controller.selectedCategory.value.isNotEmpty;
                           return IconButton(

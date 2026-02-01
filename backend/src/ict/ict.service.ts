@@ -159,8 +159,8 @@ export class ICTService {
   async getStockHistory(itemId: string): Promise<StockHistory[]> {
     return this.stockHistoryModel
       .find({ itemId: new Types.ObjectId(itemId) })
-      .populate('performedBy', 'name email')
-      .populate('requestId', '_id')
+      .populate({ path: 'performedBy', select: 'name email departmentId', populate: { path: 'departmentId', select: 'name' } })
+      .populate({ path: 'requestId', select: 'requesterId', populate: { path: 'requesterId', select: 'name departmentId', populate: { path: 'departmentId', select: 'name' } } })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -413,6 +413,10 @@ export class ICTService {
       const nextStage = finalRequest.workflowStage;
       const approvers = await this.findApproversForStage(nextStage, user.departmentId.toString());
       for (const approver of approvers) {
+        // Add approver to participants so they receive workflow progress notifications
+        // Use 'created' as placeholder action - will be updated to 'approved' when they approve
+        this.addParticipant(finalRequest, approver._id.toString(), approver.roles[0] || UserRole.SUPERVISOR, 'created');
+        
         await this.notificationsService.notifyApprovalRequired(
           approver._id.toString(),
           user.name,
@@ -420,6 +424,8 @@ export class ICTService {
           finalRequest._id.toString(),
         );
       }
+      // Save after adding participants
+      await finalRequest.save();
     } catch (error) {
       console.error('Error sending approval required notification:', error);
     }
@@ -464,7 +470,7 @@ export class ICTService {
     // Do NOT filter by status - users should see all their requests (pending, approved, completed, etc.)
     let requests = await this.ictRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();
@@ -484,7 +490,7 @@ export class ICTService {
       console.log('[ICT Service] findAllRequests: Trying fallback queries');
       const allRequests = await this.ictRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -574,7 +580,7 @@ export class ICTService {
       console.log('[ICT Service] findAllRequestsByRole: DGS role detected, returning all requests');
       const requests = await this.ictRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -594,7 +600,7 @@ export class ICTService {
       console.log('[ICT Service] findAllRequestsByRole: DDICT role detected, returning all requests');
       const requests = await this.ictRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -613,7 +619,7 @@ export class ICTService {
     if (roles.includes(UserRole.SO)) {
       const allRequests = await this.ictRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -635,7 +641,7 @@ export class ICTService {
       // First, find all requests and populate requesterId, then filter by department
       const allRequests = await this.ictRequestModel
         .find({})
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -661,7 +667,7 @@ export class ICTService {
     const query: any = { requesterId: new Types.ObjectId(userId) };
     const requests = await this.ictRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();
@@ -699,7 +705,7 @@ export class ICTService {
               },
             ],
           })
-          .populate('requesterId')
+          .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
           .populate('items.itemId')
           .sort({ createdAt: -1 })
           .exec();
@@ -761,7 +767,7 @@ export class ICTService {
       // Execute single optimized query
       const allRequests = await this.ictRequestModel
         .find(query)
-        .populate('requesterId')
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
         .populate('items.itemId')
         .sort({ createdAt: -1 })
         .exec();
@@ -846,7 +852,7 @@ export class ICTService {
   async findOneRequest(id: string, skipAutoAdvance: boolean = false): Promise<ICTRequestDocument> {
     const request = await this.ictRequestModel
       .findById(id)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .exec();
 
@@ -1045,6 +1051,10 @@ export class ICTService {
       try {
         const approvers = await this.findApproversForStage(nextStage, requester.departmentId.toString());
         for (const approver of approvers) {
+          // Add approver to participants so they receive workflow progress notifications
+          // Use 'created' as placeholder action - will be updated to 'approved' when they approve
+          this.addParticipant(savedRequest, approver._id.toString(), approver.roles[0] || UserRole.SUPERVISOR, 'created');
+          
           await this.notificationsService.notifyApprovalRequired(
             approver._id.toString(),
             requester.name,
@@ -1052,6 +1062,8 @@ export class ICTService {
             requestId,
           );
         }
+        // Save after adding participants
+        await savedRequest.save();
       } catch (error) {
         console.error('Error sending approval required notification:', error);
       }
@@ -1577,7 +1589,7 @@ export class ICTService {
         status: { $in: [RequestStatus.APPROVED, RequestStatus.PENDING] },
         workflowStage: { $in: [WorkflowStage.SO_REVIEW, WorkflowStage.FULFILLMENT] },
       })
-      .populate('requesterId', 'name email')
+      .populate({ path: 'requesterId', select: 'name email departmentId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();
@@ -1661,12 +1673,39 @@ export class ICTService {
     message: string,
   ): Promise<void> {
     try {
-      // Get requester and all approvers
+      // Get all unique participant IDs (use participants array like Vehicle service)
       const participantIds = [
         request.requesterId.toString(),
-        ...request.approvals.map((a) => a.approverId.toString()),
+        ...request.participants.map((p) => p.userId.toString()),
       ];
       const uniqueParticipantIds = [...new Set(participantIds)];
+
+      // Get participant details for the progress payload
+      const participants = await Promise.all(
+        uniqueParticipantIds.map(async (id) => {
+          try {
+            const user = await this.usersService.findOne(id);
+            const participant = request.participants.find((p) => p.userId.toString() === id);
+            return {
+              userId: id,
+              name: user?.name || 'Unknown',
+              role: participant?.role || user?.roles[0] || UserRole.SUPERVISOR,
+              action: participant?.action || 'created',
+              timestamp: participant?.timestamp || (request as any).createdAt || new Date(),
+            };
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      const validParticipants = participants.filter((p) => p !== null) as Array<{
+        userId: string;
+        name: string;
+        role: string;
+        action: string;
+        timestamp: Date;
+      }>;
 
       // Emit workflow progress to all participants
       await this.notificationsService.emitWorkflowProgress(uniqueParticipantIds, {
@@ -1676,7 +1715,7 @@ export class ICTService {
         status: request.status,
         action,
         actionBy,
-        participants: [],
+        participants: validParticipants,
         message,
       });
 
@@ -1939,7 +1978,7 @@ export class ICTService {
 
     let requests = await this.ictRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();
@@ -1999,7 +2038,7 @@ export class ICTService {
     
     let requests = await this.ictRequestModel
       .find(query)
-      .populate('requesterId')
+      .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
       .populate('items.itemId')
       .sort({ createdAt: -1 })
       .exec();
@@ -2081,6 +2120,10 @@ export class ICTService {
         if (departmentId) {
           const approvers = await this.findApproversForStage(nextStage, departmentId);
           for (const approver of approvers) {
+            // Add approver to participants so they receive workflow progress notifications
+            // Use 'created' as placeholder action - will be updated to 'approved' when they approve
+            this.addParticipant(request, approver._id.toString(), approver.roles[0] || UserRole.SUPERVISOR, 'created');
+            
             await this.notificationsService.notifyApprovalRequired(
               approver._id.toString(),
               requester.name,
@@ -2088,6 +2131,8 @@ export class ICTService {
               request._id.toString(),
             );
           }
+          // Save after adding participants
+          await request.save();
         }
       } catch (error) {
         console.error('Error sending approval required notification after auto-advance:', error);

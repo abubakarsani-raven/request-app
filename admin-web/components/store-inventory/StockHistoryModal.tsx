@@ -6,6 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { SkeletonTableRows } from "@/components/ui/skeleton-variants";
 
+type DepartmentRef = { name: string };
+type PerformerRef = { name: string; email?: string; departmentId?: DepartmentRef };
+type RequesterRef = { name: string; departmentId?: DepartmentRef };
+type RequestRef = { _id?: string; requesterId?: RequesterRef };
+
 type StockHistory = {
   _id: string;
   previousQuantity: number;
@@ -13,10 +18,29 @@ type StockHistory = {
   changeAmount: number;
   operation: string;
   reason?: string;
-  performedBy: { name: string; email: string } | string;
-  requestId?: string;
+  performedBy: PerformerRef | string;
+  requestId?: RequestRef | string;
   createdAt: string;
 };
+
+function getPerformerDisplay(performedBy: StockHistory["performedBy"]): string {
+  if (typeof performedBy !== "object" || performedBy === null) return "Unknown";
+  const name = performedBy.name || (performedBy as PerformerRef).email || "Unknown";
+  const dept = (performedBy as PerformerRef).departmentId?.name;
+  return dept ? `${name} (${dept})` : name;
+}
+
+function getReasonDisplay(entry: StockHistory): string {
+  if (entry.operation === "FULFILLMENT" && entry.requestId && typeof entry.requestId === "object") {
+    const req = entry.requestId as RequestRef;
+    const requester = req?.requesterId;
+    if (requester?.name) {
+      const dept = requester.departmentId?.name;
+      return dept ? `Fulfilled request by ${requester.name} (${dept})` : `Fulfilled request by ${requester.name}`;
+    }
+  }
+  return entry.reason || "-";
+}
 
 type StockHistoryModalProps = {
   open: boolean;
@@ -54,13 +78,6 @@ export function StockHistoryModal({ open, itemId, onClose }: StockHistoryModalPr
     return new Date(dateString).toLocaleString();
   }
 
-  function getUserName(performedBy: StockHistory["performedBy"]) {
-    if (typeof performedBy === "object" && performedBy !== null) {
-      return performedBy.name || performedBy.email || "Unknown";
-    }
-    return "Unknown";
-  }
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
@@ -68,7 +85,22 @@ export function StockHistoryModal({ open, itemId, onClose }: StockHistoryModalPr
           <DialogTitle>Stock History</DialogTitle>
         </DialogHeader>
         {isLoading ? (
-          <SkeletonTableRows rows={5} cols={7} />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Operation</TableHead>
+                <TableHead>Previous</TableHead>
+                <TableHead>New</TableHead>
+                <TableHead>Change</TableHead>
+                <TableHead>Reason</TableHead>
+                <TableHead>Performed By</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <SkeletonTableRows rows={5} cols={7} />
+            </TableBody>
+          </Table>
         ) : history.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">No history available</div>
         ) : (
@@ -96,8 +128,8 @@ export function StockHistoryModal({ open, itemId, onClose }: StockHistoryModalPr
                       {entry.changeAmount >= 0 ? "+" : ""}{entry.changeAmount}
                     </span>
                   </TableCell>
-                  <TableCell>{entry.reason || "-"}</TableCell>
-                  <TableCell>{getUserName(entry.performedBy)}</TableCell>
+                  <TableCell>{getReasonDisplay(entry)}</TableCell>
+                  <TableCell>{getPerformerDisplay(entry.performedBy)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

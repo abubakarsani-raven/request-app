@@ -56,9 +56,21 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authController = Get.find<AuthController>();
-    final permissionService = Get.find<PermissionService>();
-    final notificationController = Get.find<NotificationController>();
+    AuthController authController;
+    PermissionService permissionService;
+    NotificationController notificationController;
+    try {
+      authController = Get.find<AuthController>();
+      permissionService = Get.find<PermissionService>();
+      notificationController = Get.find<NotificationController>();
+    } catch (_) {
+      return AppDrawer(
+        controller: _drawerController,
+        child: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
 
     return Obx(() {
       final user = authController.user.value;

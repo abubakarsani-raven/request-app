@@ -28,6 +28,10 @@ export function UpdateQuantityModal({ open, item, onClose }: UpdateQuantityModal
   const [operation, setOperation] = useState<"ADD" | "REMOVE" | "ADJUST">("ADD");
   const [quantity, setQuantity] = useState("");
   const [reason, setReason] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [supplierContact, setSupplierContact] = useState("");
+  const [cost, setCost] = useState("");
+  const [reference, setReference] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -35,6 +39,10 @@ export function UpdateQuantityModal({ open, item, onClose }: UpdateQuantityModal
       setOperation("ADD");
       setQuantity("");
       setReason("");
+      setSupplier("");
+      setSupplierContact("");
+      setCost("");
+      setReference("");
     }
   }, [open]);
 
@@ -57,14 +65,23 @@ export function UpdateQuantityModal({ open, item, onClose }: UpdateQuantityModal
 
     setIsSubmitting(true);
     try {
+      const payload: Record<string, unknown> = {
+        quantity: qty,
+        operation,
+        reason: reason || undefined,
+      };
+      if (operation === "ADD") {
+        if (supplier.trim()) payload.supplier = supplier.trim();
+        if (supplierContact.trim()) payload.supplierContact = supplierContact.trim();
+        const costNum = Number(cost);
+        if (cost.trim() && !Number.isNaN(costNum)) payload.cost = costNum;
+        if (reference.trim()) payload.reference = reference.trim();
+      }
+
       const res = await fetch(`/api/ict/items/${item._id}/quantity`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          quantity: qty,
-          operation,
-          reason: reason || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -73,6 +90,7 @@ export function UpdateQuantityModal({ open, item, onClose }: UpdateQuantityModal
         queryClient.invalidateQueries({ queryKey: ["ict-items"] });
         queryClient.invalidateQueries({ queryKey: ["ict-items-low-stock"] });
         queryClient.invalidateQueries({ queryKey: ["ict-stock-history", item._id] });
+        queryClient.invalidateQueries({ queryKey: ["ict-item-supplies", item._id] });
         onClose();
       } else {
         const data = await res.json();
@@ -132,6 +150,55 @@ export function UpdateQuantityModal({ open, item, onClose }: UpdateQuantityModal
               </p>
             )}
           </div>
+
+          {operation === "ADD" && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Record this stock as a supply (optional). Different suppliers can supply the same item.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="supplier">Supplier</Label>
+                  <Input
+                    id="supplier"
+                    value={supplier}
+                    onChange={(e) => setSupplier(e.target.value)}
+                    placeholder="Supplier name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="supplierContact">Supplier contact</Label>
+                  <Input
+                    id="supplierContact"
+                    value={supplierContact}
+                    onChange={(e) => setSupplierContact(e.target.value)}
+                    placeholder="Email or phone"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cost">Cost (optional)</Label>
+                  <Input
+                    id="cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={cost}
+                    onChange={(e) => setCost(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="reference">Reference (e.g. PO number)</Label>
+                  <Input
+                    id="reference"
+                    value={reference}
+                    onChange={(e) => setReference(e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div>
             <Label>Reason (Optional)</Label>

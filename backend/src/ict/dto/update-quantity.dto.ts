@@ -18,5 +18,22 @@ export class UpdateQuantityDto {
   @IsString()
   @IsOptional()
   reason?: string;
+
+  /** For ADD: supplier name (multiple suppliers can supply the same item) */
+  @IsString()
+  @IsOptional()
+  supplier?: string;
+
+  @IsString()
+  @IsOptional()
+  supplierContact?: string;
+
+  @IsNumber()
+  @IsOptional()
+  cost?: number;
+
+  @IsString()
+  @IsOptional()
+  reference?: string;
 }
 

@@ -7,7 +7,7 @@ import { SkeletonTableRows } from "@/components/ui/skeleton-variants";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, AlertTriangle, Package, History } from "lucide-react";
+import { Lightbulb, AlertTriangle, Package, History, Truck } from "lucide-react";
 
 export type ICTItemForDetails = {
   _id?: string;
@@ -33,6 +33,16 @@ type PerformerRef = { name: string; email?: string; departmentId?: DepartmentRef
 type RequesterRef = { name: string; departmentId?: DepartmentRef };
 type RequestRef = { _id?: string; requesterId?: RequesterRef };
 
+type SupplyRef = {
+  _id?: string;
+  supplier?: string;
+  supplierContact?: string;
+  quantity?: number;
+  cost?: number;
+  reference?: string;
+  createdAt?: string;
+};
+
 export type StockHistoryEntry = {
   _id: string;
   previousQuantity: number;
@@ -42,6 +52,7 @@ export type StockHistoryEntry = {
   reason?: string;
   performedBy: PerformerRef | string;
   requestId?: RequestRef | string;
+  supplyId?: SupplyRef | string | null;
   createdAt: string;
 };
 
@@ -63,14 +74,35 @@ function getReasonDisplay(entry: StockHistoryEntry): string {
         : `Fulfilled request by ${requester.name}`;
     }
   }
+  if (entry.operation === "ADD" && entry.supplyId && typeof entry.supplyId === "object") {
+    const supply = entry.supplyId as SupplyRef;
+    const from = supply.supplier ? `From: ${supply.supplier}` : "";
+    const rest = entry.reason ? ` — ${entry.reason}` : "";
+    return from ? `${from}${rest}` : (entry.reason || "-");
+  }
   return entry.reason || "-";
 }
+
+export type SupplyEntry = {
+  _id: string;
+  itemId: string;
+  quantity: number;
+  supplier?: string;
+  supplierContact?: string;
+  cost?: number;
+  reference?: string;
+  unit: string;
+  performedBy: { name?: string; email?: string } | string;
+  createdAt: string;
+};
 
 type ItemDetailsContentProps = {
   item: ICTItemForDetails | null | undefined;
   historyRaw: StockHistoryEntry[];
+  supplies?: SupplyEntry[];
   isLoadingItem: boolean;
   isLoadingHistory: boolean;
+  isLoadingSupplies?: boolean;
 };
 
 function formatRelativeTime(dateString: string) {
@@ -90,8 +122,10 @@ function formatRelativeTime(dateString: string) {
 export function ItemDetailsContent({
   item,
   historyRaw,
+  supplies = [],
   isLoadingItem,
   isLoadingHistory,
+  isLoadingSupplies = false,
 }: ItemDetailsContentProps) {
   const history = useMemo(
     () => [...historyRaw].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -250,6 +284,66 @@ export function ItemDetailsContent({
       </div>
 
       <Separator />
+
+      {supplies !== undefined ? (
+        <div>
+          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            Supplies
+          </h3>
+          <p className="text-sm text-muted-foreground mb-2">
+            Stock additions from suppliers. The same item can be supplied by different vendors.
+          </p>
+          {isLoadingSupplies ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Cost</TableHead>
+                  <TableHead>Reference</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <SkeletonTableRows rows={3} cols={5} />
+              </TableBody>
+            </Table>
+          ) : supplies.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-4">No supply records yet. Add stock and optionally record the supplier.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Cost</TableHead>
+                  <TableHead>Reference</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {supplies.map((s) => (
+                  <TableRow key={s._id}>
+                    <TableCell className="whitespace-nowrap">
+                      {new Date(s.createdAt).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      {s.supplier || "—"}
+                      {s.supplierContact && (
+                        <span className="text-muted-foreground text-xs block">{s.supplierContact}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>+{s.quantity} {s.unit}</TableCell>
+                    <TableCell>{s.cost != null ? `$${Number(s.cost).toFixed(2)}` : "—"}</TableCell>
+                    <TableCell>{s.reference || "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      ) : null}
 
       <div>
         <h3 className="text-lg font-semibold mb-3">Stock History</h3>

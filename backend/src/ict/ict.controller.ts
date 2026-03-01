@@ -93,6 +93,13 @@ export class ICTController {
     return this.ictService.getStockHistory(id);
   }
 
+  @Get('items/:id/supplies')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  getSuppliesByItem(@Param('id') id: string) {
+    return this.ictService.getSuppliesByItem(id);
+  }
+
   @Get('items/low-stock/all')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)

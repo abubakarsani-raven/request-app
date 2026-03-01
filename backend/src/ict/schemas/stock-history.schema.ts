@@ -36,6 +36,9 @@ export class StockHistory {
 
   @Prop({ type: Types.ObjectId, ref: 'ICTRequest' })
   requestId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'ICTSupply' })
+  supplyId?: Types.ObjectId;
 }
 
 export const StockHistorySchema = SchemaFactory.createForClass(StockHistory);

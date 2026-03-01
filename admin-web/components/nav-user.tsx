@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   ChevronsUpDown,
   LogOut,
@@ -40,17 +40,19 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const [showChangePassword, setShowChangePassword] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const displayName = user?.name || "Admin"
   const displayEmail = user?.email || ""
   const initials = displayName.charAt(0).toUpperCase()
 
-  return (
-    <>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton
+  // Defer Radix DropdownMenu until after mount to avoid hydration mismatch
+  // (Radix generates different IDs on server vs client)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const triggerButton = (
+    <SidebarMenuButton
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
@@ -64,6 +66,16 @@ export function NavUser({
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
               </SidebarMenuButton>
+  )
+
+  return (
+    <>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          {mounted ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              {triggerButton}
             </DropdownMenuTrigger>
             <DropdownMenuContent
               className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
@@ -102,6 +114,9 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          ) : (
+            triggerButton
+          )}
         </SidebarMenuItem>
       </SidebarMenu>
       <ChangePasswordDialog 

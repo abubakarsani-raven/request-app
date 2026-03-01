@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
-import { ItemDetailsContent, type ICTItemForDetails, type StockHistoryEntry } from "@/components/ict/ItemDetailsContent";
+import { ItemDetailsContent, type ICTItemForDetails, type StockHistoryEntry, type SupplyEntry } from "@/components/ict/ItemDetailsContent";
 
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: "no-store" });
@@ -27,6 +27,12 @@ export default function ICTItemDetailsPage() {
   const { data: historyRaw = [], isLoading: isLoadingHistory } = useQuery<StockHistoryEntry[]>({
     queryKey: ["ict-stock-history", id],
     queryFn: () => fetchJSON<StockHistoryEntry[]>(`/api/ict/items/${id}/history`),
+    enabled: !!id,
+  });
+
+  const { data: supplies = [], isLoading: isLoadingSupplies } = useQuery<SupplyEntry[]>({
+    queryKey: ["ict-item-supplies", id],
+    queryFn: () => fetchJSON<SupplyEntry[]>(`/api/ict/items/${id}/supplies`),
     enabled: !!id,
   });
 
@@ -52,8 +58,10 @@ export default function ICTItemDetailsPage() {
       <ItemDetailsContent
         item={item}
         historyRaw={historyRaw}
+        supplies={supplies}
         isLoadingItem={isLoadingItem}
         isLoadingHistory={isLoadingHistory}
+        isLoadingSupplies={isLoadingSupplies}
       />
     </div>
   );

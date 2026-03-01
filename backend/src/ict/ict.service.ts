@@ -9,6 +9,7 @@ import { Model, Types } from 'mongoose';
 import { ICTItem, ICTItemDocument } from './schemas/ict-item.schema';
 import { ICTRequest, ICTRequestDocument } from './schemas/ict-request.schema';
 import { StockHistory, StockHistoryDocument, StockOperation } from './schemas/stock-history.schema';
+import { ICTSupply, ICTSupplyDocument } from './schemas/ict-supply.schema';
 import { CreateICTRequestDto } from './dto/create-ict-request.dto';
 import { CreateICTItemDto } from './dto/create-ict-item.dto';
 import { UpdateICTItemDto } from './dto/update-ict-item.dto';
@@ -32,6 +33,7 @@ export class ICTService {
     @InjectModel(ICTItem.name) private ictItemModel: Model<ICTItemDocument>,
     @InjectModel(ICTRequest.name) private ictRequestModel: Model<ICTRequestDocument>,
     @InjectModel(StockHistory.name) private stockHistoryModel: Model<StockHistoryDocument>,
+    @InjectModel(ICTSupply.name) private ictSupplyModel: Model<ICTSupplyDocument>,
     @InjectModel(Notification.name) private notificationModel: Model<NotificationDocument>,
     private workflowService: WorkflowService,
     private usersService: UsersService,
@@ -123,6 +125,22 @@ export class ICTService {
 
     await item.save();
 
+    let supplyId: Types.ObjectId | undefined;
+    if (updateQuantityDto.operation === QuantityOperation.ADD) {
+      const supply = new this.ictSupplyModel({
+        itemId: new Types.ObjectId(id),
+        quantity: updateQuantityDto.quantity,
+        supplier: updateQuantityDto.supplier,
+        supplierContact: updateQuantityDto.supplierContact,
+        cost: updateQuantityDto.cost,
+        reference: updateQuantityDto.reference,
+        unit: item.unit || 'pieces',
+        performedBy: new Types.ObjectId(userId),
+      });
+      await supply.save();
+      supplyId = supply._id as Types.ObjectId;
+    }
+
     // Create stock history entry
     const stockHistory = new this.stockHistoryModel({
       itemId: new Types.ObjectId(id),
@@ -132,6 +150,7 @@ export class ICTService {
       operation: this.mapQuantityOperationToStockOperation(updateQuantityDto.operation),
       reason: updateQuantityDto.reason,
       performedBy: new Types.ObjectId(userId),
+      supplyId,
     });
     await stockHistory.save();
 
@@ -161,6 +180,15 @@ export class ICTService {
       .find({ itemId: new Types.ObjectId(itemId) })
       .populate({ path: 'performedBy', select: 'name email departmentId', populate: { path: 'departmentId', select: 'name' } })
       .populate({ path: 'requestId', select: 'requesterId', populate: { path: 'requesterId', select: 'name departmentId', populate: { path: 'departmentId', select: 'name' } } })
+      .populate({ path: 'supplyId', select: 'supplier supplierContact quantity cost reference createdAt' })
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async getSuppliesByItem(itemId: string): Promise<ICTSupply[]> {
+    return this.ictSupplyModel
+      .find({ itemId: new Types.ObjectId(itemId) })
+      .populate({ path: 'performedBy', select: 'name email' })
       .sort({ createdAt: -1 })
       .exec();
   }

@@ -186,7 +186,7 @@ class _AssignVehicleListPageState extends State<AssignVehicleListPage> {
                               label: const Text('Retry'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
+                                foregroundColor: AppColors.textOnPrimary,
                               ),
                             ),
                           ],

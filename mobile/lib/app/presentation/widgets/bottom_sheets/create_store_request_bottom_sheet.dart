@@ -213,7 +213,7 @@ class _CreateStoreRequestBottomSheetState extends State<CreateStoreRequestBottom
               icon: const Icon(Icons.add),
               label: const Text('Add Item'),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding: EdgeInsets.symmetric(vertical: AppConstants.spacingS, horizontal: AppConstants.spacingM),
               ),
             ),
           ],

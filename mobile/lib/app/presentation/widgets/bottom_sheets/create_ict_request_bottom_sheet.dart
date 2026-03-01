@@ -267,7 +267,7 @@ class _CreateICTRequestBottomSheetState extends State<CreateICTRequestBottomShee
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: EdgeInsets.symmetric(vertical: AppConstants.spacingS, horizontal: AppConstants.spacingM),
                   side: BorderSide(
                     color: isDark ? AppColors.primaryLight : AppColors.primary,
                   ),

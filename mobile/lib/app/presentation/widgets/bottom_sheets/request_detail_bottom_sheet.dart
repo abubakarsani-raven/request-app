@@ -226,11 +226,6 @@ class RequestDetailBottomSheet extends StatelessWidget {
                 approvalType: workflowStage,
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
             child: const Text('Approve'),
           ),
         ),

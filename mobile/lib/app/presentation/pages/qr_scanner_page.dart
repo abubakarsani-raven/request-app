@@ -93,7 +93,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
       appBar: AppBar(
         title: const Text('Scan QR Code'),
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.textOnPrimary,
       ),
       body: Column(
         children: [
@@ -118,7 +118,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
                 const Text(
                   'Position the QR code within the frame',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textOnPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -136,7 +136,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
                       label: const Text('Toggle Flash'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.textOnPrimary,
                       ),
                     ),
                     ElevatedButton.icon(
@@ -147,7 +147,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
                       label: const Text('Flip Camera'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.textOnPrimary,
                       ),
                     ),
                   ],
@@ -158,7 +158,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
                     onPressed: _resetScanner,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.textOnPrimary,
                     ),
                     child: const Text('Scan Again'),
                   ),

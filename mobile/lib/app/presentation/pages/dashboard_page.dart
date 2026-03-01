@@ -7,8 +7,9 @@ import '../controllers/ict_request_controller.dart';
 import '../controllers/store_request_controller.dart';
 import '../../data/models/request_model.dart';
 import '../../../core/services/permission_service.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/widgets/custom_toast.dart';
 import '../widgets/app_drawer.dart';
@@ -125,7 +126,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             decoration: BoxDecoration(
                               color: AppColors.error,
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
+                              border: Border.all(color: AppColors.textOnPrimary, width: 2),
                             ),
                             constraints: const BoxConstraints(
                               minWidth: 18,
@@ -135,7 +136,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               child: Text(
                                 unreadCount > 99 ? '99+' : unreadCount.toString(),
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.textOnPrimary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -163,12 +164,12 @@ class _DashboardPageState extends State<DashboardPage> {
                             final isDark = theme.brightness == Brightness.dark;
                             
                             return Container(
-                              padding: const EdgeInsets.all(28),
+                              padding: EdgeInsets.all(AppConstants.spacingL + 4),
                               decoration: BoxDecoration(
                                 color: isDark 
                                     ? AppColors.darkSurface 
                                     : theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(24),
+                                borderRadius: BorderRadius.circular(AppConstants.radiusXL),
                                 border: Border.all(
                                   color: isDark 
                                       ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -184,14 +185,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                   Container(
                                     padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(14),
+                                    color: (isDark ? AppColors.darkTextPrimary : AppColors.textOnPrimary).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(14),
                                     ),
                                     child: Icon(
                                       Icons.person_rounded,
-                                      color: isDark 
-                                          ? AppColors.darkTextPrimary 
-                                          : Colors.white,
+                                      color: isDark
+                                          ? AppColors.darkTextPrimary
+                                          : AppColors.textOnPrimary,
                                       size: 28,
                                     ),
                                   ),
@@ -202,25 +203,21 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     Text(
                                           user.name,
-                                          style: TextStyle(
-                                            color: isDark 
-                                                ? AppColors.darkTextPrimary 
-                                                : Colors.white,
+                                          style: AppTextStyles.h3.copyWith(
+                                            color: isDark
+                                                ? AppColors.darkTextPrimary
+                                                : AppColors.textOnPrimary,
                                             fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: -0.5,
-                                            height: 1.3,
                                           ),
                     ),
                                         const SizedBox(height: 6),
                     Text(
                                           'Level ${user.level} • ${permissionService.getPrimaryRole(user)}',
-                                          style: TextStyle(
-                                            color: isDark 
-                                                ? AppColors.darkTextSecondary 
-                                                : Colors.white.withOpacity(0.95),
+                                          style: AppTextStyles.bodyLarge.copyWith(
+                                            color: isDark
+                                                ? AppColors.darkTextSecondary
+                                                : AppColors.textOnPrimary.withOpacity(0.95),
                                             fontSize: 15,
-                                            height: 1.5,
                                           ),
                                         ),
                                       ],
@@ -241,14 +238,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                             vertical: 8,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: isDark 
+                                            color: isDark
                                                 ? AppColors.darkSurfaceLight.withOpacity(0.5)
-                                                : Colors.white.withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(16),
+                                                : AppColors.textOnPrimary.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(AppConstants.radiusL),
                                             border: Border.all(
-                                              color: isDark 
+                                              color: isDark
                                                   ? AppColors.darkBorderDefined.withOpacity(0.5)
-                                                  : Colors.white.withOpacity(0.25),
+                                                  : AppColors.textOnPrimary.withOpacity(0.25),
                                               width: 1,
                                             ),
                                           ),
@@ -282,13 +279,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   
                   return Text(
                     'Quick Actions',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 26,
-                          letterSpacing: -0.5,
-                          height: 1.3,
-                          color: isDark 
-                              ? AppColors.darkTextPrimary 
+                    style: AppTextStyles.h3.copyWith(
+                          color: isDark
+                              ? AppColors.darkTextPrimary
                               : AppColors.textPrimary,
                         ),
                   );
@@ -608,7 +601,7 @@ class _SimpleActionCard extends StatelessWidget {
             color: isDark 
                 ? AppColors.darkSurface 
                 : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL + 4),
             border: Border.all(
               color: isDark 
                   ? AppColors.darkBorderDefined.withOpacity(0.3)
@@ -630,9 +623,9 @@ class _SimpleActionCard extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppConstants.radiusL + 4),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(AppConstants.spacingL - 4),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
@@ -641,7 +634,7 @@ class _SimpleActionCard extends StatelessWidget {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: color.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(AppConstants.radiusL),
                       ),
                       child: Icon(
                         icon,
@@ -654,10 +647,8 @@ class _SimpleActionCard extends StatelessWidget {
                       child: Text(
                         title,
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+                        style: AppTextStyles.labelLarge.copyWith(
                           fontSize: 13,
-                          height: 1.3,
                           color: isDark
                               ? AppColors.darkTextPrimary
                               : AppColors.textPrimary,

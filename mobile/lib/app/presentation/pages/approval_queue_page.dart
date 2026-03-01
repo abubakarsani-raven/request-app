@@ -5,9 +5,10 @@ import '../controllers/request_controller.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/store_request_controller.dart';
 import '../controllers/auth_controller.dart';
-import '../widgets/request_card.dart';
+import '../widgets/unified_request_card.dart';
 import 'request_detail_page.dart';
-import 'ict_request_detail_page.dart';
+import '../../data/models/request_model.dart';
+import '../../../core/config/request_module_config.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/skeleton_loader.dart';
@@ -49,11 +50,10 @@ class ApprovalQueuePage extends StatelessWidget {
         length: 3,
         child: Column(
           children: [
-            const TabBar(
+            TabBar(
               tabs: [
-                Tab(text: 'Vehicle'),
-                Tab(text: 'ICT'),
-                Tab(text: 'Store'),
+                for (final type in RequestModuleConfig.allTypes)
+                  Tab(text: RequestModuleConfig.label(type)),
               ],
             ),
             Expanded(
@@ -109,9 +109,11 @@ class ApprovalQueuePage extends StatelessWidget {
           itemCount: requestController.vehicleRequests.length,
           itemBuilder: (context, index) {
             final request = requestController.vehicleRequests[index];
-            return RequestCard(
+            return UnifiedRequestCard(
+              type: RequestType.vehicle,
               request: request,
               source: RequestDetailSource.pendingApprovals,
+              onReturn: () => requestController.loadPendingApprovals(),
             );
           },
         );
@@ -155,22 +157,13 @@ class ApprovalQueuePage extends StatelessWidget {
           itemCount: ictController.ictRequests.length,
           itemBuilder: (context, index) {
             final request = ictController.ictRequests[index];
-            return Card(
-              margin: const EdgeInsets.all(AppConstants.spacingM),
-              child: ListTile(
-                title: Text('ICT Request #${request.id.substring(0, 8)}'),
-                subtitle: Text('${request.items.length} items'),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {
-                  // Navigate to ICT request detail with source
-                  Get.to(() => ICTRequestDetailPage(
-                    requestId: request.id,
-                    source: RequestDetailSource.pendingApprovals,
-                  ))?.then((_) {
-                    // Reload pending approvals when coming back
-                    ictController.loadPendingApprovals();
-                  });
-                },
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingM),
+              child: UnifiedRequestCard(
+                type: RequestType.ict,
+                request: request,
+                source: RequestDetailSource.pendingApprovals,
+                onReturn: () => ictController.loadPendingApprovals(),
               ),
             );
           },
@@ -216,15 +209,13 @@ class ApprovalQueuePage extends StatelessWidget {
           itemCount: storeController.storeRequests.length,
           itemBuilder: (context, index) {
             final request = storeController.storeRequests[index];
-            return Card(
-              margin: const EdgeInsets.all(AppConstants.spacingM),
-              child: ListTile(
-                title: Text('Store Request #${request.id.substring(0, 8)}'),
-                subtitle: Text('${request.items.length} items'),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {
-                  Get.toNamed('/store/requests/${request.id}');
-                },
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingM),
+              child: UnifiedRequestCard(
+                type: RequestType.store,
+                request: request,
+                source: RequestDetailSource.pendingApprovals,
+                onReturn: () => storeController.loadPendingApprovals(),
               ),
             );
           },

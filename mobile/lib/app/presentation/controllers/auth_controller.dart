@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/services/fcm_service.dart';
+import '../../../core/services/websocket_service.dart';
 import '../../../core/utils/error_message_formatter.dart';
 import '../../../core/widgets/custom_toast.dart';
 import '../../data/services/auth_service.dart';
@@ -29,10 +30,10 @@ class AuthController extends GetxController {
   Future<void> checkAuth() async {
     final token = await StorageService.getToken();
     final userData = StorageService.getUser();
-    
     if (token != null && userData != null) {
       user.value = UserModel.fromJson(userData);
       isAuthenticated.value = true;
+      loadProfile();
     }
   }
 
@@ -105,6 +106,18 @@ class AuthController extends GetxController {
           print('⚠️ Auth: Error loading notifications after login: $e');
           // Don't fail login if notification loading fails
         }
+
+        // Reconnect WebSocket so immediate in-app notifications work
+        // (On app start with no token, connect() returned early; now we have a token.)
+        try {
+          if (Get.isRegistered<WebSocketService>()) {
+            final ws = Get.find<WebSocketService>();
+            await ws.connect();
+            print('✅ Auth: WebSocket reconnected for real-time notifications');
+          }
+        } catch (e) {
+          print('⚠️ Auth: WebSocket reconnect failed: $e');
+        }
         
         CustomToast.success('Login successful!');
         return true;
@@ -138,6 +151,12 @@ class AuthController extends GetxController {
   Future<void> logout() async {
     isLoggingOut.value = true;
     try {
+      // Disconnect WebSocket so it doesn't keep using the current token
+      if (Get.isRegistered<WebSocketService>()) {
+        Get.find<WebSocketService>().disconnect();
+        print('ℹ️ Auth: WebSocket disconnected');
+      }
+
       // Logout clears local auth token and user data
       // BUT FCM token remains registered on backend for notifications
       await _authService.logout();

@@ -45,9 +45,9 @@ class RequestDetailPage extends StatelessWidget {
     final requestController = Get.find<RequestController>();
     final authController = Get.find<AuthController>();
 
-    // Load request details
+    // Load request details (cache first, then refresh)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      requestController.loadRequest(requestId);
+      requestController.loadRequestCacheFirst(requestId);
     });
 
     return AppDrawer(
@@ -1017,7 +1017,7 @@ class RequestDetailPage extends StatelessWidget {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.textOnPrimary),
                             ),
                           )
                         : const Text('Approve'),
@@ -1120,7 +1120,7 @@ class RequestDetailPage extends StatelessWidget {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.textOnPrimary),
                             ),
                           )
                         : const Text('Reject'),
@@ -1218,7 +1218,7 @@ class RequestDetailPage extends StatelessWidget {
                               'Please provide a cancellation reason',
                               snackPosition: SnackPosition.BOTTOM,
                               backgroundColor: AppColors.error,
-                              colorText: Colors.white,
+                              colorText: AppColors.textOnPrimary,
                             );
                             return;
                           }
@@ -1239,7 +1239,7 @@ class RequestDetailPage extends StatelessWidget {
                               'Request cancelled successfully',
                               snackPosition: SnackPosition.BOTTOM,
                               backgroundColor: AppColors.success,
-                              colorText: Colors.white,
+                              colorText: AppColors.textOnPrimary,
                             );
                             // Reload the request
                             await requestController.loadRequest(requestId);
@@ -1253,7 +1253,7 @@ class RequestDetailPage extends StatelessWidget {
                                   : 'Failed to cancel request',
                               snackPosition: SnackPosition.BOTTOM,
                               backgroundColor: AppColors.error,
-                              colorText: Colors.white,
+                              colorText: AppColors.textOnPrimary,
                             );
                           }
                         },
@@ -1267,7 +1267,7 @@ class RequestDetailPage extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.textOnPrimary),
                           ),
                         )
                       : const Text('Cancel Request'),

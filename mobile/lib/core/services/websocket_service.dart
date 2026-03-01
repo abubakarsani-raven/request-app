@@ -22,6 +22,11 @@ class WebSocketService extends GetxService {
         return;
       }
 
+      // Disconnect existing socket so reconnect uses the new token
+      if (_socket != null) {
+        disconnect();
+      }
+
       _socket = IO.io(
         '${AppConstants.wsBaseUrl}/updates',
         IO.OptionBuilder()
@@ -102,7 +107,9 @@ class WebSocketService extends GetxService {
   void disconnect() {
     _socket?.disconnect();
     _socket?.dispose();
+    _socket = null;
     isConnected.value = false;
+    connectionStatus.value = 'Disconnected';
   }
 
   void emit(String event, dynamic data) {

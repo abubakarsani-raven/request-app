@@ -4,8 +4,9 @@ import '../controllers/auth_controller.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../../../core/utils/validators.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 
 class LoginPage extends StatelessWidget {
   LoginPage({Key? key}) : super(key: key);
@@ -23,8 +24,10 @@ class LoginPage extends StatelessWidget {
     
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
-          gradient: isDark 
+          gradient: isDark
               ? LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -43,7 +46,7 @@ class LoginPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                  const SizedBox(height: 40),
+                  SizedBox(height: AppConstants.spacingXXL - 8),
                   // Animated Logo
                   RepaintBoundary(
                     child: TweenAnimationBuilder<double>(
@@ -54,15 +57,15 @@ class LoginPage extends StatelessWidget {
                         return Transform.scale(
                           scale: value,
                           child: Container(
-                            padding: const EdgeInsets.all(20),
+                            padding: EdgeInsets.all(AppConstants.spacingM),
                             decoration: BoxDecoration(
-                              color: isDark 
+                              color: isDark
                                   ? AppColors.primary.withOpacity(0.3)
-                                  : Colors.white.withOpacity(0.2),
+                                  : AppColors.textOnPrimary.withOpacity(0.2),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: (isDark ? AppColors.darkBackground : AppColors.textPrimary).withOpacity(0.1),
                                   blurRadius: 15,
                                   spreadRadius: 3,
                                 ),
@@ -71,16 +74,16 @@ class LoginPage extends StatelessWidget {
                             child: Icon(
                               Icons.directions_car_rounded,
                               size: 60,
-                              color: isDark 
-                                  ? AppColors.primaryLight 
-                                  : Colors.white,
+                              color: isDark
+                                  ? AppColors.primaryLight
+                                  : AppColors.textOnPrimary,
                             ),
                           ),
                         );
                       },
                     ),
                 ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: AppConstants.spacingXL),
                   // Welcome Text with Animation
                   RepaintBoundary(
                     child: TweenAnimationBuilder<double>(
@@ -100,40 +103,37 @@ class LoginPage extends StatelessWidget {
                       children: [
                 Text(
                   'Welcome Back',
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isDark 
-                            ? AppColors.darkTextPrimary 
-                            : Colors.white,
-                        fontSize: 32,
-                        letterSpacing: -0.5,
-                      ),
+                  style: AppTextStyles.h2.copyWith(
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textOnPrimary,
+                    fontSize: 32,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: AppConstants.spacingS),
                 Text(
                   'Sign in to continue',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: isDark 
-                            ? AppColors.darkTextSecondary 
-                            : Colors.white.withOpacity(0.9),
-                        fontSize: 16,
-                      ),
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textOnPrimary.withOpacity(0.9),
+                  ),
                   textAlign: TextAlign.center,
                         ),
                       ],
                       ),
                     ),
                 ),
-                const SizedBox(height: 48),
+                SizedBox(height: AppConstants.spacingXXL),
                   // Glassmorphism Card for Form
                   Container(
                     decoration: BoxDecoration(
-                      color: isDark 
-                          ? AppColors.darkSurface 
-                          : Colors.white.withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(24),
-                      border: isDark 
+                      color: isDark
+                          ? AppColors.darkSurface
+                          : theme.colorScheme.surface.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusXL),
+                      border: isDark
                           ? Border.all(
                               color: AppColors.darkBorderDefined.withOpacity(0.5),
                               width: 1,
@@ -141,16 +141,14 @@ class LoginPage extends StatelessWidget {
                           : null,
                       boxShadow: [
                         BoxShadow(
-                          color: isDark 
-                              ? Colors.black.withOpacity(0.5)
-                              : Colors.black.withOpacity(0.1),
+                          color: (isDark ? AppColors.darkBackground : AppColors.textPrimary).withOpacity(isDark ? 0.5 : 0.1),
                           blurRadius: 30,
                           spreadRadius: 5,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(AppConstants.spacingL),
                     child: Column(
                       children: [
                 CustomTextField(
@@ -161,7 +159,7 @@ class LoginPage extends StatelessWidget {
                   prefixIcon: Icons.email_outlined,
                   validator: Validators.email,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: AppConstants.spacingM),
                 Obx(
                   () => CustomTextField(
                     label: 'Password',
@@ -177,7 +175,7 @@ class LoginPage extends StatelessWidget {
                     validator: Validators.password,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: AppConstants.spacingL),
                 Obx(
                   () => CustomButton(
                     text: 'Sign In',
@@ -190,7 +188,7 @@ class LoginPage extends StatelessWidget {
                       ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: AppConstants.spacingM),
                 Obx(
                   () => _authController.error.value.isNotEmpty
                         ? TweenAnimationBuilder<double>(
@@ -202,10 +200,10 @@ class LoginPage extends StatelessWidget {
                                 child: Transform.scale(
                                   scale: 0.9 + (0.1 * value),
                                   child: Container(
-                                    padding: const EdgeInsets.all(16),
+                                    padding: EdgeInsets.all(AppConstants.spacingM),
                           decoration: BoxDecoration(
                             color: AppColors.error.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: BorderRadius.circular(AppConstants.radiusL),
                                       border: Border.all(
                                         color: AppColors.error,
                                         width: 1.5,

@@ -36,7 +36,7 @@ class StoreRequestDetailPage extends StatelessWidget {
 
     // Load request details
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      storeController.loadRequest(requestId);
+      storeController.loadRequestCacheFirst(requestId);
     });
 
     return AppDrawer(
@@ -994,7 +994,7 @@ class StoreRequestDetailPage extends StatelessWidget {
                                     },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.error,
-                                foregroundColor: Colors.white,
+                                foregroundColor: AppColors.textOnPrimary,
                               ),
                               child: controller.isRejecting.value
                                   ? const SizedBox(
@@ -1121,7 +1121,7 @@ class StoreRequestDetailPage extends StatelessWidget {
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.warning,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.textOnPrimary,
                       ),
                       child: controller.isCancelling.value
                           ? const SizedBox(

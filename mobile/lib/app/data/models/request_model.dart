@@ -309,18 +309,26 @@ class VehicleRequestModel {
   });
 
   factory VehicleRequestModel.fromJson(Map<String, dynamic> json) {
+    final rawRequesterId = json['requesterId'];
+    final rawVehicleId = json['vehicleId'];
+    final rawDriverId = json['driverId'];
     return VehicleRequestModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      requesterId: json['requesterId']?['_id'] ?? 
-                   json['requesterId'] ?? '',
+      id: (json['_id'] ?? json['id'])?.toString() ?? '',
+      requesterId: (rawRequesterId is Map
+              ? rawRequesterId['_id']
+              : rawRequesterId)
+          ?.toString() ??
+          '',
       tripDate: _parseDateTime(json['tripDate']),
-      tripTime: json['tripTime'] ?? '',
+      tripTime: json['tripTime']?.toString() ?? '',
       returnDate: _parseDateTime(json['returnDate'] ?? json['tripDate']),
-      returnTime: json['returnTime'] ?? json['tripTime'] ?? '',
-      destination: json['destination'] ?? '',
-      purpose: json['purpose'] ?? '',
-      vehicleId: json['vehicleId']?['_id'] ?? json['vehicleId'],
-      driverId: json['driverId']?['_id'] ?? json['driverId'],
+      returnTime: json['returnTime']?.toString() ?? json['tripTime'] ?? '',
+      destination: json['destination']?.toString() ?? '',
+      purpose: json['purpose']?.toString() ?? '',
+      vehicleId: (rawVehicleId is Map ? rawVehicleId['_id'] : rawVehicleId)
+          ?.toString(),
+      driverId: (rawDriverId is Map ? rawDriverId['_id'] : rawDriverId)
+          ?.toString(),
       driver: json['driverId'] != null && json['driverId'] is Map
           ? DriverInfo.fromJson(json['driverId'] as Map<String, dynamic>)
           : null,
@@ -360,7 +368,8 @@ class VehicleRequestModel {
       totalFuelLiters: json['totalFuelLiters']?.toDouble(),
       waypoints: json['waypoints'] != null
           ? (json['waypoints'] as List)
-              .map((wp) => Waypoint.fromJson(wp))
+              .where((wp) => wp is Map)
+              .map((wp) => Waypoint.fromJson(Map<String, dynamic>.from(wp as Map)))
               .toList()
           : null,
       currentStopIndex: json['currentStopIndex'] ?? 0,
@@ -368,13 +377,12 @@ class VehicleRequestModel {
       totalTripFuelLiters: json['totalTripFuelLiters']?.toDouble(),
       participants: json['participants'] != null
           ? (json['participants'] as List)
-              .map((p) => Participant.fromJson(p as Map<String, dynamic>))
+              .whereType<Map<String, dynamic>>()
+              .map((p) => Participant.fromJson(p))
               .toList()
           : [],
-      createdAt: DateTime.parse(json['createdAt'] ?? 
-                                DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? 
-                                DateTime.now().toIso8601String()),
+      createdAt: _parseDateTime(json['createdAt']),
+      updatedAt: _parseDateTime(json['updatedAt']),
     );
   }
 

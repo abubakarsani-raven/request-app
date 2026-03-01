@@ -357,11 +357,11 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                     return EmptyState(
                       title: _searchQuery.isNotEmpty
                           ? 'No items found'
-                          : 'No items available',
+                          : 'No catalog items yet',
                       message: _searchQuery.isNotEmpty
                           ? 'Try a different search term'
                           : controller.catalogItems.isEmpty
-                              ? 'Catalog items are not available. Please contact administrator.'
+                              ? 'ICT items must be added in the Admin Panel under ICT Inventory. Ask your administrator to add items, then tap Retry below.'
                               : 'Try selecting a different category',
                       type: _searchQuery.isNotEmpty
                           ? EmptyStateType.noResults
@@ -369,6 +369,15 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                       icon: _searchQuery.isNotEmpty
                           ? AppIcons.search
                           : AppIcons.inventory,
+                      action: controller.catalogItems.isEmpty && _searchQuery.isEmpty
+                          ? ElevatedButton.icon(
+                              onPressed: () => controller.loadCatalogItems(
+                                category: _selectedCategory.isEmpty ? null : _selectedCategory,
+                              ),
+                              icon: const Icon(Icons.refresh, size: 20),
+                              label: const Text('Retry'),
+                            )
+                          : null,
                     );
                   }
 
@@ -421,8 +430,8 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                       ),
                       child: Text(
                         '${_getCartItemCount()}',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: theme.colorScheme.onPrimary,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -538,7 +547,7 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                     AppColors.surfaceElevation1,
                   ],
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppConstants.radiusL),
           border: Border.all(
             color: isDark 
                 ? AppColors.darkBorderDefined.withOpacity(0.3)
@@ -548,8 +557,8 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
           boxShadow: [
             BoxShadow(
               color: isDark
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.black.withOpacity(0.04),
+                  ? AppColors.darkBackground.withOpacity(0.2)
+                  : AppColors.textPrimary.withOpacity(0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
               spreadRadius: 0,
@@ -560,7 +569,7 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
           color: Colors.transparent,
           child: InkWell(
             onTap: isAvailable && !isInCart ? () => _addToCart(item) : null,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 14,
@@ -744,9 +753,9 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                                 isInCart ? AppIcons.check : AppIcons.add,
                                 size: 18,
                                 color: isInCart || isAvailable
-                                    ? Colors.white
-                                    : (isDark 
-                                        ? AppColors.darkTextDisabled 
+                                    ? AppColors.textOnPrimary
+                                    : (isDark
+                                        ? AppColors.darkTextDisabled
                                         : AppColors.textDisabled),
                               ),
                               const SizedBox(width: 4),
@@ -757,9 +766,9 @@ class _CatalogBrowserState extends State<CatalogBrowser> {
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: isInCart || isAvailable
-                                        ? Colors.white
-                                        : (isDark 
-                                            ? AppColors.darkTextDisabled 
+                                        ? AppColors.textOnPrimary
+                                        : (isDark
+                                            ? AppColors.darkTextDisabled
                                             : AppColors.textDisabled),
                                   ),
                                   overflow: TextOverflow.ellipsis,
@@ -990,7 +999,7 @@ class _ModernFilterOptionState extends State<_ModernFilterOption> with SingleTic
                   widget.icon,
                   size: 22,
                   color: widget.isSelected
-                      ? Colors.white
+                      ? AppColors.textOnPrimary
                       : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                 ),
               ),
@@ -1024,7 +1033,7 @@ class _ModernFilterOptionState extends State<_ModernFilterOption> with SingleTic
                   child: const Icon(
                     Icons.check,
                     size: 16,
-                    color: Colors.white,
+                    color: AppColors.textOnPrimary,
                   ),
                 ),
             ],

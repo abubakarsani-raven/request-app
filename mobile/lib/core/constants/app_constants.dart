@@ -30,18 +30,22 @@ class AppConstants {
   static const Duration mediumAnimation = Duration(milliseconds: 300);
   static const Duration longAnimation = Duration(milliseconds: 500);
   
-  // Spacing - Updated for minimal flat design
+  // Spacing - Single source of truth for layout
   static const double spacingXS = 4.0;
-  static const double spacingS = 12.0; // Updated from 8px
-  static const double spacingM = 24.0; // Updated from 16px
-  static const double spacingL = 24.0; // Updated from 16px
-  static const double spacingXL = 32.0; // Updated from 24px
-  static const double spacingXXL = 48.0; // Updated from 32px
+  static const double spacingS = 12.0;
+  static const double spacingM = 16.0;
+  static const double spacingL = 24.0;
+  static const double spacingXL = 32.0;
+  static const double spacingXXL = 48.0;
   
-  // Border Radius - Updated for minimal flat design
-  static const double radiusS = 8.0; // Updated from 4px
-  static const double radiusM = 12.0; // Updated from 8px
-  static const double radiusL = 16.0; // Updated from 12px
-  static const double radiusXL = 24.0; // Updated from 16px
+  // Border Radius - Single source of truth for cards, buttons, inputs
+  static const double radiusS = 8.0;
+  static const double radiusM = 12.0;
+  static const double radiusL = 16.0;
+  static const double radiusXL = 24.0;
 }
+
+// UI checklist for new screens: use AppConstants for spacing/radius;
+// theme.colorScheme / AppColors for colors (no Colors.white/black);
+// AppTextStyles for headings and labels; CustomButton for primary actions.
 

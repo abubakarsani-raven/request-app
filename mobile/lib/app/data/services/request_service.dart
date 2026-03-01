@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio;
 import '../../../core/services/api_service.dart';
+import '../../../core/services/local_cache_service.dart';
 import '../../../core/utils/error_message_formatter.dart';
 import '../models/request_model.dart';
 
@@ -8,6 +9,23 @@ class RequestService extends GetxService {
   final ApiService _apiService = Get.find<ApiService>();
 
   // Vehicle Requests
+  /// Read vehicle requests list from local cache (if valid). Returns null if missing or expired.
+  List<VehicleRequestModel>? getVehicleRequestsFromCache({
+    bool myRequests = false,
+    bool pending = false,
+  }) {
+    final key = LocalCacheService.listKey('vehicle', myRequests, pending);
+    final entry = LocalCacheService.readRequestList(key);
+    if (entry == null) return null;
+    try {
+      return entry.data
+          .map((json) => VehicleRequestModel.fromJson(json))
+          .toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<VehicleRequestModel>> getVehicleRequests({
     bool myRequests = false,
     bool pending = false,
@@ -28,8 +46,15 @@ class RequestService extends GetxService {
 
       if (response.statusCode == 200) {
         if (response.data is! List) return [];
-        return (response.data as List)
-            .map((json) => VehicleRequestModel.fromJson(json))
+        final list = response.data as List;
+        if (departmentId == null && workflowStage == null) {
+          await LocalCacheService.writeRequestList(
+            LocalCacheService.listKey('vehicle', myRequests, pending),
+            list,
+          );
+        }
+        return list
+            .map((json) => VehicleRequestModel.fromJson(json as Map<String, dynamic>))
             .toList();
       }
       return [];
@@ -102,11 +127,28 @@ class RequestService extends GetxService {
     }
   }
 
+  /// Read single vehicle request from local cache (if valid).
+  VehicleRequestModel? getVehicleRequestFromCache(String id) {
+    final key = LocalCacheService.detailKey('vehicle', id);
+    final entry = LocalCacheService.readRequestDetail(key);
+    if (entry == null) return null;
+    try {
+      return VehicleRequestModel.fromJson(entry.data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<VehicleRequestModel?> getVehicleRequest(String id) async {
     try {
       final response = await _apiService.get('/vehicles/requests/$id');
-      if (response.statusCode == 200) {
-        return VehicleRequestModel.fromJson(response.data);
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = Map<String, dynamic>.from(response.data as Map);
+        await LocalCacheService.writeRequestDetail(
+          LocalCacheService.detailKey('vehicle', id),
+          data,
+        );
+        return VehicleRequestModel.fromJson(data);
       }
     } catch (e) {
       print('Error fetching vehicle request: $e');

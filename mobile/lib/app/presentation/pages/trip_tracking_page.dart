@@ -32,16 +32,11 @@ class _TripTrackingPageState extends State<TripTrackingPage> {
   @override
   void initState() {
     super.initState();
-    if (Get.isRegistered<TripController>()) {
-      tripController = Get.find<TripController>();
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (Get.isRegistered<TripController>()) {
-          setState(() => tripController = Get.find<TripController>());
-        }
-      });
-      tripController = Get.find<TripController>();
+    // Ensure TripController exists (lazyPut may not have created it yet for driver flow)
+    if (!Get.isRegistered<TripController>()) {
+      Get.put(TripController(), permanent: false);
     }
+    tripController = Get.find<TripController>();
     modeController = Get.put(TripModeController());
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {

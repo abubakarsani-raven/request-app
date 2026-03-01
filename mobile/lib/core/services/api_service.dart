@@ -4,6 +4,8 @@ import '../constants/app_constants.dart';
 import '../widgets/custom_toast.dart';
 import '../utils/app_logger.dart';
 import 'storage_service.dart';
+import 'websocket_service.dart';
+import '../../app/presentation/controllers/auth_controller.dart';
 
 class ApiService extends GetxService {
   late dio.Dio _dio;
@@ -82,7 +84,33 @@ class ApiService extends GetxService {
           Get.offAllNamed('/login');
           return handler.next(error);
         }
-        
+
+        // 404 "User not found" = JWT valid but user no longer exists (e.g. switched backend or user deleted)
+        final status = error.response?.statusCode;
+        final message = error.response?.data is Map
+            ? (error.response!.data['message'] as String? ?? '').toString().toLowerCase()
+            : '';
+        if (status == 404 && message.contains('user not found')) {
+          await StorageService.removeToken();
+          await StorageService.removeUser();
+          if (Get.isRegistered<WebSocketService>()) {
+            try { Get.find<WebSocketService>().disconnect(); } catch (_) {}
+          }
+          if (Get.isRegistered<AuthController>()) {
+            try {
+              final auth = Get.find<AuthController>();
+              auth.user.value = null;
+              auth.isAuthenticated.value = false;
+            } catch (_) {}
+          }
+          CustomToast.error(
+            'Your account was not found. If you switched to a different server, log in again.',
+            title: 'Session invalid',
+          );
+          Get.offAllNamed('/login');
+          return handler.next(error);
+        }
+
         if (error.response?.statusCode == 401 && !_isRefreshing) {
           // Try to refresh token
           _isRefreshing = true;

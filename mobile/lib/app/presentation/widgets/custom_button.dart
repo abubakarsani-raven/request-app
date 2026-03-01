@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
 enum ButtonType { primary, secondary, outlined, text }
@@ -103,13 +104,13 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
             color: isDisabled
                 ? (widget.backgroundColor ?? AppColors.primary).withOpacity(0.5)
                 : (widget.backgroundColor ?? (isDark ? AppColors.primaryLight : AppColors.primary)),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
             boxShadow: isDisabled
                 ? null
                 : [
                     BoxShadow(
                       color: isDark
-                          ? Colors.black.withOpacity(0.3)
+                          ? AppColors.darkBackground.withOpacity(0.3)
                           : (widget.backgroundColor ?? AppColors.primary).withOpacity(0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
@@ -120,17 +121,17 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
           child: Material(
             color: Colors.transparent,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+              padding: EdgeInsets.symmetric(horizontal: 28, vertical: AppConstants.spacingM - 2),
               constraints: const BoxConstraints(
                 minHeight: 52,
               ),
               child: widget.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
                       ),
                     )
                   : Row(
@@ -138,13 +139,13 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (widget.icon != null) ...[
-                          Icon(widget.icon, size: 22, color: widget.textColor ?? Colors.white),
+                          Icon(widget.icon, size: 22, color: widget.textColor ?? theme.colorScheme.onPrimary),
                           const SizedBox(width: 12),
                         ],
                         Text(
                           widget.text,
                           style: TextStyle(
-                            color: widget.textColor ?? Colors.white,
+                            color: widget.textColor ?? theme.colorScheme.onPrimary,
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.5,
@@ -164,13 +165,13 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
             color: isDisabled
                 ? (widget.backgroundColor ?? AppColors.secondary).withOpacity(0.5)
                 : (widget.backgroundColor ?? (isDark ? AppColors.secondaryLight : AppColors.secondary)),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
             boxShadow: isDisabled
                 ? null
                 : [
                     BoxShadow(
                       color: isDark
-                          ? Colors.black.withOpacity(0.3)
+                          ? AppColors.darkBackground.withOpacity(0.3)
                           : (widget.backgroundColor ?? AppColors.secondary).withOpacity(0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
@@ -181,15 +182,15 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
           child: Material(
             color: Colors.transparent,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+              padding: EdgeInsets.symmetric(horizontal: 28, vertical: AppConstants.spacingM - 2),
               constraints: const BoxConstraints(minHeight: 52),
               child: widget.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
                       ),
                     )
                   : Row(
@@ -197,13 +198,13 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (widget.icon != null) ...[
-                          Icon(widget.icon, size: 20, color: widget.textColor ?? Colors.white),
+                          Icon(widget.icon, size: 20, color: widget.textColor ?? theme.colorScheme.onPrimary),
                           const SizedBox(width: 8),
                         ],
                         Text(
                           widget.text,
                           style: TextStyle(
-                            color: widget.textColor ?? Colors.white,
+                            color: widget.textColor ?? theme.colorScheme.onPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -217,7 +218,7 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
         return Container(
           width: width,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
             border: Border.all(
               color: isDisabled
                   ? (widget.backgroundColor ?? AppColors.primary).withOpacity(0.3)
@@ -229,7 +230,7 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
                 : [
                     BoxShadow(
                       color: isDark
-                          ? Colors.black.withOpacity(0.2)
+                          ? AppColors.darkBackground.withOpacity(0.2)
                           : (widget.backgroundColor ?? AppColors.primary).withOpacity(0.08),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
@@ -240,7 +241,7 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
           child: Material(
             color: Colors.transparent,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+              padding: EdgeInsets.symmetric(horizontal: 28, vertical: AppConstants.spacingM - 2),
               constraints: const BoxConstraints(minHeight: 52),
               child: widget.isLoading
                   ? SizedBox(
@@ -279,10 +280,10 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
           color: Colors.transparent,
           child: InkWell(
             onTap: isDisabled ? null : widget.onPressed,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
             child: Container(
               width: width,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: AppConstants.spacingM, vertical: AppConstants.spacingM),
               constraints: const BoxConstraints(minHeight: 48),
               child: widget.isLoading
                   ? SizedBox(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../constants/app_constants.dart';
 import 'bottom_sheet_handle.dart';
 import '../theme/app_colors.dart';
 
@@ -246,68 +247,74 @@ class FormBottomSheet extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: isLoading ? null : (onCancel ?? () => Navigator.of(context).pop()),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
                     ),
                   ),
                   child: Text(cancelText!),
                 ),
               ),
-            if (cancelText != null) const SizedBox(width: 12),
+            if (cancelText != null) SizedBox(width: AppConstants.spacingS),
             if (cancelText == null)
               Expanded(
-                child: ElevatedButton(
-                  onPressed: (isSubmitEnabled && !isLoading && onSubmit != null)
-                      ? onSubmit
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : Text(submitText),
+                child: Builder(
+                  builder: (context) {
+                    final theme = Theme.of(context);
+                    return ElevatedButton(
+                      onPressed: (isSubmitEnabled && !isLoading && onSubmit != null)
+                          ? onSubmit
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                        ),
+                      ),
+                      child: isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                              ),
+                            )
+                          : Text(submitText),
+                    );
+                  },
                 ),
               )
             else
               Expanded(
                 flex: 1,
-                child: ElevatedButton(
-                  onPressed: (isSubmitEnabled && !isLoading && onSubmit != null)
-                      ? onSubmit
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : Text(submitText),
+                child: Builder(
+                  builder: (context) {
+                    final theme = Theme.of(context);
+                    return ElevatedButton(
+                      onPressed: (isSubmitEnabled && !isLoading && onSubmit != null)
+                          ? onSubmit
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                        ),
+                      ),
+                      child: isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
+                              ),
+                            )
+                          : Text(submitText),
+                    );
+                  },
                 ),
               ),
           ],
@@ -364,12 +371,12 @@ class FilterBottomSheet extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: onClear,
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
                     ),
                     side: BorderSide(
-                      color: isDark 
+                      color: isDark
                           ? AppColors.darkBorderDefined
                           : AppColors.border,
                     ),
@@ -390,11 +397,9 @@ class FilterBottomSheet extends StatelessWidget {
                   onPressed: onApply,
                   style: ElevatedButton.styleFrom(
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: isDark ? AppColors.primaryLight : AppColors.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
                     ),
                   ),
                   child: Text(applyText),
@@ -407,11 +412,9 @@ class FilterBottomSheet extends StatelessWidget {
                   onPressed: onApply,
                   style: ElevatedButton.styleFrom(
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: isDark ? AppColors.primaryLight : AppColors.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
                     ),
                   ),
                   child: Text(applyText),

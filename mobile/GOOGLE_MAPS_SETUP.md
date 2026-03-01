@@ -75,7 +75,9 @@ keytool -list -v -keystore /path/to/your/keystore.jks -alias your-key-alias
 <string>YOUR_ACTUAL_API_KEY_HERE</string>
 ```
 
-The API key is already configured in `Info.plist` as: `AIzaSyD3apWjzMf9iPAdZTSGR4ln2pU7U6Lo7_I`
+3. **Required:** The Maps SDK must be initialized in `ios/Runner/AppDelegate.swift` by calling `GMSServices.provideAPIKey()`. This is already set up; without it the app will crash when opening any screen that shows a map (e.g. Trip Tracking).
+
+The API key is already configured in `Info.plist` as `GMSApiKey` and read in AppDelegate.
 
 ## Step 5: Replace the Placeholder
 

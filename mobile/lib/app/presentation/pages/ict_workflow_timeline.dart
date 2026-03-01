@@ -108,9 +108,9 @@ class ICTWorkflowTimeline extends StatelessWidget {
                 ),
               ),
               child: isCompleted
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  ? const Icon(Icons.check, size: 14, color: AppColors.textOnPrimary)
                   : isCurrent
-                      ? const Icon(Icons.radio_button_checked, size: 14, color: Colors.white)
+                      ? const Icon(Icons.radio_button_checked, size: 14, color: AppColors.textOnPrimary)
                       : null,
             ),
             if (!isLast)

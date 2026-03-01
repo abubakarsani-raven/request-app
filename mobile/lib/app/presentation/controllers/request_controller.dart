@@ -12,6 +12,8 @@ class RequestController extends GetxController {
   final Rx<VehicleRequestModel?> selectedRequest = Rx<VehicleRequestModel?>(null);
   final RxBool isLoading = false.obs;
   final RxBool isLoadingHistory = false.obs;
+  final RxBool isRefreshing = false.obs;
+  final RxBool isStale = false.obs;
   final RxString error = ''.obs;
 
   // Operation-specific loading flags
@@ -44,37 +46,61 @@ class RequestController extends GetxController {
     // This prevents unnecessary API calls when controller is created but not used
   }
 
+  void _applyVehicleRequests(List<VehicleRequestModel> requests, bool myRequests) {
+    if (myRequests) {
+      final authController = Get.find<AuthController>();
+      final currentUserId = authController.user.value?.id;
+      if (currentUserId != null) {
+        vehicleRequests.value = requests.where((request) {
+          return IdUtils.areIdsEqual(request.requesterId, currentUserId);
+        }).toList();
+      } else {
+        vehicleRequests.value = requests;
+      }
+    } else {
+      vehicleRequests.value = requests;
+    }
+  }
+
+  /// Load vehicle requests: show cache first if available, then refresh in background.
+  Future<void> loadVehicleRequestsCacheFirst({bool myRequests = false, bool pending = false}) async {
+    final cached = _requestService.getVehicleRequestsFromCache(myRequests: myRequests, pending: pending);
+    if (cached != null) {
+      _applyVehicleRequests(cached, myRequests);
+      isStale.value = false;
+      error.value = '';
+      isRefreshing.value = true;
+      try {
+        final requests = await _requestService.getVehicleRequests(
+          myRequests: myRequests,
+          pending: pending,
+        );
+        _applyVehicleRequests(requests, myRequests);
+        isStale.value = false;
+        error.value = '';
+      } catch (e) {
+        isStale.value = true;
+        error.value = e.toString();
+      } finally {
+        isRefreshing.value = false;
+      }
+      return;
+    }
+    await loadVehicleRequests(myRequests: myRequests, pending: pending);
+  }
+
   Future<void> loadVehicleRequests({bool myRequests = false, bool pending = false}) async {
     isLoading.value = true;
     error.value = '';
+    isStale.value = false;
 
     try {
-      // Clear existing requests first to avoid showing stale data
       vehicleRequests.clear();
-      
       final requests = await _requestService.getVehicleRequests(
         myRequests: myRequests,
         pending: pending,
       );
-      
-      // IMPORTANT: When myRequests is true, we should only see requests where
-      // the user is the requester. The backend filters by requesterId only.
-      // If any requests slip through where user is only the driver, filter them out client-side as a safeguard.
-      if (myRequests) {
-        final authController = Get.find<AuthController>();
-        final currentUserId = authController.user.value?.id;
-        if (currentUserId != null) {
-          vehicleRequests.value = requests.where((request) {
-            // Only include requests where the user is the requester
-            // Handle both string and ObjectId formats using utility
-            return IdUtils.areIdsEqual(request.requesterId, currentUserId);
-          }).toList();
-        } else {
-          vehicleRequests.value = requests;
-        }
-      } else {
-        vehicleRequests.value = requests;
-      }
+      _applyVehicleRequests(requests, myRequests);
     } catch (e) {
       error.value = e.toString();
     } finally {
@@ -126,6 +152,28 @@ class RequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingStage.value = false;
+    }
+  }
+
+  /// Load single request: show cache first if available, then refresh in background.
+  Future<void> loadRequestCacheFirst(String id) async {
+    final cached = _requestService.getVehicleRequestFromCache(id);
+    if (cached != null) {
+      selectedRequest.value = cached;
+      error.value = '';
+    }
+    isReloading.value = true;
+    if (cached == null) isLoading.value = true;
+    try {
+      final request = await _requestService.getVehicleRequest(id);
+      selectedRequest.value = request;
+      error.value = '';
+    } catch (e) {
+      error.value = e.toString();
+      if (cached == null) selectedRequest.value = null;
+    } finally {
+      isReloading.value = false;
+      isLoading.value = false;
     }
   }
 

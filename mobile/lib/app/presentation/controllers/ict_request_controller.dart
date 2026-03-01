@@ -18,6 +18,8 @@ class ICTRequestController extends GetxController {
   final RxString selectedCategory = ''.obs;
   final RxBool isLoading = false.obs;
   final RxBool isLoadingHistory = false.obs;
+  final RxBool isRefreshing = false.obs;
+  final RxBool isStale = false.obs;
   final RxString error = ''.obs;
 
   // Operation-specific loading flags
@@ -99,6 +101,12 @@ class ICTRequestController extends GetxController {
           final uniqueCategories = allItems.map((item) => item.category).where((cat) => cat.isNotEmpty).toSet().toList()..sort();
           categories.value = uniqueCategories;
           print('[ICT Controller] Found ${uniqueCategories.length} categories: $uniqueCategories');
+          // If we were loading "all" and the main load returned empty but this fetch got items, use them
+          // (fixes: first request sometimes returns [] but categories fetch succeeds – e.g. filter tap then works)
+          if ((category == null || category.isEmpty) && items.isEmpty && allItems.isNotEmpty) {
+            catalogItems.value = allItems;
+            print('[ICT Controller] Populated catalog from categories fetch (${allItems.length} items)');
+          }
         } catch (e) {
           print('[ICT Controller] Error loading categories: $e');
           // Don't fail if categories can't be loaded, just use empty list
@@ -114,34 +122,60 @@ class ICTRequestController extends GetxController {
     }
   }
 
+  void _applyICTRequests(List<ICTRequestModel> requests, bool myRequests) {
+    if (myRequests) {
+      final authController = Get.find<AuthController>();
+      final currentUserId = authController.user.value?.id;
+      if (currentUserId != null) {
+        ictRequests.value = requests.where((request) {
+          return IdUtils.areIdsEqual(request.requesterId, currentUserId);
+        }).toList();
+      } else {
+        ictRequests.value = requests;
+      }
+    } else {
+      ictRequests.value = requests;
+    }
+  }
+
+  Future<void> loadICTRequestsCacheFirst({bool myRequests = false, bool pending = false}) async {
+    final cached = _ictService.getICTRequestsFromCache(myRequests: myRequests, pending: pending);
+    if (cached != null) {
+      _applyICTRequests(cached, myRequests);
+      isStale.value = false;
+      error.value = '';
+      isRefreshing.value = true;
+      try {
+        final requests = await _ictService.getICTRequests(
+          myRequests: myRequests,
+          pending: pending,
+        );
+        _applyICTRequests(requests, myRequests);
+        isStale.value = false;
+        error.value = '';
+      } catch (e) {
+        isStale.value = true;
+        error.value = e.toString();
+      } finally {
+        isRefreshing.value = false;
+      }
+      return;
+    }
+    await loadICTRequests(myRequests: myRequests, pending: pending);
+  }
+
   Future<void> loadICTRequests({bool myRequests = false, bool pending = false}) async {
     isLoading.value = true;
     error.value = '';
+    isStale.value = false;
 
     try {
+      ictRequests.clear();
       final requests = await _ictService.getICTRequests(
         myRequests: myRequests,
         pending: pending,
       );
-      
-      // IMPORTANT: When myRequests is true, we should only see requests where
-      // the user is the requester. The backend filters by requesterId only.
-      // Add defensive filtering client-side as a safeguard.
-      if (myRequests) {
-        final authController = Get.find<AuthController>();
-        final currentUserId = authController.user.value?.id;
-        if (currentUserId != null) {
-          ictRequests.value = requests.where((request) {
-            // Only include requests where the user is the requester
-            // Handle both string and ObjectId formats using utility
-            return IdUtils.areIdsEqual(request.requesterId, currentUserId);
-          }).toList();
-        } else {
-          ictRequests.value = requests;
-        }
-      } else {
-        ictRequests.value = requests;
-      }
+      _applyICTRequests(requests, myRequests);
     } catch (e) {
       error.value = e.toString();
     } finally {
@@ -226,6 +260,27 @@ class ICTRequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingUnfulfilled.value = false;
+    }
+  }
+
+  Future<void> loadRequestCacheFirst(String id) async {
+    final cached = _ictService.getICTRequestFromCache(id);
+    if (cached != null) {
+      selectedRequest.value = cached;
+      error.value = '';
+    }
+    isReloading.value = true;
+    if (cached == null) isLoading.value = true;
+    try {
+      final request = await _ictService.getICTRequest(id);
+      selectedRequest.value = request;
+      error.value = '';
+    } catch (e) {
+      error.value = e.toString();
+      if (cached == null) selectedRequest.value = null;
+    } finally {
+      isReloading.value = false;
+      isLoading.value = false;
     }
   }
 

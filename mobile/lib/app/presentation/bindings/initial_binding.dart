@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/websocket_service.dart';
+import '../../../core/services/connectivity_service.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/services/notification_service.dart' as local_notification_service;
 import '../../../core/services/fcm_service.dart';
@@ -27,6 +28,7 @@ class InitialBinding extends Bindings {
     // Core Services
     Get.put(ApiService(), permanent: true);
     Get.put(WebSocketService(), permanent: true);
+    Get.put(ConnectivityService(), permanent: true);
     Get.put(PermissionService(), permanent: true);
     Get.put(local_notification_service.LocalNotificationService(), permanent: true);
     Get.put(FCMService(), permanent: true);

@@ -3,8 +3,9 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/request_model.dart';
 import 'status_badge.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/animations/sheet_animations.dart';
 import '../pages/request_detail_page.dart';
 import '../controllers/request_controller.dart';
@@ -143,12 +144,12 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                           children: [
                             Text(
                               widget.request.destination,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              style: AppTextStyles.labelLarge.copyWith(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                     height: 1.3,
-                                    color: isDark 
-                                        ? AppColors.darkTextPrimary 
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
                                         : AppColors.textPrimary,
                                   ),
                               maxLines: _isExpanded ? null : 1,

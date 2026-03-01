@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -74,22 +75,22 @@ class SplashPage extends StatelessWidget {
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(30),
+                    padding: EdgeInsets.all(AppConstants.spacingXL - 2),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: AppColors.textOnPrimary.withOpacity(0.2),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: AppColors.textPrimary.withOpacity(0.2),
                           blurRadius: 30,
                           spreadRadius: 10,
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.directions_car_rounded,
-              size: 80,
-                      color: Colors.white,
+                      size: 80,
+                      color: AppColors.textOnPrimary,
                     ),
                   ),
                 ),
@@ -110,12 +111,12 @@ class SplashPage extends StatelessWidget {
                       ),
                     );
                   },
-                  child: const Text(
-              'Request Management',
-              style: TextStyle(
+                  child: Text(
+                    'Request Management',
+                    style: TextStyle(
                       fontSize: 28,
-                fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textOnPrimary,
                       letterSpacing: 1,
                     ),
                   ),
@@ -127,14 +128,14 @@ class SplashPage extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: AppColors.textOnPrimary.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
+                child: Padding(
+                  padding: EdgeInsets.all(AppConstants.spacingS),
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.textOnPrimary),
                   ),
                 ),
               ),

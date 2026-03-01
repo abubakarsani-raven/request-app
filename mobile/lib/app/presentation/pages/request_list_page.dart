@@ -5,9 +5,8 @@ import '../controllers/request_controller.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/store_request_controller.dart';
 import '../controllers/auth_controller.dart';
-import '../widgets/request_card.dart';
+import '../widgets/unified_request_card.dart';
 import 'request_detail_page.dart';
-import 'ict_request_detail_page.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_widget.dart';
 import '../widgets/app_drawer.dart';
@@ -18,12 +17,13 @@ import '../widgets/bottom_sheets/create_store_request_bottom_sheet.dart';
 import '../../data/models/request_model.dart';
 import '../../data/models/ict_request_model.dart';
 import '../../data/models/store_request_model.dart';
-import '../widgets/status_badge.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/widgets/custom_toast.dart';
+import '../../../core/services/connectivity_service.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/utils/app_logger.dart';
 
@@ -78,27 +78,25 @@ class _RequestListPageState extends State<RequestListPage> {
     // For "My Requests", always load ALL request types (ICT, Store, Transport)
     // regardless of user role - users should see all requests they created
     if (widget.myRequests) {
-      // OPTIMIZED: Load all request types in parallel (3x faster than sequential)
       try {
         await Future.wait([
-          vehicleController.loadVehicleRequests(
+          vehicleController.loadVehicleRequestsCacheFirst(
             myRequests: true,
             pending: false,
           ),
-          ictController.loadICTRequests(
+          ictController.loadICTRequestsCacheFirst(
             myRequests: true,
             pending: false,
           ),
-          storeController.loadStoreRequests(
+          storeController.loadStoreRequestsCacheFirst(
             myRequests: true,
             pending: false,
           ),
         ]);
       } catch (e) {
-        // If parallel loading fails, fall back to sequential
-        await vehicleController.loadVehicleRequests(myRequests: true, pending: false);
-        await ictController.loadICTRequests(myRequests: true, pending: false);
-        await storeController.loadStoreRequests(myRequests: true, pending: false);
+        await vehicleController.loadVehicleRequestsCacheFirst(myRequests: true, pending: false);
+        await ictController.loadICTRequestsCacheFirst(myRequests: true, pending: false);
+        await storeController.loadStoreRequestsCacheFirst(myRequests: true, pending: false);
       }
       return;
     }
@@ -123,19 +121,19 @@ class _RequestListPageState extends State<RequestListPage> {
     final pendingParam = widget.pending || shouldShowPending;
     
     if (visibleTypes.contains(RequestType.vehicle)) {
-      loadTasks.add(vehicleController.loadVehicleRequests(
+      loadTasks.add(vehicleController.loadVehicleRequestsCacheFirst(
         myRequests: false,
         pending: pendingParam,
       ));
     }
     if (visibleTypes.contains(RequestType.ict)) {
-      loadTasks.add(ictController.loadICTRequests(
+      loadTasks.add(ictController.loadICTRequestsCacheFirst(
         myRequests: false,
         pending: pendingParam,
       ));
     }
     if (visibleTypes.contains(RequestType.store)) {
-      loadTasks.add(storeController.loadStoreRequests(
+      loadTasks.add(storeController.loadStoreRequestsCacheFirst(
         myRequests: false,
         pending: pendingParam,
       ));
@@ -289,8 +287,7 @@ class _RequestListPageState extends State<RequestListPage> {
                               : widget.myRequests
                                   ? 'My Requests'
                                   : 'All Requests',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          style: AppTextStyles.h3.copyWith(
                             fontSize: 24,
                             color: theme.colorScheme.onSurface,
                           ),
@@ -354,6 +351,37 @@ class _RequestListPageState extends State<RequestListPage> {
                 ],
               ),
             ),
+            if (Get.isRegistered<ConnectivityService>())
+              Obx(() {
+                final connectivity = Get.find<ConnectivityService>();
+                if (connectivity.isOnline.value) return const SizedBox.shrink();
+                return Material(
+                  color: AppColors.warning.withOpacity(0.2),
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppConstants.spacingM,
+                        vertical: AppConstants.spacingS,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.cloud_off, size: 20, color: AppColors.warning),
+                          SizedBox(width: AppConstants.spacingS),
+                          Expanded(
+                            child: Text(
+                              'You\'re offline. Showing saved data.',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
             // Request List
             Expanded(
               child: Obx(
@@ -362,18 +390,20 @@ class _RequestListPageState extends State<RequestListPage> {
                   final isLoading = vehicleController.isLoading.value ||
                       ictController.isLoading.value ||
                       storeController.isLoading.value;
-                  
+                  final isRefreshing = vehicleController.isRefreshing.value ||
+                      ictController.isRefreshing.value ||
+                      storeController.isRefreshing.value;
+                  final isStale = vehicleController.isStale.value ||
+                      ictController.isStale.value ||
+                      storeController.isStale.value;
                   final vehicleError = vehicleController.error.value;
                   final ictError = ictController.error.value;
                   final storeError = storeController.error.value;
-                  final error = vehicleError.isNotEmpty 
-                      ? vehicleError 
+                  final error = vehicleError.isNotEmpty
+                      ? vehicleError
                       : (ictError.isNotEmpty ? ictError : storeError);
-                  
-                  // Safely compute requests - these methods only read from observables
                   List<dynamic> allRequests = [];
                   List<dynamic> filteredRequests = [];
-                  
                   try {
                     allRequests = _computeAllRequests();
                     filteredRequests = _computeFilteredRequests(allRequests);
@@ -386,7 +416,6 @@ class _RequestListPageState extends State<RequestListPage> {
                       onRetry: _loadAllRequests,
                     );
                   }
-                  
                   if (isLoading && allRequests.isEmpty) {
                     return ListView.builder(
                       padding: const EdgeInsets.all(AppConstants.spacingM),
@@ -397,8 +426,7 @@ class _RequestListPageState extends State<RequestListPage> {
                       ),
                     );
                   }
-
-                  if (error.isNotEmpty) {
+                  if (error.isNotEmpty && allRequests.isEmpty) {
                     return AppErrorWidget(
                       title: 'Error Loading Requests',
                       message: error,
@@ -429,20 +457,79 @@ class _RequestListPageState extends State<RequestListPage> {
                     );
                   }
 
-                  return RefreshIndicator(
-                    onRefresh: _loadAllRequests,
-                    color: AppColors.primary,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(AppConstants.spacingM),
-                      itemCount: filteredRequests.length,
-                      itemBuilder: (context, index) {
-                        final request = filteredRequests[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppConstants.spacingM),
-                          child: _buildRequestCard(request),
-                        );
-                      },
-                    ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (isStale)
+                        Material(
+                          color: AppColors.warning.withOpacity(0.15),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppConstants.spacingM,
+                              vertical: AppConstants.spacingS,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, size: 20, color: AppColors.warning),
+                                SizedBox(width: AppConstants.spacingS),
+                                Expanded(
+                                  child: Text(
+                                    'Couldn\'t update. Showing last saved data.',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _loadAllRequests,
+                                  child: const Text('Try again'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (isRefreshing)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: AppConstants.spacingXS),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              SizedBox(width: AppConstants.spacingS),
+                              Text(
+                                'Updating…',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: _loadAllRequests,
+                          color: AppColors.primary,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(AppConstants.spacingM),
+                            itemCount: filteredRequests.length,
+                            itemBuilder: (context, index) {
+                              final request = filteredRequests[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: AppConstants.spacingM),
+                                child: _buildRequestCard(request),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -453,136 +540,33 @@ class _RequestListPageState extends State<RequestListPage> {
     );
   }
 
-  Widget _buildRequestCard(dynamic request) {
-    if (request is VehicleRequestModel) {
-      return RequestCard(
-        request: request,
-        source: widget.myRequests
-            ? RequestDetailSource.myRequests
-            : widget.pending
-                ? RequestDetailSource.pendingApprovals
-                : RequestDetailSource.other,
-      );
-    } else if (request is ICTRequestModel) {
-      return _buildICTRequestCard(request);
-    } else if (request is StoreRequestModel) {
-      return _buildStoreRequestCard(request);
-    }
-    return const SizedBox.shrink();
+  static RequestType _typeOf(dynamic request) {
+    if (request is VehicleRequestModel) return RequestType.vehicle;
+    if (request is ICTRequestModel) return RequestType.ict;
+    if (request is StoreRequestModel) return RequestType.store;
+    return RequestType.vehicle;
   }
 
-  Widget _buildICTRequestCard(ICTRequestModel request) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    return Card(
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDark 
-              ? AppColors.darkBorderDefined.withOpacity(0.5)
-              : AppColors.border.withOpacity(0.5),
-          width: 1.5,
-        ),
-      ),
-      child: InkWell(
-        onTap: () {
-          Get.to(() => ICTRequestDetailPage(requestId: request.id));
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spacingM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: (isDark ? AppColors.primaryLight : AppColors.primary).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      AppIcons.ict,
-                      color: isDark ? AppColors.primaryLight : AppColors.primary,
-                      size: AppIcons.sizeSmall,
-                    ),
-                  ),
-                  const SizedBox(width: AppConstants.spacingS),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'ICT Request',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        StatusBadge(
-                          status: request.status,
-                          workflowStage: request.workflowStage,
-                          isPartiallyFulfilled: request.isPartiallyFulfilled(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${request.items.length} ${request.items.length == 1 ? 'item' : 'items'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDark 
-                          ? AppColors.darkTextSecondary 
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppConstants.spacingS),
-              Text(
-                'Created: ${DateFormat('MMM dd, yyyy').format(request.createdAt)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isDark 
-                      ? AppColors.darkTextSecondary 
-                      : AppColors.textSecondary,
-                ),
-              ),
-              // Repeat Request button (only show in My Requests)
-              if (widget.myRequests) ...[
-                const SizedBox(height: AppConstants.spacingM),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _repeatICTRequest(request),
-                    icon: Icon(
-                      Icons.repeat,
-                      size: 18,
-                      color: isDark ? AppColors.primaryLight : AppColors.primary,
-                    ),
-                    label: Text(
-                      'Repeat Request',
-                      style: TextStyle(
-                        color: isDark ? AppColors.primaryLight : AppColors.primary,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(
-                        color: isDark ? AppColors.primaryLight : AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+  Widget _buildRequestCard(dynamic request) {
+    final type = _typeOf(request);
+    final source = widget.myRequests
+        ? RequestDetailSource.myRequests
+        : widget.pending
+            ? RequestDetailSource.pendingApprovals
+            : RequestDetailSource.other;
+    VoidCallback? onRepeat;
+    if (widget.myRequests) {
+      if (request is ICTRequestModel) {
+        onRepeat = () => _repeatICTRequest(request);
+      } else if (request is StoreRequestModel) {
+        onRepeat = () => _repeatStoreRequest(request);
+      }
+    }
+    return UnifiedRequestCard(
+      type: type,
+      request: request,
+      source: source,
+      onRepeat: onRepeat,
     );
   }
 
@@ -595,121 +579,6 @@ class _RequestListPageState extends State<RequestListPage> {
     
     // Show create ICT request bottom sheet with pre-filled items
     CreateICTRequestBottomSheet.showWithItems(context, items);
-  }
-
-  Widget _buildStoreRequestCard(StoreRequestModel request) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    return Card(
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDark 
-              ? AppColors.darkBorderDefined.withOpacity(0.5)
-              : AppColors.border.withOpacity(0.5),
-          width: 1.5,
-        ),
-      ),
-      child: InkWell(
-        onTap: () {
-          Get.toNamed('/store/requests/${request.id}');
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spacingM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: (isDark ? AppColors.secondaryLight : AppColors.secondary).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      AppIcons.store,
-                      color: isDark ? AppColors.secondaryLight : AppColors.secondary,
-                      size: AppIcons.sizeSmall,
-                    ),
-                  ),
-                  const SizedBox(width: AppConstants.spacingS),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Store Request',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        StatusBadge(
-                          status: request.status,
-                          workflowStage: request.workflowStage,
-                          isPartiallyFulfilled: request.isPartiallyFulfilled(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${request.items.length} ${request.items.length == 1 ? 'item' : 'items'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDark 
-                          ? AppColors.darkTextSecondary 
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppConstants.spacingS),
-              Text(
-                'Created: ${DateFormat('MMM dd, yyyy').format(request.createdAt)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isDark 
-                      ? AppColors.darkTextSecondary 
-                      : AppColors.textSecondary,
-                ),
-              ),
-              // Repeat Request button (only show in My Requests)
-              if (widget.myRequests) ...[
-                const SizedBox(height: AppConstants.spacingM),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _repeatStoreRequest(request),
-                    icon: Icon(
-                      Icons.repeat,
-                      size: 18,
-                      color: isDark ? AppColors.secondaryLight : AppColors.secondary,
-                    ),
-                    label: Text(
-                      'Repeat Request',
-                      style: TextStyle(
-                        color: isDark ? AppColors.secondaryLight : AppColors.secondary,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(
-                        color: isDark ? AppColors.secondaryLight : AppColors.secondary,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   void _repeatStoreRequest(StoreRequestModel request) {
@@ -738,7 +607,7 @@ class _RequestListPageState extends State<RequestListPage> {
         backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
         title: Text(
           'Cancel Request',
-          style: theme.textTheme.titleLarge?.copyWith(
+          style: AppTextStyles.h4.copyWith(
             color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -749,21 +618,21 @@ class _RequestListPageState extends State<RequestListPage> {
           children: [
             Text(
               'Are you sure you want to cancel this request?',
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: AppTextStyles.bodyMedium.copyWith(
                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: AppConstants.spacingM),
             Text(
               'Request Type: ${type == RequestType.vehicle ? 'Vehicle' : type == RequestType.ict ? 'ICT' : 'Store'}',
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: AppTextStyles.bodySmall.copyWith(
                 color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: AppConstants.spacingS),
             Text(
               'Created: ${DateFormat('MMM dd, yyyy').format(request.createdAt)}',
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: AppTextStyles.bodySmall.copyWith(
                 color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
             ),
@@ -830,7 +699,7 @@ class _RequestListPageState extends State<RequestListPage> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.textOnPrimary,
             ),
             child: const Text('Cancel Request'),
           ),

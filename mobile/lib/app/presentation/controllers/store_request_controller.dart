@@ -17,6 +17,8 @@ class StoreRequestController extends GetxController {
   final RxString selectedCategory = ''.obs;
   final RxBool isLoading = false.obs;
   final RxBool isLoadingHistory = false.obs;
+  final RxBool isRefreshing = false.obs;
+  final RxBool isStale = false.obs;
   final RxString error = ''.obs;
 
   // Operation-specific loading flags
@@ -71,34 +73,60 @@ class StoreRequestController extends GetxController {
     }
   }
 
+  void _applyStoreRequests(List<StoreRequestModel> requests, bool myRequests) {
+    if (myRequests) {
+      final authController = Get.find<AuthController>();
+      final currentUserId = authController.user.value?.id;
+      if (currentUserId != null) {
+        storeRequests.value = requests.where((request) {
+          return IdUtils.areIdsEqual(request.requesterId, currentUserId);
+        }).toList();
+      } else {
+        storeRequests.value = requests;
+      }
+    } else {
+      storeRequests.value = requests;
+    }
+  }
+
+  Future<void> loadStoreRequestsCacheFirst({bool myRequests = false, bool pending = false}) async {
+    final cached = _storeService.getStoreRequestsFromCache(myRequests: myRequests, pending: pending);
+    if (cached != null) {
+      _applyStoreRequests(cached, myRequests);
+      isStale.value = false;
+      error.value = '';
+      isRefreshing.value = true;
+      try {
+        final requests = await _storeService.getStoreRequests(
+          myRequests: myRequests,
+          pending: pending,
+        );
+        _applyStoreRequests(requests, myRequests);
+        isStale.value = false;
+        error.value = '';
+      } catch (e) {
+        isStale.value = true;
+        error.value = e.toString();
+      } finally {
+        isRefreshing.value = false;
+      }
+      return;
+    }
+    await loadStoreRequests(myRequests: myRequests, pending: pending);
+  }
+
   Future<void> loadStoreRequests({bool myRequests = false, bool pending = false}) async {
     isLoading.value = true;
     error.value = '';
+    isStale.value = false;
 
     try {
+      storeRequests.clear();
       final requests = await _storeService.getStoreRequests(
         myRequests: myRequests,
         pending: pending,
       );
-      
-      // IMPORTANT: When myRequests is true, we should only see requests where
-      // the user is the requester. The backend filters by requesterId only.
-      // Add defensive filtering client-side as a safeguard.
-      if (myRequests) {
-        final authController = Get.find<AuthController>();
-        final currentUserId = authController.user.value?.id;
-        if (currentUserId != null) {
-          storeRequests.value = requests.where((request) {
-            // Only include requests where the user is the requester
-            // Handle both string and ObjectId formats using utility
-            return IdUtils.areIdsEqual(request.requesterId, currentUserId);
-          }).toList();
-        } else {
-          storeRequests.value = requests;
-        }
-      } else {
-        storeRequests.value = requests;
-      }
+      _applyStoreRequests(requests, myRequests);
     } catch (e) {
       error.value = e.toString();
     } finally {
@@ -169,6 +197,27 @@ class StoreRequestController extends GetxController {
       error.value = e.toString();
     } finally {
       isLoadingFulfillment.value = false;
+    }
+  }
+
+  Future<void> loadRequestCacheFirst(String id) async {
+    final cached = _storeService.getStoreRequestFromCache(id);
+    if (cached != null) {
+      selectedRequest.value = cached;
+      error.value = '';
+    }
+    isReloading.value = true;
+    if (cached == null) isLoading.value = true;
+    try {
+      final request = await _storeService.getStoreRequest(id);
+      selectedRequest.value = request;
+      error.value = '';
+    } catch (e) {
+      error.value = e.toString();
+      if (cached == null) selectedRequest.value = null;
+    } finally {
+      isReloading.value = false;
+      isLoading.value = false;
     }
   }
 

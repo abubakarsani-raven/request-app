@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio;
 import '../../../core/services/api_service.dart';
+import '../../../core/services/local_cache_service.dart';
 import '../models/ict_request_model.dart';
 import '../models/catalog_item_model.dart';
 
@@ -44,6 +45,22 @@ class ICTRequestService extends GetxService {
   }
 
   // ICT Requests
+  List<ICTRequestModel>? getICTRequestsFromCache({
+    bool myRequests = false,
+    bool pending = false,
+  }) {
+    final key = LocalCacheService.listKey('ict', myRequests, pending);
+    final entry = LocalCacheService.readRequestList(key);
+    if (entry == null) return null;
+    try {
+      return entry.data
+          .map((json) => ICTRequestModel.fromJson(json))
+          .toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<ICTRequestModel>> getICTRequests({
     bool myRequests = false,
     bool pending = false,
@@ -64,8 +81,15 @@ class ICTRequestService extends GetxService {
 
       if (response.statusCode == 200) {
         if (response.data is! List) return [];
-        return (response.data as List)
-            .map((json) => ICTRequestModel.fromJson(json))
+        final list = response.data as List;
+        if (departmentId == null && workflowStage == null) {
+          await LocalCacheService.writeRequestList(
+            LocalCacheService.listKey('ict', myRequests, pending),
+            list,
+          );
+        }
+        return list
+            .map((json) => ICTRequestModel.fromJson(json as Map<String, dynamic>))
             .toList();
       }
       return [];
@@ -132,11 +156,27 @@ class ICTRequestService extends GetxService {
     }
   }
 
+  ICTRequestModel? getICTRequestFromCache(String id) {
+    final key = LocalCacheService.detailKey('ict', id);
+    final entry = LocalCacheService.readRequestDetail(key);
+    if (entry == null) return null;
+    try {
+      return ICTRequestModel.fromJson(entry.data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<ICTRequestModel?> getICTRequest(String id) async {
     try {
       final response = await _apiService.get('/ict/requests/$id');
-      if (response.statusCode == 200) {
-        return ICTRequestModel.fromJson(response.data);
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = Map<String, dynamic>.from(response.data as Map);
+        await LocalCacheService.writeRequestDetail(
+          LocalCacheService.detailKey('ict', id),
+          data,
+        );
+        return ICTRequestModel.fromJson(data);
       }
     } catch (e) {
       print('Error fetching ICT request: $e');

@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/local_cache_service.dart';
 import '../models/store_request_model.dart';
 import '../models/inventory_item_model.dart';
 
@@ -43,6 +44,22 @@ class StoreRequestService extends GetxService {
   }
 
   // Store Requests
+  List<StoreRequestModel>? getStoreRequestsFromCache({
+    bool myRequests = false,
+    bool pending = false,
+  }) {
+    final key = LocalCacheService.listKey('store', myRequests, pending);
+    final entry = LocalCacheService.readRequestList(key);
+    if (entry == null) return null;
+    try {
+      return entry.data
+          .map((json) => StoreRequestModel.fromJson(json))
+          .toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<StoreRequestModel>> getStoreRequests({
     bool myRequests = false,
     bool pending = false,
@@ -63,8 +80,15 @@ class StoreRequestService extends GetxService {
 
       if (response.statusCode == 200) {
         if (response.data is! List) return [];
-        return (response.data as List)
-            .map((json) => StoreRequestModel.fromJson(json))
+        final list = response.data as List;
+        if (departmentId == null && workflowStage == null) {
+          await LocalCacheService.writeRequestList(
+            LocalCacheService.listKey('store', myRequests, pending),
+            list,
+          );
+        }
+        return list
+            .map((json) => StoreRequestModel.fromJson(json as Map<String, dynamic>))
             .toList();
       }
       return [];
@@ -115,11 +139,27 @@ class StoreRequestService extends GetxService {
     }
   }
 
+  StoreRequestModel? getStoreRequestFromCache(String id) {
+    final key = LocalCacheService.detailKey('store', id);
+    final entry = LocalCacheService.readRequestDetail(key);
+    if (entry == null) return null;
+    try {
+      return StoreRequestModel.fromJson(entry.data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<StoreRequestModel?> getStoreRequest(String id) async {
     try {
       final response = await _apiService.get('/store/requests/$id');
-      if (response.statusCode == 200) {
-        return StoreRequestModel.fromJson(response.data);
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = Map<String, dynamic>.from(response.data as Map);
+        await LocalCacheService.writeRequestDetail(
+          LocalCacheService.detailKey('store', id),
+          data,
+        );
+        return StoreRequestModel.fromJson(data);
       }
     } catch (e) {
       print('Error fetching store request: $e');

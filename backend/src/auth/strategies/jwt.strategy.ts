@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
@@ -19,7 +19,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const user = await this.usersService.findOne(payload.sub);
+    let user;
+    try {
+      user = await this.usersService.findOne(payload.sub);
+    } catch (e) {
+      if (e instanceof NotFoundException) {
+        throw new UnauthorizedException(
+          'User not found. If you switched to a different backend (e.g. local), log out and log in again.',
+        );
+      }
+      throw e;
+    }
     if (!user) {
       throw new UnauthorizedException();
     }

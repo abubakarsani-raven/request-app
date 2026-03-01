@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
 class CustomCard extends StatefulWidget {
@@ -91,7 +92,7 @@ class _CustomCardState extends State<CustomCard> with SingleTickerProviderStateM
               color: widget.useGlassmorphism
                   ? (isDark ? AppColors.darkSurface : AppColors.surface).withOpacity(0.7)
                   : widget.color ?? (isDark ? AppColors.darkSurface : AppColors.surface),
-              borderRadius: widget.borderRadius ?? BorderRadius.circular(20),
+              borderRadius: widget.borderRadius ?? BorderRadius.circular(AppConstants.radiusL),
               border: Border.all(
                 color: isDark
                     ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -102,16 +103,16 @@ class _CustomCardState extends State<CustomCard> with SingleTickerProviderStateM
                   ? [
                       BoxShadow(
                         color: isDark
-                            ? Colors.black.withOpacity(0.3)
-                            : Colors.black.withOpacity(0.08),
+                            ? AppColors.darkBackground.withOpacity(0.3)
+                            : AppColors.textPrimary.withOpacity(0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 4),
                         spreadRadius: 0,
                       ),
                       BoxShadow(
                         color: isDark
-                            ? Colors.black.withOpacity(0.2)
-                            : Colors.black.withOpacity(0.04),
+                            ? AppColors.darkBackground.withOpacity(0.2)
+                            : AppColors.textPrimary.withOpacity(0.04),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                         spreadRadius: 0,
@@ -123,9 +124,9 @@ class _CustomCardState extends State<CustomCard> with SingleTickerProviderStateM
               color: Colors.transparent,
               child: InkWell(
                 onTap: widget.onTap,
-                borderRadius: widget.borderRadius ?? BorderRadius.circular(20),
+                borderRadius: widget.borderRadius ?? BorderRadius.circular(AppConstants.radiusL),
                 child: Padding(
-                  padding: widget.padding ?? const EdgeInsets.all(24),
+                  padding: widget.padding ?? EdgeInsets.all(AppConstants.spacingL),
                   child: widget.child,
                 ),
               ),

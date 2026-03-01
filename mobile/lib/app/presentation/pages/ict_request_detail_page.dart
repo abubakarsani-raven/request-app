@@ -37,7 +37,7 @@ class ICTRequestDetailPage extends StatelessWidget {
 
     // Load request details
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ictController.loadRequest(requestId);
+      ictController.loadRequestCacheFirst(requestId);
     });
 
     return AppDrawer(

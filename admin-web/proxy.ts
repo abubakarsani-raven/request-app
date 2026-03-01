@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 const PROTECTED_PREFIXES = ['/'];
 const PUBLIC_PATHS = ['/login', '/_next', '/api', '/favicon.ico', '/icons', '/images', '/auth'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths
@@ -28,4 +28,3 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/((?!_next|api|favicon.ico|icons|images).*)'],
 };
-

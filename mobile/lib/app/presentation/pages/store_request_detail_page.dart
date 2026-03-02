@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/store_request_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/status_badge.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/loading_overlay.dart';
 import '../../data/models/store_request_model.dart';
@@ -20,7 +19,6 @@ import 'request_detail_page.dart'; // For RequestDetailSource enum
 class StoreRequestDetailPage extends StatelessWidget {
   final String requestId;
   final RequestDetailSource? source;
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
 
   StoreRequestDetailPage({
     Key? key,
@@ -39,17 +37,10 @@ class StoreRequestDetailPage extends StatelessWidget {
       storeController.loadRequestCacheFirst(requestId);
     });
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
-          ),
-          title: const Text('Store Request Details'),
-        ),
-        body: LoadingOverlay(
+    return AppScaffold(
+      title: 'Store Request Details',
+      showBackButton: true,
+      body: LoadingOverlay(
           isLoading: storeController.isApproving.value ||
                      storeController.isRejecting.value ||
                      storeController.isFulfilling.value ||
@@ -113,7 +104,7 @@ class StoreRequestDetailPage extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
                             color: AppColors.warning.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppConstants.radiusM),
                             border: Border.all(
                               color: AppColors.warning.withOpacity(0.3),
                               width: 1,
@@ -165,9 +156,8 @@ class StoreRequestDetailPage extends StatelessWidget {
               ),
             );
             },
-          ),
-        ),
       ),
+    ),
     );
   }
 
@@ -193,7 +183,7 @@ class StoreRequestDetailPage extends StatelessWidget {
             color: isDark 
                 ? AppColors.darkSurface 
                 : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
             border: Border.all(
               color: isDark 
                   ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -202,7 +192,7 @@ class StoreRequestDetailPage extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: Column(children: children),
           ),
         ),
@@ -276,7 +266,7 @@ class StoreRequestDetailPage extends StatelessWidget {
             color: isDark 
                 ? AppColors.darkSurface 
                 : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
             border: Border.all(
               color: isDark 
                   ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -294,7 +284,7 @@ class StoreRequestDetailPage extends StatelessWidget {
               final isFulfilled = remaining == 0;
 
               return Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppConstants.spacingM),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -394,7 +384,7 @@ class StoreRequestDetailPage extends StatelessWidget {
         color: isDark 
             ? AppColors.darkSurface 
             : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
         border: Border.all(
           color: isDark 
               ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -403,7 +393,7 @@ class StoreRequestDetailPage extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppConstants.spacingL),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -567,7 +557,7 @@ class StoreRequestDetailPage extends StatelessWidget {
         onWillPop: () async => !controller.isFulfilling.value,
         child: Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
           ),
           child: Container(
             width: MediaQuery.of(context).size.width * 0.9,
@@ -579,7 +569,7 @@ class StoreRequestDetailPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppConstants.spacingL),
                 child: Text(
                   'Fulfill Request',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -589,7 +579,7 @@ class StoreRequestDetailPage extends StatelessWidget {
               ),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingL),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -599,7 +589,7 @@ class StoreRequestDetailPage extends StatelessWidget {
                       final controller = fulfillmentControllers[item.itemId]!;
                       
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.only(bottom: AppConstants.spacingM),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -652,7 +642,7 @@ class StoreRequestDetailPage extends StatelessWidget {
                                   color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(AppConstants.radiusM),
                                 ),
                                 filled: true,
                                 fillColor: isDark ? AppColors.darkSurfaceLight : theme.colorScheme.surface,
@@ -666,7 +656,7 @@ class StoreRequestDetailPage extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppConstants.spacingL),
                 child: Row(
                   children: [
                     Expanded(
@@ -761,10 +751,10 @@ class StoreRequestDetailPage extends StatelessWidget {
         child: Dialog(
           backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: StatefulBuilder(
               builder: (context, setState) {
                 return Column(
@@ -803,7 +793,7 @@ class StoreRequestDetailPage extends StatelessWidget {
                                   color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(AppConstants.radiusM),
                                 ),
                                 filled: true,
                                 fillColor: isDark ? AppColors.darkSurfaceLight : theme.colorScheme.surface,
@@ -902,10 +892,10 @@ class StoreRequestDetailPage extends StatelessWidget {
         child: Dialog(
           backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: StatefulBuilder(
               builder: (context, setState) {
                 return Column(
@@ -944,7 +934,7 @@ class StoreRequestDetailPage extends StatelessWidget {
                                   color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(AppConstants.radiusM),
                                 ),
                                 filled: true,
                                 fillColor: isDark ? AppColors.darkSurfaceLight : theme.colorScheme.surface,

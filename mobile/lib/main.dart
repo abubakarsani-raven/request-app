@@ -8,7 +8,7 @@ import 'core/controllers/theme_controller.dart';
 import 'core/utils/orientation_service.dart';
 import 'app/presentation/pages/splash_page.dart';
 import 'app/presentation/pages/login_page.dart';
-import 'app/presentation/pages/dashboard_page.dart';
+import 'app/presentation/pages/main_shell_page.dart';
 import 'core/middleware/auth_middleware.dart';
 import 'app/presentation/pages/request_list_page.dart';
 import 'app/presentation/pages/request_detail_page.dart';
@@ -16,15 +16,14 @@ import 'app/presentation/pages/trip_tracking_page.dart';
 import 'app/presentation/pages/create_request_page.dart';
 import 'app/presentation/pages/ict_fulfillment_page.dart';
 import 'app/presentation/pages/store_fulfillment_page.dart';
-import 'app/presentation/pages/driver_dashboard_page.dart';
 import 'app/presentation/pages/assignment_page.dart';
-import 'app/presentation/pages/approval_queue_page.dart';
 import 'app/presentation/pages/assign_vehicle_list_page.dart';
 import 'app/presentation/pages/qr_scanner_page.dart';
 import 'app/presentation/pages/ict_request_history_page.dart';
 import 'app/presentation/pages/transport_request_history_page.dart';
 import 'app/presentation/pages/store_request_history_page.dart';
 import 'app/presentation/pages/store_request_detail_page.dart';
+import 'app/presentation/pages/so_dashboard_page.dart';
 import 'app/presentation/bindings/initial_binding.dart';
 import 'screens/profile_screen.dart';
 import 'screens/notifications_screen.dart';
@@ -90,7 +89,8 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: '/dashboard',
-          page: () => const DashboardPage(),
+          page: () => const MainShellPage(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/requests',
@@ -203,17 +203,22 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: '/driver/dashboard',
-          page: () => DriverDashboardPage(),
+          page: () => const MainShellPage(initialIndex: 0),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/approvals',
-          page: () => ApprovalQueuePage(),
+          page: () => const RequestListPage(pending: true),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/assign-vehicles',
           page: () => const AssignVehicleListPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/so-dashboard',
+          page: () => SODashboardPage(),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(

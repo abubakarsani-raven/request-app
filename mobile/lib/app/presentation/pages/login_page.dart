@@ -7,15 +7,57 @@ import '../../../core/utils/validators.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/services/biometric_service.dart';
+import '../../../core/services/permission_service.dart';
 
-class LoginPage extends StatelessWidget {
-  LoginPage({Key? key}) : super(key: key);
+class LoginPage extends StatefulWidget {
+  const LoginPage({Key? key}) : super(key: key);
 
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authController = Get.find<AuthController>();
+  late final AuthController _authController = Get.find<AuthController>();
   final _obscurePassword = true.obs;
+
+  bool _showBiometricButton = false;
+  String _biometricLabel = 'Biometric';
+  bool _biometricLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricOption();
+  }
+
+  Future<void> _loadBiometricOption() async {
+    if (!Get.isRegistered<BiometricService>()) return;
+    try {
+      final bio = Get.find<BiometricService>();
+      final available = await bio.isBiometricAvailable();
+      final hasStored = await bio.hasStoredCredentials();
+      final label = available ? await bio.getBiometricLabel() : 'Biometric';
+      if (mounted) {
+        setState(() {
+          _showBiometricButton = available && hasStored;
+          _biometricLabel = label;
+        });
+      }
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -175,16 +217,36 @@ class LoginPage extends StatelessWidget {
                     validator: Validators.password,
                   ),
                 ),
+                if (_showBiometricButton) ...[
+                  OutlinedButton.icon(
+                    onPressed: _biometricLoading || _authController.isLoading.value
+                        ? null
+                        : _handleBiometricLogin,
+                    icon: _biometricLoading
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.primary),
+                          )
+                        : Icon(Icons.fingerprint_rounded, color: theme.colorScheme.primary),
+                    label: Text('Sign in with $_biometricLabel'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
+                      foregroundColor: theme.colorScheme.primary,
+                    ),
+                  ),
+                  SizedBox(height: AppConstants.spacingM),
+                ],
                 SizedBox(height: AppConstants.spacingL),
                 Obx(
                   () => CustomButton(
                     text: 'Sign In',
                     onPressed: _authController.isLoading.value
                         ? null
-                        : _handleLogin,
+                        : () => _handleLogin(context),
                     isLoading: _authController.isLoading.value,
-                          ),
-                        ),
+                  ),
+                ),
                       ],
                   ),
                 ),
@@ -252,16 +314,86 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleLogin(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       final success = await _authController.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
-      if (success) {
-        Get.offAllNamed('/dashboard');
+      if (success && context.mounted) {
+        if (Get.isRegistered<BiometricService>()) {
+          final bio = Get.find<BiometricService>();
+          final available = await bio.isBiometricAvailable();
+          final hasStored = await bio.hasStoredCredentials();
+          if (available && !hasStored && context.mounted) {
+            final label = await bio.getBiometricLabel();
+            if (!context.mounted) return;
+            final useBiometric = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Use biometrics next time?'),
+                content: Text(
+                  'You can sign in quickly with $label next time.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Not now'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Enable'),
+                  ),
+                ],
+              ),
+            );
+            if (useBiometric == true) {
+              await bio.saveCredentialsForBiometric(
+                _emailController.text.trim(),
+                _passwordController.text,
+              );
+            }
+          }
+        }
+        _navigateAfterLogin();
       }
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    if (!Get.isRegistered<BiometricService>()) return;
+    setState(() => _biometricLoading = true);
+    try {
+      final bio = Get.find<BiometricService>();
+      final creds = await bio.authenticateAndGetCredentials();
+      if (creds == null || !mounted) return;
+      final success = await _authController.login(creds.email, creds.password);
+      if (success && mounted) {
+        _navigateAfterLogin();
+      } else if (mounted && _authController.error.value.isNotEmpty) {
+        // Error already shown by AuthController
+      }
+    } finally {
+      if (mounted) setState(() => _biometricLoading = false);
+    }
+  }
+
+  void _navigateAfterLogin() {
+    if (!Get.isRegistered<PermissionService>()) {
+      Get.offAllNamed('/dashboard');
+      return;
+    }
+    final user = _authController.user.value;
+    if (user == null) {
+      Get.offAllNamed('/dashboard');
+      return;
+    }
+    final permissionService = Get.find<PermissionService>();
+    if (permissionService.isDriver(user)) {
+      Get.offAllNamed('/driver/dashboard');
+    } else {
+      Get.offAllNamed('/dashboard');
     }
   }
 }

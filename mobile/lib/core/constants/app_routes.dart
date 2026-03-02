@@ -37,6 +37,7 @@ class AppRoutes {
   
   // Other routes
   static const String approvals = '/approvals';
+  static const String soDashboard = '/so-dashboard';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
   static const String qrScanner = '/qr-scanner';

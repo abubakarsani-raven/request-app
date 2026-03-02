@@ -90,7 +90,7 @@ class RequestModuleConfig {
     }
   }
 
-  /// Optional subtitle (e.g. item count)
+  /// Optional subtitle (e.g. item count and quantity for ICT/Store)
   static String getSubtitle(RequestType type, dynamic request) {
     if (request == null) return '';
     switch (type) {
@@ -98,9 +98,21 @@ class RequestModuleConfig {
         return '';
       case RequestType.ict:
         final r = request as ICTRequestModel;
-        return '${r.items.length} ${r.items.length == 1 ? 'item' : 'items'}';
+        final totalUnits = r.items.fold<int>(
+            0, (sum, i) => sum + (i.requestedQuantity > 0 ? i.requestedQuantity : i.quantity));
+        final itemWord = r.items.length == 1 ? 'item' : 'items';
+        if (totalUnits > 0) {
+          return '${r.items.length} $itemWord · $totalUnits unit${totalUnits == 1 ? '' : 's'}';
+        }
+        return '${r.items.length} $itemWord';
       case RequestType.store:
         final r = request as StoreRequestModel;
+        final totalUnits = r.items.fold<int>(
+            0, (sum, i) => sum + (i.requestedQuantity > 0 ? i.requestedQuantity : i.quantity));
+        final itemWord = r.items.length == 1 ? 'item' : 'items';
+        if (totalUnits > 0) {
+          return '${r.items.length} $itemWord · $totalUnits unit${totalUnits == 1 ? '' : 's'}';
+        }
         return '${r.items.length} ${r.items.length == 1 ? 'item' : 'items'}';
     }
   }

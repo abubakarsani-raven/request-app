@@ -6,7 +6,9 @@ import '../controllers/request_controller.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/store_request_controller.dart';
 import '../../../core/services/permission_service.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logout_confirmation.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/request_model.dart';
 
@@ -26,7 +28,6 @@ class AppSidebar extends StatefulWidget {
 
 class _AppSidebarState extends State<AppSidebar> with SingleTickerProviderStateMixin {
   bool _isCollapsed = false;
-  final Map<String, bool> _expandedGroups = {};
 
   @override
   void initState() {
@@ -127,88 +128,40 @@ class _AppSidebarState extends State<AppSidebar> with SingleTickerProviderStateM
                       route: '/requests',
                       isActive: Get.currentRoute == '/requests',
                     ),
-                  if (permissionService.canApprove(
-                        user,
-                        RequestType.vehicle,
-                        'DGS_REVIEW',
-                      ) ||
-                      permissionService.canApprove(
-                        user,
-                        RequestType.ict,
-                        'DDICT_REVIEW',
-                      ) ||
-                      permissionService.canApprove(
-                        user,
-                        RequestType.store,
-                        'SO_REVIEW',
-                      ))
+                  if (permissionService.canApproveAnyRequests(user))
                     Obx(() {
-                      final user = authController.user.value;
-                      if (user == null) return const SizedBox.shrink();
-                      
+                      final u = authController.user.value;
+                      if (u == null) return const SizedBox.shrink();
                       final requestController = Get.find<RequestController>();
                       final ictController = Get.find<ICTRequestController>();
                       final storeController = Get.find<StoreRequestController>();
-                      
-                      // Calculate total pending approvals count
                       int totalPending = 0;
-                      
-                      // Filter vehicle requests user can approve
-                      if (permissionService.canApprove(user, RequestType.vehicle, 'DGS_REVIEW')) {
-                        totalPending += requestController.vehicleRequests.where((request) {
-                          // Exclude requests that are already completed/approved/rejected/assigned
-                          if (request.status == RequestStatus.approved ||
-                              request.status == RequestStatus.rejected ||
-                              request.status == RequestStatus.assigned ||
-                              request.status == RequestStatus.completed ||
-                              request.status == RequestStatus.fulfilled) {
-                            return false;
-                          }
-                          
-                          // Check if user can approve at this stage
-                          final workflowStage = request.workflowStage ?? 'SUBMITTED';
-                          return permissionService.canApproveAtStage(user, RequestType.vehicle, workflowStage) ||
-                              (permissionService.isSupervisor(user) &&
-                                  request.workflowStage == 'SUPERVISOR_REVIEW' &&
-                                  permissionService.isSupervisorForRequest(user, request));
-                        }).length;
-                      }
-                      
-                      // Filter ICT requests user can approve (only pending status)
-                      if (permissionService.canApprove(user, RequestType.ict, 'DDICT_REVIEW')) {
-                        totalPending += ictController.ictRequests.where((request) {
-                          // Only count pending or corrected requests
-                          return request.status == RequestStatus.pending ||
-                              request.status == RequestStatus.corrected;
-                        }).length;
-                      }
-                      
-                      // Filter store requests user can approve (only pending status)
-                      if (permissionService.canApprove(user, RequestType.store, 'SO_REVIEW')) {
-                        totalPending += storeController.storeRequests.where((request) {
-                          // Only count pending or corrected requests
-                          return request.status == RequestStatus.pending ||
-                              request.status == RequestStatus.corrected;
-                        }).length;
-                      }
-                      
+                      totalPending += requestController.vehicleRequests
+                          .where((r) => r.status == RequestStatus.pending || r.status == RequestStatus.corrected)
+                          .length;
+                      totalPending += ictController.ictRequests
+                          .where((r) => r.status == RequestStatus.pending || r.status == RequestStatus.corrected)
+                          .length;
+                      totalPending += storeController.storeRequests
+                          .where((r) => r.status == RequestStatus.pending || r.status == RequestStatus.corrected)
+                          .length;
                       return _buildNavItem(
                         context,
                         icon: Icons.pending_actions_rounded,
-                        title: 'Pending Approvals',
-                        route: '/requests/pending',
-                        isActive: Get.currentRoute == '/requests/pending',
+                        title: 'Approvals',
+                        route: '/approvals',
+                        isActive: Get.currentRoute == '/approvals',
                         badge: totalPending > 0 ? totalPending : null,
                       );
                     }),
                   if (permissionService.canAssignVehicle(user)) ...[
-                    _buildGroupHeader('Transport'),
+                    _buildGroupHeader('Work'),
                     _buildNavItem(
                       context,
                       icon: Icons.assignment_rounded,
                       title: 'Assign Vehicles',
-                      route: '/requests',
-                      parameters: {'type': 'vehicle', 'status': 'approved'},
+                      route: '/assign-vehicles',
+                      isActive: Get.currentRoute == '/assign-vehicles',
                     ),
                   ],
                   if (permissionService.canFulfillRequest(
@@ -270,6 +223,28 @@ class _AppSidebarState extends State<AppSidebar> with SingleTickerProviderStateM
                     route: '/profile',
                     isActive: Get.currentRoute == '/profile',
                   ),
+                  _buildGroupHeader('History'),
+                  _buildNavItem(
+                    context,
+                    icon: Icons.computer_rounded,
+                    title: 'ICT History',
+                    route: '/requests/ict/history',
+                    isActive: Get.currentRoute == '/requests/ict/history',
+                  ),
+                  _buildNavItem(
+                    context,
+                    icon: Icons.directions_car_rounded,
+                    title: 'Transport History',
+                    route: '/requests/transport/history',
+                    isActive: Get.currentRoute == '/requests/transport/history',
+                  ),
+                  _buildNavItem(
+                    context,
+                    icon: Icons.inventory_2_rounded,
+                    title: 'Store History',
+                    route: '/requests/store/history',
+                    isActive: Get.currentRoute == '/requests/store/history',
+                  ),
                 ],
               ),
             ),
@@ -284,7 +259,7 @@ class _AppSidebarState extends State<AppSidebar> with SingleTickerProviderStateM
 
   Widget _buildHeader(BuildContext context, UserModel user) {
     return Container(
-      padding: EdgeInsets.all(_isCollapsed ? 12 : 16),
+      padding: EdgeInsets.all(_isCollapsed ? AppConstants.spacingS : AppConstants.spacingM),
       child: _isCollapsed
           ? IconButton(
               icon: const Icon(Icons.menu_rounded, color: AppColors.primary),
@@ -512,7 +487,7 @@ class _AppSidebarState extends State<AppSidebar> with SingleTickerProviderStateM
   ) {
     if (_isCollapsed) {
       return Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(AppConstants.spacingS),
         child: Tooltip(
           message: user.name,
           child: CircleAvatar(
@@ -532,7 +507,7 @@ class _AppSidebarState extends State<AppSidebar> with SingleTickerProviderStateM
 
     return PopupMenuButton<String>(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppConstants.spacingS),
         child: Row(
           children: [
             CircleAvatar(
@@ -577,30 +552,7 @@ class _AppSidebarState extends State<AppSidebar> with SingleTickerProviderStateM
       ),
       onSelected: (value) {
         if (value == 'logout') {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Logout'),
-              content: const Text('Are you sure you want to logout?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    authController.logout();
-                    Get.offAllNamed('/login');
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                  ),
-                  child: const Text('Logout'),
-                ),
-              ],
-            ),
-          );
+          LogoutConfirmation.show(context);
         } else if (value == 'profile') {
           Get.toNamed('/profile');
         }

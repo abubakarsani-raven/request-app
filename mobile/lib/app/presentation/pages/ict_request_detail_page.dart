@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/status_badge.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/loading_overlay.dart';
 import '../../data/models/ict_request_model.dart';
@@ -21,7 +20,6 @@ import 'request_detail_page.dart'; // For RequestDetailSource enum
 class ICTRequestDetailPage extends StatelessWidget {
   final String requestId;
   final RequestDetailSource? source;
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
 
   ICTRequestDetailPage({
     Key? key,
@@ -40,17 +38,10 @@ class ICTRequestDetailPage extends StatelessWidget {
       ictController.loadRequestCacheFirst(requestId);
     });
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
-          ),
-          title: const Text('ICT Request Details'),
-        ),
-        body: LoadingOverlay(
+    return AppScaffold(
+      title: 'ICT Request Details',
+      showBackButton: true,
+      body: LoadingOverlay(
           isLoading: ictController.isApproving.value ||
                      ictController.isRejecting.value ||
                      ictController.isFulfilling.value ||
@@ -117,7 +108,7 @@ class ICTRequestDetailPage extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
                             color: AppColors.warning.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppConstants.radiusM),
                             border: Border.all(
                               color: AppColors.warning.withOpacity(0.3),
                               width: 1,
@@ -175,9 +166,8 @@ class ICTRequestDetailPage extends StatelessWidget {
               ),
             );
             },
-          ),
-        ),
       ),
+    ),
     );
   }
 
@@ -203,7 +193,7 @@ class ICTRequestDetailPage extends StatelessWidget {
             color: isDark 
                 ? AppColors.darkSurface 
                 : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
             border: Border.all(
               color: isDark 
                   ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -212,7 +202,7 @@ class ICTRequestDetailPage extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: Column(children: children),
           ),
         ),
@@ -325,7 +315,7 @@ class ICTRequestDetailPage extends StatelessWidget {
             color: isDark 
                 ? AppColors.darkSurface 
                 : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
             border: Border.all(
               color: isDark 
                   ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -345,7 +335,7 @@ class ICTRequestDetailPage extends StatelessWidget {
               final wasAdjusted = item.approvedQuantity != null && item.approvedQuantity != item.requestedQuantity;
 
               return Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppConstants.spacingM),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -679,7 +669,7 @@ class ICTRequestDetailPage extends StatelessWidget {
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppConstants.radiusL),
         ),
         child: Container(
           width: MediaQuery.of(context).size.width * 0.9,
@@ -691,7 +681,7 @@ class ICTRequestDetailPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppConstants.spacingL),
                 child: Text(
                   'Fulfill Request',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -701,7 +691,7 @@ class ICTRequestDetailPage extends StatelessWidget {
               ),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingL),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -720,7 +710,7 @@ class ICTRequestDetailPage extends StatelessWidget {
                           final isPartialFulfillment = requestedQty > 0 && requestedQty < remaining && remaining > 0;
 
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.only(bottom: AppConstants.spacingM),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -907,7 +897,7 @@ class ICTRequestDetailPage extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppConstants.spacingL),
                 child: Row(
                   children: [
                     Expanded(
@@ -1244,7 +1234,7 @@ class ICTRequestDetailPage extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
             border: Border.all(
               color: isDark 
                   ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -1259,7 +1249,7 @@ class ICTRequestDetailPage extends StatelessWidget {
               final wasIncreased = change.newQuantity > change.previousQuantity;
 
               return Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppConstants.spacingM),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -1388,7 +1378,7 @@ class ICTRequestDetailPage extends StatelessWidget {
               ? AppColors.darkSurface
               : theme.colorScheme.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
           ),
           child: ConstrainedBox(
             constraints: BoxConstraints(
@@ -1396,7 +1386,7 @@ class ICTRequestDetailPage extends StatelessWidget {
               maxHeight: MediaQuery.of(context).size.height * 0.8,
             ),
             child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1456,7 +1446,7 @@ class ICTRequestDetailPage extends StatelessWidget {
                           color: isDark 
                               ? AppColors.darkSurfaceLight 
                               : theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppConstants.radiusM),
                           border: Border.all(
                             color: isDark 
                                 ? AppColors.darkBorderDefined.withOpacity(0.5)

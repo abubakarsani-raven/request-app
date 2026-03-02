@@ -44,7 +44,7 @@ class LoadingDialog {
                       color: Colors.black.withOpacity(0.3),
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(AppConstants.spacingL),
                           decoration: BoxDecoration(
                             color: isDark
                                 ? AppColors.darkSurface
@@ -136,7 +136,7 @@ class LoadingDialog {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

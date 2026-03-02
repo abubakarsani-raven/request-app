@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/request_model.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
 class WorkflowTimeline extends StatelessWidget {
@@ -21,7 +22,7 @@ class WorkflowTimeline extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
         border: Border.all(
           color: isDark 
               ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -30,14 +31,14 @@ class WorkflowTimeline extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppConstants.spacingL),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(Icons.timeline, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppConstants.spacingS),
                 Text(
                   'Workflow Progress',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -47,7 +48,7 @@ class WorkflowTimeline extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppConstants.spacingL),
             ...stages.asMap().entries.map((entry) {
               final index = entry.key;
               final stage = entry.value;

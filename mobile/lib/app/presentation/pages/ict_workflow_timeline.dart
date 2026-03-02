@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/ict_request_model.dart';
 import '../../data/models/request_model.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
 class ICTWorkflowTimeline extends StatelessWidget {
@@ -24,7 +25,7 @@ class ICTWorkflowTimeline extends StatelessWidget {
         color: isDark 
             ? AppColors.darkSurface 
             : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
         border: Border.all(
           color: isDark 
               ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -33,14 +34,14 @@ class ICTWorkflowTimeline extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppConstants.spacingL),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(Icons.timeline, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppConstants.spacingS),
                 Text(
                   'Workflow Progress',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -49,7 +50,7 @@ class ICTWorkflowTimeline extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppConstants.spacingL),
             ...stages.asMap().entries.map((entry) {
               final index = entry.key;
               final stage = entry.value;
@@ -125,11 +126,11 @@ class ICTWorkflowTimeline extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: AppConstants.spacingM),
         // Stage content
         Expanded(
           child: Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+            padding: EdgeInsets.only(bottom: isLast ? 0 : AppConstants.spacingM),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -154,18 +155,18 @@ class ICTWorkflowTimeline extends StatelessWidget {
                             ),
                       ),
                     ),
-                    if (stage.duration != null)
+                    if (stage.timeAgo != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
+                          horizontal: AppConstants.spacingS,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.info.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(AppConstants.radiusS),
                         ),
                         child: Text(
-                          stage.duration!,
+                          stage.timeAgo!,
                           style: TextStyle(
                             fontSize: 11,
                             color: AppColors.info,
@@ -248,30 +249,38 @@ class ICTWorkflowTimeline extends StatelessWidget {
       DateTime? stageTimestamp;
       String? approverName;
       String? duration;
+      String? timeAgo;
 
       if (approval != null && approval.approverId.isNotEmpty) {
         stageTimestamp = approval.timestamp;
         approverName = 'Role: ${approval.role}';
         if (previousTimestamp != null) {
           final diff = stageTimestamp.difference(previousTimestamp);
-          duration = _formatDuration(diff);
+          if (diff.isNegative) {
+            duration = null; // Don't show wrong inter-step time if order is off
+          } else {
+            duration = _formatDuration(diff);
+          }
         }
+        timeAgo = _formatTimeAgo(stageTimestamp);
         previousTimestamp = stageTimestamp;
       } else if (stage == request.workflowStage) {
-        // Current stage - use updatedAt or createdAt
+        // Current stage - use updatedAt
         stageTimestamp = request.updatedAt;
         if (previousTimestamp != null) {
           final diff = stageTimestamp.difference(previousTimestamp);
-          duration = _formatDuration(diff);
+          if (!diff.isNegative) {
+            duration = _formatDuration(diff);
+          }
         }
+        timeAgo = _formatTimeAgo(stageTimestamp);
         previousTimestamp = stageTimestamp;
       } else if (_isStageBeforeCurrent(stage, request.workflowStage ?? 'SUBMITTED')) {
-        // Stage is before current but no approval found - might be skipped
         if (previousTimestamp != null) {
-          // Estimate: assume 1 hour per stage if no timestamp
           stageTimestamp = previousTimestamp.add(const Duration(hours: 1));
           final diff = stageTimestamp.difference(previousTimestamp);
           duration = _formatDuration(diff);
+          timeAgo = _formatTimeAgo(stageTimestamp);
           previousTimestamp = stageTimestamp;
         }
       }
@@ -282,6 +291,7 @@ class ICTWorkflowTimeline extends StatelessWidget {
         timestamp: stageTimestamp,
         approverName: approverName,
         duration: duration,
+        timeAgo: timeAgo,
       ));
     }
 
@@ -346,6 +356,7 @@ class ICTWorkflowTimeline extends StatelessWidget {
   }
 
   String _formatDuration(Duration duration) {
+    if (duration.isNegative) return 'Just now';
     if (duration.inDays > 0) {
       return '${duration.inDays}d ${duration.inHours % 24}h';
     } else if (duration.inHours > 0) {
@@ -356,6 +367,37 @@ class ICTWorkflowTimeline extends StatelessWidget {
       return 'Just now';
     }
   }
+
+  /// Relative time from [dateTime] to now (e.g. "1 month ago", "Just now"). Correct for current date.
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+    if (diff.isNegative) {
+      return 'Just now';
+    }
+    if (diff.inDays > 365) {
+      final years = diff.inDays ~/ 365;
+      return years == 1 ? '1 year ago' : '$years years ago';
+    }
+    if (diff.inDays >= 30) {
+      final months = diff.inDays ~/ 30;
+      return months == 1 ? '1 month ago' : '$months months ago';
+    }
+    if (diff.inDays >= 7) {
+      final weeks = diff.inDays ~/ 7;
+      return weeks == 1 ? '1 week ago' : '$weeks weeks ago';
+    }
+    if (diff.inDays > 0) {
+      return diff.inDays == 1 ? '1 day ago' : '${diff.inDays} days ago';
+    }
+    if (diff.inHours > 0) {
+      return diff.inHours == 1 ? '1 hour ago' : '${diff.inHours} hours ago';
+    }
+    if (diff.inMinutes > 0) {
+      return diff.inMinutes == 1 ? '1 min ago' : '${diff.inMinutes} mins ago';
+    }
+    return 'Just now';
+  }
 }
 
 class WorkflowStageInfo {
@@ -363,7 +405,10 @@ class WorkflowStageInfo {
   final String stage;
   final DateTime? timestamp;
   final String? approverName;
+  /// Time between this stage and the previous (e.g. "1h 0m"). May be null.
   final String? duration;
+  /// Time ago from now (e.g. "1 month ago", "Just now"). Correct for current date.
+  final String? timeAgo;
 
   WorkflowStageInfo({
     required this.name,
@@ -371,6 +416,7 @@ class WorkflowStageInfo {
     this.timestamp,
     this.approverName,
     this.duration,
+    this.timeAgo,
   });
 }
 

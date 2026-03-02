@@ -15,6 +15,7 @@ import { CreateICTRequestDto } from './dto/create-ict-request.dto';
 import { CreateICTItemDto } from './dto/create-ict-item.dto';
 import { UpdateICTItemDto } from './dto/update-ict-item.dto';
 import { UpdateQuantityDto } from './dto/update-quantity.dto';
+import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { FulfillRequestDto } from './dto/fulfill-request.dto';
 import { ApproveRequestDto } from '../vehicles/dto/approve-request.dto';
 import { RejectRequestDto } from '../vehicles/dto/reject-request.dto';
@@ -100,6 +101,27 @@ export class ICTController {
     return this.ictService.getSuppliesByItem(id);
   }
 
+  @Get('suppliers')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  findAllSuppliers() {
+    return this.ictService.findAllSuppliers();
+  }
+
+  @Get('suppliers/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  findOneSupplier(@Param('id') id: string) {
+    return this.ictService.findOneSupplier(id);
+  }
+
+  @Post('suppliers')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
+  createSupplier(@Body() createSupplierDto: CreateSupplierDto) {
+    return this.ictService.createSupplier(createSupplierDto);
+  }
+
   @Get('items/low-stock/all')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.ICT_ADMIN, UserRole.DDICT, UserRole.DGS, UserRole.SO)
@@ -136,11 +158,12 @@ export class ICTController {
     @CurrentUser() user: any,
     @Query('myRequests') myRequests?: string,
     @Query('pending') pending?: string,
+    @Query('approvedByMe') approvedByMe?: string,
   ) {
     const userId = user._id?.toString() || user.id?.toString() || user._id || user.id;
     const userRoles = user.roles || [];
     
-    console.log('[ICT Controller] findAllRequests: userId:', userId, 'roles:', userRoles, 'myRequests:', myRequests, 'pending:', pending);
+    console.log('[ICT Controller] findAllRequests: userId:', userId, 'roles:', userRoles, 'myRequests:', myRequests, 'pending:', pending, 'approvedByMe:', approvedByMe);
     console.log('[ICT Controller] findAllRequests: user._id:', user._id, 'user.id:', user.id);
     
     // If explicitly requesting my requests, filter by userId
@@ -152,6 +175,10 @@ export class ICTController {
     // If explicitly requesting pending approvals, return pending approvals
     if (pending === 'true') {
       return this.ictService.findPendingApprovals(userId, userRoles);
+    }
+    
+    if (approvedByMe === 'true') {
+      return this.ictService.findApprovedByMe(userId);
     }
     
     // For "All Requests" view, use role-based filtering

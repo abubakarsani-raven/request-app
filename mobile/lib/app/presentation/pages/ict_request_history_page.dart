@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import 'package:intl/intl.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/auth_controller.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_widget.dart';
@@ -29,8 +28,7 @@ class ICTRequestHistoryPage extends StatefulWidget {
 class _ICTRequestHistoryPageState extends State<ICTRequestHistoryPage> {
   final ICTRequestController _controller = Get.find<ICTRequestController>();
   final AuthController _authController = Get.find<AuthController>();
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
-  
+
   String? _selectedStatus;
   String? _selectedAction;
   String? _selectedWorkflowStage;
@@ -73,115 +71,71 @@ class _ICTRequestHistoryPageState extends State<ICTRequestHistoryPage> {
     final isDark = theme.brightness == Brightness.dark;
     final responsive = Responsive(context);
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: isDark ? null : AppColors.backgroundGradient,
-            color: isDark ? AppColors.darkBackground : null,
-          ),
-          child: Column(
+    return AppScaffold(
+      title: 'ICT Request History',
+      showBackButton: true,
+      actions: [
+        IconButton(
+          icon: Stack(
+            clipBehavior: Clip.none,
             children: [
-              // App Bar
-              Container(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top,
-                  left: AppConstants.spacingL,
-                  right: AppConstants.spacingL,
-                  bottom: AppConstants.spacingM,
+              Icon(AppIcons.filter, color: theme.colorScheme.onSurface),
+              if (_selectedStatus != null ||
+                  _selectedAction != null ||
+                  _selectedWorkflowStage != null ||
+                  _selectedDateRange != null)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.surface,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        AppIcons.back,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      ),
-                      onPressed: () => Get.back(),
-                    ),
-                    Expanded(
-                      child: Text(
-                        'ICT Request History',
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24 * responsive.fontSizeMultiplier,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Stack(
-                        children: [
-                          Icon(
-                            AppIcons.filter,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                          if (_selectedStatus != null ||
-                              _selectedAction != null ||
-                              _selectedWorkflowStage != null ||
-                              _selectedDateRange != null)
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.error,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 8,
-                                  minHeight: 8,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      onPressed: () {
-                        RequestHistoryFilterBottomSheet.show(
-                          context: context,
-                          initialStatus: _selectedStatus,
-                          initialAction: _selectedAction,
-                          initialWorkflowStage: _selectedWorkflowStage,
-                          initialDateRange: _selectedDateRange,
-                          requestType: 'ict',
-                          onApply: (status, action, workflowStage, dateRange) {
-                            setState(() {
-                              _selectedStatus = status;
+            ],
+          ),
+          onPressed: () {
+            RequestHistoryFilterBottomSheet.show(
+              context: context,
+              initialStatus: _selectedStatus,
+              initialAction: _selectedAction,
+              initialWorkflowStage: _selectedWorkflowStage,
+              initialDateRange: _selectedDateRange,
+              requestType: 'ict',
+              onApply: (status, action, workflowStage, dateRange) {
+                setState(() {
+                  _selectedStatus = status;
                               _selectedAction = action;
                               _selectedWorkflowStage = workflowStage;
                               _selectedDateRange = dateRange;
                             });
-                            _loadHistory();
-                          },
-                          onClear: () {
-                            setState(() {
-                              _selectedStatus = null;
-                              _selectedAction = null;
-                              _selectedWorkflowStage = null;
-                              _selectedDateRange = null;
-                            });
-                            _loadHistory();
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              // Request List
-              Expanded(
+                _loadHistory();
+              },
+              onClear: () {
+                setState(() {
+                  _selectedStatus = null;
+                  _selectedAction = null;
+                  _selectedWorkflowStage = null;
+                  _selectedDateRange = null;
+                });
+                _loadHistory();
+              },
+            );
+          },
+        ),
+      ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: isDark ? null : AppColors.backgroundGradient,
+          color: isDark ? AppColors.darkBackground : null,
+        ),
+        child: Column(
+          children: [
+            Expanded(
                 child: Obx(
                   () {
                     if (_controller.isLoadingHistory.value && _controller.historyRequests.isEmpty) {
@@ -235,7 +189,6 @@ class _ICTRequestHistoryPageState extends State<ICTRequestHistoryPage> {
             ],
           ),
         ),
-      ),
     );
   }
 
@@ -270,7 +223,7 @@ class _ICTRequestHistoryPageState extends State<ICTRequestHistoryPage> {
     return Card(
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.radiusM),
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
         side: BorderSide(
           color: isDark 
               ? AppColors.darkBorderDefined.withOpacity(0.5) 
@@ -283,7 +236,7 @@ class _ICTRequestHistoryPageState extends State<ICTRequestHistoryPage> {
         onTap: () {
           Get.to(() => ICTRequestDetailPage(requestId: request.id));
         },
-        borderRadius: BorderRadius.circular(AppConstants.radiusM),
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
         child: Padding(
           padding: const EdgeInsets.all(AppConstants.spacingM),
           child: Column(

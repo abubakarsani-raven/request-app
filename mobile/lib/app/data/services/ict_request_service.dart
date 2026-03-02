@@ -48,8 +48,11 @@ class ICTRequestService extends GetxService {
   List<ICTRequestModel>? getICTRequestsFromCache({
     bool myRequests = false,
     bool pending = false,
+    bool approvedByMe = false,
   }) {
-    final key = LocalCacheService.listKey('ict', myRequests, pending);
+    final key = approvedByMe
+        ? LocalCacheService.listKeyApprovedByMe('ict')
+        : LocalCacheService.listKey('ict', myRequests, pending);
     final entry = LocalCacheService.readRequestList(key);
     if (entry == null) return null;
     try {
@@ -64,6 +67,7 @@ class ICTRequestService extends GetxService {
   Future<List<ICTRequestModel>> getICTRequests({
     bool myRequests = false,
     bool pending = false,
+    bool approvedByMe = false,
     String? departmentId,
     String? workflowStage,
   }) async {
@@ -71,6 +75,7 @@ class ICTRequestService extends GetxService {
       final queryParams = <String, dynamic>{};
       if (myRequests) queryParams['myRequests'] = 'true';
       if (pending) queryParams['pending'] = 'true';
+      if (approvedByMe) queryParams['approvedByMe'] = 'true';
       if (departmentId != null) queryParams['departmentId'] = departmentId;
       if (workflowStage != null) queryParams['workflowStage'] = workflowStage;
 
@@ -83,10 +88,10 @@ class ICTRequestService extends GetxService {
         if (response.data is! List) return [];
         final list = response.data as List;
         if (departmentId == null && workflowStage == null) {
-          await LocalCacheService.writeRequestList(
-            LocalCacheService.listKey('ict', myRequests, pending),
-            list,
-          );
+          final key = approvedByMe
+              ? LocalCacheService.listKeyApprovedByMe('ict')
+              : LocalCacheService.listKey('ict', myRequests, pending);
+          await LocalCacheService.writeRequestList(key, list);
         }
         return list
             .map((json) => ICTRequestModel.fromJson(json as Map<String, dynamic>))

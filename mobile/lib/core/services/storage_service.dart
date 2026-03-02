@@ -73,5 +73,37 @@ class StorageService {
   static bool isDemoModeEnabled() {
     return _storage.read('demo_mode_enabled') ?? false;
   }
+
+  // Biometric login credentials (secure storage only; cleared on logout)
+  static const String _keyBiometricEmail = 'biometric_email';
+  static const String _keyBiometricPassword = 'biometric_password';
+
+  static Future<void> saveBiometricCredentials(String email, String password) async {
+    await _secureStorage.write(key: _keyBiometricEmail, value: email);
+    await _secureStorage.write(key: _keyBiometricPassword, value: password);
+  }
+
+  static Future<String?> getBiometricEmail() async {
+    return await _secureStorage.read(key: _keyBiometricEmail);
+  }
+
+  static Future<String?> getBiometricPassword() async {
+    return await _secureStorage.read(key: _keyBiometricPassword);
+  }
+
+  /// Returns (email, password) if both exist; otherwise null.
+  static Future<({String email, String password})?> getBiometricCredentials() async {
+    final email = await _secureStorage.read(key: _keyBiometricEmail);
+    final password = await _secureStorage.read(key: _keyBiometricPassword);
+    if (email != null && email.isNotEmpty && password != null && password.isNotEmpty) {
+      return (email: email, password: password);
+    }
+    return null;
+  }
+
+  static Future<void> clearBiometricCredentials() async {
+    await _secureStorage.delete(key: _keyBiometricEmail);
+    await _secureStorage.delete(key: _keyBiometricPassword);
+  }
 }
 

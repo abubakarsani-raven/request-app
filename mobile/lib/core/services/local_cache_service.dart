@@ -16,6 +16,11 @@ class LocalCacheService {
     return '${_prefixList}${type}_my${myRequests}_pending$pending';
   }
 
+  /// Key for "approved by me" list (approval history).
+  static String listKeyApprovedByMe(String type) {
+    return '${_prefixList}${type}_approvedByMe';
+  }
+
   static String detailKey(String type, String id) {
     return '${_prefixDetail}${type}_$id';
   }

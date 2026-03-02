@@ -5,6 +5,7 @@ import '../widgets/custom_toast.dart';
 import '../utils/app_logger.dart';
 import 'storage_service.dart';
 import 'websocket_service.dart';
+import 'connectivity_service.dart';
 import '../../app/presentation/controllers/auth_controller.dart';
 
 class ApiService extends GetxService {
@@ -59,6 +60,12 @@ class ApiService extends GetxService {
           response.requestOptions.path,
           response.data != null ? _sanitizeData(response.data) : null,
         );
+        // Successful response proves we're online; fix false "offline" from connectivity_plus (e.g. simulator)
+        if (response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300) {
+          if (Get.isRegistered<ConnectivityService>()) {
+            Get.find<ConnectivityService>().markOnlineFromApiSuccess();
+          }
+        }
         return handler.next(response);
       },
       onError: (error, handler) async {

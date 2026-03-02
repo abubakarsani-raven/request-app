@@ -20,6 +20,9 @@ dependencies:
   # Storage
   get_storage: ^2.1.1
   flutter_secure_storage: ^9.0.0
+
+  # Biometric auth
+  local_auth: ^2.2.0
   
   # Maps & Location
   google_maps_flutter: ^2.5.0
@@ -48,7 +51,6 @@ dependencies:
   image_picker: ^1.0.7
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0
-  flutter_advanced_drawer: ^1.5.0
   crypto: ^3.0.3
 
 dev_dependencies:

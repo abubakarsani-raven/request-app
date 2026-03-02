@@ -2,14 +2,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/request_controller.dart';
 import '../controllers/trip_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/permission_button.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/workflow_timeline.dart';
 import '../widgets/loading_overlay.dart';
@@ -31,7 +30,6 @@ enum RequestDetailSource {
 class RequestDetailPage extends StatelessWidget {
   final String requestId;
   final RequestDetailSource? source;
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
 
   RequestDetailPage({
     Key? key,
@@ -50,16 +48,9 @@ class RequestDetailPage extends StatelessWidget {
       requestController.loadRequestCacheFirst(requestId);
     });
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
-          ),
-          title: const Text('Request Details'),
-        ),
+    return AppScaffold(
+      title: 'Request Details',
+      showBackButton: true,
       body: LoadingOverlay(
         isLoading: requestController.isApproving.value ||
                    requestController.isRejecting.value ||
@@ -72,9 +63,9 @@ class RequestDetailPage extends StatelessWidget {
                 : requestController.isAssigning.value
                     ? 'Assigning vehicle...'
                     : 'Loading...',
-        child: Obx(
-          () {
-            final request = requestController.selectedRequest.value;
+      child: Obx(
+        () {
+          final request = requestController.selectedRequest.value;
             
             if (requestController.isLoading.value && request == null) {
               return ListView(
@@ -295,8 +286,7 @@ class RequestDetailPage extends StatelessWidget {
               ),
             );
           },
-        ),
-        ),
+      ),
     ),
     );
   }
@@ -331,7 +321,7 @@ class RequestDetailPage extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: Column(children: children),
           ),
         ),
@@ -559,7 +549,7 @@ class RequestDetailPage extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -871,7 +861,7 @@ class RequestDetailPage extends StatelessWidget {
             maxHeight: MediaQuery.of(context).size.height * 0.8,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -903,7 +893,7 @@ class RequestDetailPage extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.textOnPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     child: const Text('Approve to Next Stage'),
@@ -918,7 +908,7 @@ class RequestDetailPage extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.textOnPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     child: const Text('Assign Vehicle Now'),
@@ -929,7 +919,7 @@ class RequestDetailPage extends StatelessWidget {
                     onPressed: () => Get.back(),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingM),
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     child: const Text('Cancel'),

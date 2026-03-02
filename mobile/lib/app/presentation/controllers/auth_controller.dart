@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/services/fcm_service.dart';
+import '../../../core/services/biometric_service.dart';
 import '../../../core/services/websocket_service.dart';
 import '../../../core/utils/error_message_formatter.dart';
 import '../../../core/widgets/custom_toast.dart';
@@ -162,7 +163,9 @@ class AuthController extends GetxController {
       await _authService.logout();
       user.value = null;
       isAuthenticated.value = false;
-      
+      if (Get.isRegistered<BiometricService>()) {
+        await Get.find<BiometricService>().clearStoredCredentials();
+      }
       print('ℹ️ Auth: User logged out - FCM token remains registered on backend');
       print('ℹ️ Auth: Notifications will still be received for this user');
       

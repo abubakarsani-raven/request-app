@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/request_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/request_card.dart';
 import 'request_detail_page.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/skeleton_loader.dart';
 import '../../data/models/request_model.dart';
 import '../../../core/services/permission_service.dart';
@@ -25,8 +24,6 @@ class _AssignVehicleListPageState extends State<AssignVehicleListPage> {
   final RequestController controller = Get.find<RequestController>();
   final AuthController authController = Get.find<AuthController>();
   final PermissionService permissionService = Get.find<PermissionService>();
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
-
   @override
   void initState() {
     super.initState();
@@ -71,81 +68,33 @@ class _AssignVehicleListPageState extends State<AssignVehicleListPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: isDark 
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.darkBackground,
-                      AppColors.darkSurface,
-                      AppColors.darkSurfaceLight,
-                    ],
-                  )
-                : AppColors.backgroundGradient,
-          ),
-          child: Column(
-            children: [
-              // Modern App Bar
-              Container(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top,
-                  left: AppConstants.spacingL,
-                  right: AppConstants.spacingL,
-                  bottom: AppConstants.spacingM,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
+    return AppScaffold(
+      title: 'Assign Vehicle',
+      showBackButton: true,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.filter_list_rounded),
+          tooltip: 'Filter',
+          onPressed: () => CustomToast.info('Filter feature coming soon'),
+        ),
+      ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.darkBackground,
+                    AppColors.darkSurface,
+                    AppColors.darkSurfaceLight,
                   ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.arrow_back_rounded,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                          onPressed: () => Get.back(),
-                        ),
-                        Expanded(
-                          child: Text(
-                            'Assign Vehicle',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 24,
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.search,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                          onPressed: () {
-                            CustomToast.info('Search feature coming soon');
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Request List
-              Expanded(
+                )
+              : AppColors.backgroundGradient,
+        ),
+        child: Column(
+          children: [
+            Expanded(
                 child: Obx(
                   () {
                     if (controller.isLoading.value &&
@@ -228,7 +177,6 @@ class _AssignVehicleListPageState extends State<AssignVehicleListPage> {
             ],
           ),
         ),
-      ),
     );
   }
 }

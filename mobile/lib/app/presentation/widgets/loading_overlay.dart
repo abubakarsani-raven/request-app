@@ -43,7 +43,7 @@ class LoadingOverlay extends StatelessWidget {
                         : Colors.white.withOpacity(0.8)),
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(AppConstants.spacingL),
                     decoration: BoxDecoration(
                       color: isDark
                           ? AppColors.darkSurface

@@ -1092,6 +1092,22 @@ export class VehiclesService {
     }
   }
 
+  async findApprovedByMe(userId: string): Promise<VehicleRequest[]> {
+    try {
+      const requests = await this.vehicleRequestModel
+        .find({ 'approvals.approverId': new Types.ObjectId(userId) })
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
+        .populate('vehicleId')
+        .populate('driverId')
+        .sort({ createdAt: -1 })
+        .exec();
+      return requests;
+    } catch (error) {
+      console.error('[Vehicles Service] findApprovedByMe: Error:', error);
+      return [];
+    }
+  }
+
   async findOneRequest(id: string): Promise<VehicleRequestDocument> {
     const request = await this.vehicleRequestModel
       .findById(id)

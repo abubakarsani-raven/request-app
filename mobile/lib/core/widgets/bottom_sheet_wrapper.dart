@@ -84,7 +84,7 @@ class StandardBottomSheet extends StatelessWidget {
               // Handle and Header
               if (showHandle || title != null || showCloseButton)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: AppConstants.spacingL, vertical: AppConstants.radiusS),
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
@@ -134,7 +134,7 @@ class StandardBottomSheet extends StatelessWidget {
               Expanded(
                 child: SingleChildScrollView(
                   controller: effectiveScrollController,
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppConstants.spacingL),
                   child: child,
                 ),
               ),
@@ -142,10 +142,10 @@ class StandardBottomSheet extends StatelessWidget {
               if (footer != null)
                 Container(
                   padding: EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: 16,
-                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                    left: AppConstants.spacingL,
+                    right: AppConstants.spacingL,
+                    top: AppConstants.spacingS,
+                    bottom: MediaQuery.of(context).padding.bottom + AppConstants.spacingS,
                   ),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
@@ -362,66 +362,63 @@ class FilterBottomSheet extends StatelessWidget {
       initialChildSize: initialChildSize,
       minChildSize: BottomSheetSizes.minMedium,
       maxChildSize: BottomSheetSizes.maxMedium,
-      footer: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            if (clearText != null && (activeFilterCount == null || activeFilterCount! > 0))
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onClear,
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                    ),
-                    side: BorderSide(
-                      color: isDark
-                          ? AppColors.darkBorderDefined
-                          : AppColors.border,
-                    ),
+      footer: Row(
+        children: [
+          if (clearText != null && (activeFilterCount == null || activeFilterCount! > 0))
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onClear,
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: AppConstants.spacingS),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppConstants.radiusM),
                   ),
-                  child: Text(
-                    clearText!,
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                    ),
+                  side: BorderSide(
+                    color: isDark
+                        ? AppColors.darkBorderDefined
+                        : AppColors.border,
+                  ),
+                ),
+                child: Text(
+                  clearText!,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
                 ),
               ),
-            if (clearText != null && (activeFilterCount == null || activeFilterCount! > 0))
-              const SizedBox(width: 12),
-            if (clearText == null)
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: onApply,
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                    ),
+            ),
+          if (clearText != null && (activeFilterCount == null || activeFilterCount! > 0))
+            const SizedBox(width: 12),
+          if (clearText == null)
+            Expanded(
+              child: ElevatedButton(
+                onPressed: onApply,
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  padding: EdgeInsets.symmetric(vertical: AppConstants.spacingS),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppConstants.radiusM),
                   ),
-                  child: Text(applyText),
                 ),
-              )
-            else
-              Expanded(
-                flex: 1,
-                child: ElevatedButton(
-                  onPressed: onApply,
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    padding: EdgeInsets.symmetric(vertical: AppConstants.spacingM),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
-                    ),
-                  ),
-                  child: Text(applyText),
-                ),
+                child: Text(applyText),
               ),
-          ],
-        ),
+            )
+          else
+            Expanded(
+              flex: 1,
+              child: ElevatedButton(
+                onPressed: onApply,
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  padding: EdgeInsets.symmetric(vertical: AppConstants.spacingS),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppConstants.radiusM),
+                  ),
+                ),
+                child: Text(applyText),
+              ),
+            ),
+        ],
       ),
       child: child,
     );

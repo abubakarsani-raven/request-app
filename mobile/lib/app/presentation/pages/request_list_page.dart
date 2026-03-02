@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/request_controller.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/store_request_controller.dart';
@@ -9,7 +8,7 @@ import '../widgets/unified_request_card.dart';
 import 'request_detail_page.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/error_widget.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/bottom_sheets/request_filter_bottom_sheet.dart';
 import '../widgets/bottom_sheets/create_ict_request_bottom_sheet.dart';
@@ -17,12 +16,10 @@ import '../widgets/bottom_sheets/create_store_request_bottom_sheet.dart';
 import '../../data/models/request_model.dart';
 import '../../data/models/ict_request_model.dart';
 import '../../data/models/store_request_model.dart';
-import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_icons.dart';
-import '../../../core/widgets/custom_toast.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/utils/app_logger.dart';
@@ -30,11 +27,23 @@ import '../../../core/utils/app_logger.dart';
 class RequestListPage extends StatefulWidget {
   final bool myRequests;
   final bool pending;
+  /// When true, show requests the current user has approved (approval history). Used for Approvals tab.
+  final bool approvedByMe;
+  /// When true, used as tab content in MainShellPage (no drawer, no back in bar).
+  final bool inShell;
+  /// When in shell: current tab index so this page can reload when it becomes visible.
+  final int? currentTabIndex;
+  /// When in shell: this tab's index (so we know when we're visible).
+  final int? myTabIndex;
 
   const RequestListPage({
     Key? key,
     this.myRequests = false,
     this.pending = false,
+    this.approvedByMe = false,
+    this.inShell = false,
+    this.currentTabIndex,
+    this.myTabIndex,
   }) : super(key: key);
 
   @override
@@ -45,12 +54,22 @@ class _RequestListPageState extends State<RequestListPage> {
   late final RequestController vehicleController;
   late final ICTRequestController ictController;
   late final StoreRequestController storeController;
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
   final PermissionService permissionService = Get.find<PermissionService>();
   final AuthController authController = Get.find<AuthController>();
   // IMPORTANT: For "My Requests", filter should default to 'all' to show ALL statuses
   // Users should see all their requests (pending, approved, completed, fulfilled, etc.)
   String _selectedFilter = 'all'; // all, pending, approved, rejected, completed
+  /// When inShell, toggles between All and My Requests in the tab.
+  bool _showMyRequests = false;
+  /// Filter by request type: null = all, or 'vehicle', 'ict', 'store'.
+  String? _selectedType;
+  /// When used as a tab: avoid loading until we're the visible tab.
+  bool _wasVisible = false;
+
+  bool get _effectiveMyRequests => widget.myRequests || (widget.inShell && _showMyRequests);
+
+  /// True when this page is used as a tab and we should only load when visible.
+  bool get _loadWhenVisible => widget.currentTabIndex != null && widget.myTabIndex != null;
 
   @override
   void initState() {
@@ -61,23 +80,27 @@ class _RequestListPageState extends State<RequestListPage> {
     storeController = Get.find<StoreRequestController>();
     
     // IMPORTANT: For "My Requests", ensure filter is set to 'all' to show all statuses
-    // Users should see all their requests regardless of status (pending, approved, completed, etc.)
     if (widget.myRequests) {
       _selectedFilter = 'all';
     }
     
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadAllRequests();
-    });
+    // When not in tab mode, load once. When in tab mode, load when we become visible (in build).
+    if (!_loadWhenVisible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadAllRequests();
+      });
+    }
   }
 
   Future<void> _loadAllRequests() async {
     final user = authController.user.value;
     if (user == null) return;
 
+    final showMy = _effectiveMyRequests;
+
     // For "My Requests", always load ALL request types (ICT, Store, Transport)
     // regardless of user role - users should see all requests they created
-    if (widget.myRequests) {
+    if (showMy) {
       try {
         await Future.wait([
           vehicleController.loadVehicleRequestsCacheFirst(
@@ -101,24 +124,42 @@ class _RequestListPageState extends State<RequestListPage> {
       return;
     }
 
-    // For "All Requests" and "Pending Approvals", use role-based filtering
+    // Visibility is by role only (not email): DDICT sees ICT, TO sees vehicle, etc.
     final visibleTypes = permissionService.getVisibleRequestTypes(user);
-    final roles = user.roles;
-    final isRoleBasedUser = roles.any((role) => 
-        role.toUpperCase() == 'DDICT' ||
-        role.toUpperCase() == 'TO' ||
-        role.toUpperCase() == 'SO' ||
-        role.toUpperCase() == 'DGS' ||
-        role.toUpperCase() == 'DDGS' ||
-        role.toUpperCase() == 'ADGS');
-    
-    // If showing "All Requests" for a role-based user, show pending approvals
-    // (requests they're involved in) instead of all requests
-    final shouldShowPending = !widget.pending && isRoleBasedUser;
+
+    // Approvals tab: show requests the user has already approved (approval history).
+    if (widget.approvedByMe) {
+      final loadTasks = <Future<void>>[];
+      if (visibleTypes.contains(RequestType.vehicle)) {
+        loadTasks.add(vehicleController.loadVehicleRequestsCacheFirst(
+          myRequests: false,
+          pending: false,
+          approvedByMe: true,
+        ));
+      }
+      if (visibleTypes.contains(RequestType.ict)) {
+        loadTasks.add(ictController.loadICTRequestsCacheFirst(
+          myRequests: false,
+          pending: false,
+          approvedByMe: true,
+        ));
+      }
+      if (visibleTypes.contains(RequestType.store)) {
+        loadTasks.add(storeController.loadStoreRequestsCacheFirst(
+          myRequests: false,
+          pending: false,
+          approvedByMe: true,
+        ));
+      }
+      if (loadTasks.isNotEmpty) await Future.wait(loadTasks);
+      return;
+    }
+
+    // Requests tab = all (or my) requests; pending-only view uses pendingParam.
+    final pendingParam = widget.pending;
 
     // OPTIMIZED: Load all visible request types in parallel (much faster than sequential)
     final loadTasks = <Future<void>>[];
-    final pendingParam = widget.pending || shouldShowPending;
     
     if (visibleTypes.contains(RequestType.vehicle)) {
       loadTasks.add(vehicleController.loadVehicleRequestsCacheFirst(
@@ -157,13 +198,13 @@ class _RequestListPageState extends State<RequestListPage> {
     // IMPORTANT: When myRequests is true, only show requests where the user is the requester.
     // For "My Requests", show ALL request types (ICT, Store, Transport) regardless of role
     // The controllers already filter by requesterId when myRequests=true, so we can use them directly
-    if (widget.myRequests) {
+    if (_effectiveMyRequests) {
       // Controllers already filtered by requesterId, so add all requests from controllers
       allRequests.addAll(vehicleController.vehicleRequests);
       allRequests.addAll(ictController.ictRequests);
       allRequests.addAll(storeController.storeRequests);
     } else {
-      // For "All Requests" or "Pending Approvals", show only request types user can see
+      // For "All Requests" or "Pending Requests", show only request types user can see
       // DDICT should only see ICT requests, TO should only see vehicle requests, etc.
       if (visibleTypes.contains(RequestType.vehicle)) {
         allRequests.addAll(vehicleController.vehicleRequests);
@@ -206,11 +247,29 @@ class _RequestListPageState extends State<RequestListPage> {
   }
 
   List<dynamic> _computeFilteredRequests(List<dynamic> allRequests) {
+    List<dynamic> list = allRequests;
+
+    // Filter by type first
+    if (_selectedType != null) {
+      list = list.where((request) {
+        switch (_selectedType!) {
+          case 'vehicle':
+            return request is VehicleRequestModel;
+          case 'ict':
+            return request is ICTRequestModel;
+          case 'store':
+            return request is StoreRequestModel;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+
     if (_selectedFilter == 'all') {
-      return allRequests;
+      return list;
     }
     
-    return allRequests.where((request) {
+    return list.where((request) {
       RequestStatus status;
       if (request is VehicleRequestModel) {
         status = request.status;
@@ -238,120 +297,150 @@ class _RequestListPageState extends State<RequestListPage> {
   }
 
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: Column(
-          children: [
-            // Modern App Bar
-            Container(
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top,
-                left: AppConstants.spacingL,
-                right: AppConstants.spacingL,
-                bottom: AppConstants.spacingM,
-              ),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                border: Border(
-                  bottom: BorderSide(
-                    color: isDark 
-                        ? AppColors.darkBorderDefined.withOpacity(0.5)
-                        : AppColors.border.withOpacity(0.5),
-                    width: 1.5,
-                  ),
+  Widget _buildBody(BuildContext context, ThemeData theme, bool isDark) {
+    return Column(
+      children: [
+        // When inShell: bar (title, filter only; no back - user switches tabs)
+        // When in AppScaffold: actions are in app bar (filter only)
+        if (widget.inShell) ...[
+          Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top,
+              left: AppConstants.spacingL,
+              right: AppConstants.spacingL,
+              bottom: AppConstants.spacingM,
+            ),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark
+                      ? AppColors.darkBorderDefined.withOpacity(0.5)
+                      : AppColors.border.withOpacity(0.5),
+                  width: 1.5,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 48),
+                    Expanded(
+                      child: Text(
+                        widget.pending
+                            ? 'Approvals'
+                            : _effectiveMyRequests
+                                ? 'My Requests'
+                                : 'All Requests',
+                        style: AppTextStyles.h3.copyWith(
+                          fontSize: 24,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Stack(
+                        children: [
+                          Icon(AppIcons.filter, color: theme.colorScheme.onSurface),
+                          if (_selectedFilter != 'all' || _selectedType != null)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.error,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
+                              ),
+                            ),
+                        ],
+                      ),
+                      onPressed: () {
+                        RequestFilterBottomSheet.show(
+                          context: context,
+                          initialStatus: _selectedFilter != 'all' ? _selectedFilter : null,
+                          initialType: _selectedType,
+                          onApply: (status, type, dateRange) {
+                            setState(() {
+                              _selectedFilter = status ?? 'all';
+                              _selectedType = type;
+                            });
+                          },
+                          onClear: () {
+                            setState(() {
+                              _selectedFilter = 'all';
+                              _selectedType = null;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                if (!widget.pending) ...[
+                  const SizedBox(height: AppConstants.spacingS),
                   Row(
                     children: [
-                      IconButton(
-                        icon: Icon(
-                          AppIcons.back,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                        onPressed: () => Get.back(),
-                      ),
-                      Expanded(
-                        child: Text(
-                          widget.pending
-                              ? 'Pending Approvals'
-                              : widget.myRequests
-                                  ? 'My Requests'
-                                  : 'All Requests',
-                          style: AppTextStyles.h3.copyWith(
-                            fontSize: 24,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          AppIcons.search,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                        onPressed: () {
-                          // TODO: Implement search
-                          CustomToast.info('Search feature coming soon');
+                      _ViewChip(
+                        label: 'All',
+                        selected: !_showMyRequests,
+                        onTap: () {
+                          setState(() {
+                            _showMyRequests = false;
+                            _loadAllRequests();
+                          });
                         },
                       ),
-                      if (!widget.pending)
-                        IconButton(
-                          icon: Stack(
-                            children: [
-                              Icon(
-                                AppIcons.filter,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                              if (_selectedFilter != 'all')
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.error,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    constraints: const BoxConstraints(
-                                      minWidth: 8,
-                                      minHeight: 8,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          onPressed: () {
-                            RequestFilterBottomSheet.show(
-                              context: context,
-                              initialStatus: _selectedFilter != 'all' ? _selectedFilter : null,
-                              onApply: (status, type, dateRange) {
-                                setState(() {
-                                  _selectedFilter = status ?? 'all';
-                                });
-                              },
-                              onClear: () {
-                                setState(() {
-                                  _selectedFilter = 'all';
-                                });
-                              },
-                            );
-                          },
-                        ),
+                      const SizedBox(width: AppConstants.spacingS),
+                      _ViewChip(
+                        label: 'My Requests',
+                        selected: _showMyRequests,
+                        onTap: () {
+                          setState(() {
+                            _showMyRequests = true;
+                            _loadAllRequests();
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppConstants.spacingS),
+                  Wrap(
+                    spacing: AppConstants.spacingS,
+                    runSpacing: AppConstants.spacingXS,
+                    children: [
+                      _TypeChip(
+                        label: 'All',
+                        selected: _selectedType == null,
+                        onTap: () => setState(() => _selectedType = null),
+                      ),
+                      _TypeChip(
+                        label: 'Vehicle',
+                        selected: _selectedType == 'vehicle',
+                        onTap: () => setState(() => _selectedType = 'vehicle'),
+                      ),
+                      _TypeChip(
+                        label: 'ICT',
+                        selected: _selectedType == 'ict',
+                        onTap: () => setState(() => _selectedType = 'ict'),
+                      ),
+                      _TypeChip(
+                        label: 'Store',
+                        selected: _selectedType == 'store',
+                        onTap: () => setState(() => _selectedType = 'store'),
+                      ),
                     ],
                   ),
                 ],
-              ),
+              ],
             ),
-            if (Get.isRegistered<ConnectivityService>())
+          ),
+        ],
+        if (Get.isRegistered<ConnectivityService>())
               Obx(() {
                 final connectivity = Get.find<ConnectivityService>();
                 if (connectivity.isOnline.value) return const SizedBox.shrink();
@@ -436,17 +525,30 @@ class _RequestListPageState extends State<RequestListPage> {
                   }
 
                   if (filteredRequests.isEmpty) {
+                    final String message = widget.pending
+                        ? 'You have no pending requests'
+                        : _effectiveMyRequests
+                            ? (_selectedType == 'vehicle'
+                                ? 'You have no vehicle requests'
+                                : _selectedType == 'ict'
+                                    ? 'You have no ICT requests'
+                                    : _selectedType == 'store'
+                                        ? 'You have no store requests'
+                                        : 'You haven\'t created any requests yet')
+                            : (_selectedType == 'vehicle'
+                                ? 'No vehicle requests'
+                                : _selectedType == 'ict'
+                                    ? 'No ICT requests'
+                                    : _selectedType == 'store'
+                                        ? 'No store requests'
+                                        : _selectedFilter != 'all'
+                                            ? 'No ${_selectedFilter} requests found'
+                                            : 'No requests available');
                     return EmptyState(
                       title: 'No Requests Found',
-                      message: widget.pending
-                          ? 'You have no pending approvals'
-                          : widget.myRequests
-                              ? 'You haven\'t created any requests yet'
-                              : _selectedFilter != 'all'
-                                  ? 'No ${_selectedFilter} requests found'
-                                  : 'No requests available',
+                      message: message,
                       type: EmptyStateType.noData,
-                      action: widget.myRequests
+                      action: _effectiveMyRequests
                           ? ElevatedButton.icon(
                               onPressed: () => Get.toNamed('/create-request',
                                   parameters: {'type': 'vehicle'}),
@@ -535,8 +637,80 @@ class _RequestListPageState extends State<RequestListPage> {
               ),
             ),
           ],
+    );
+  }
+
+  List<Widget> _buildAppBarActions(ThemeData theme) {
+    return [
+      IconButton(
+        icon: Stack(
+          children: [
+            Icon(AppIcons.filter, color: theme.colorScheme.onSurface),
+            if (_selectedFilter != 'all' || _selectedType != null)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
+                ),
+              ),
+          ],
         ),
+        onPressed: () {
+          RequestFilterBottomSheet.show(
+            context: context,
+            initialStatus: _selectedFilter != 'all' ? _selectedFilter : null,
+            initialType: _selectedType,
+            onApply: (status, type, dateRange) {
+              setState(() {
+                _selectedFilter = status ?? 'all';
+                _selectedType = type;
+              });
+            },
+            onClear: () {
+              setState(() {
+                _selectedFilter = 'all';
+                _selectedType = null;
+              });
+            },
+          );
+        },
       ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // When used as a tab: reload data when this tab becomes visible (so Requests vs Approvals show different data).
+    if (_loadWhenVisible) {
+      final isVisible = widget.currentTabIndex == widget.myTabIndex;
+      if (isVisible && !_wasVisible) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _loadAllRequests());
+      }
+      _wasVisible = isVisible;
+    }
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final body = _buildBody(context, theme, isDark);
+    if (widget.inShell) {
+      return body;
+    }
+    final title = widget.pending
+        ? 'Approvals'
+        : widget.myRequests
+            ? 'My Requests'
+            : 'All Requests';
+    return AppScaffold(
+      title: title,
+      showBackButton: true,
+      actions: _buildAppBarActions(theme),
+      body: body,
     );
   }
 
@@ -549,13 +723,13 @@ class _RequestListPageState extends State<RequestListPage> {
 
   Widget _buildRequestCard(dynamic request) {
     final type = _typeOf(request);
-    final source = widget.myRequests
+    final source = _effectiveMyRequests
         ? RequestDetailSource.myRequests
         : widget.pending
             ? RequestDetailSource.pendingApprovals
             : RequestDetailSource.other;
     VoidCallback? onRepeat;
-    if (widget.myRequests) {
+    if (_effectiveMyRequests) {
       if (request is ICTRequestModel) {
         onRepeat = () => _repeatICTRequest(request);
       } else if (request is StoreRequestModel) {
@@ -591,155 +765,52 @@ class _RequestListPageState extends State<RequestListPage> {
     // Show create Store request bottom sheet with pre-filled items
     CreateStoreRequestBottomSheet.showWithItems(context, items);
   }
+}
 
-  Future<void> _showCancelConfirmationDialog(
-    BuildContext context,
-    dynamic request,
-    RequestType type,
-  ) async {
+class _ViewChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ViewChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final reasonController = TextEditingController();
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkSurface : theme.colorScheme.surface,
-        title: Text(
-          'Cancel Request',
-          style: AppTextStyles.h4.copyWith(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Are you sure you want to cancel this request?',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-            Text(
-              'Request Type: ${type == RequestType.vehicle ? 'Vehicle' : type == RequestType.ict ? 'ICT' : 'Store'}',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppConstants.spacingS),
-            Text(
-              'Created: ${DateFormat('MMM dd, yyyy').format(request.createdAt)}',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppConstants.spacingM),
-            TextField(
-              controller: reasonController,
-              decoration: InputDecoration(
-                labelText: 'Reason (Optional)',
-                labelStyle: TextStyle(
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                ),
-                hintText: 'Enter cancellation reason...',
-                hintStyle: TextStyle(
-                  color: isDark 
-                      ? AppColors.darkTextSecondary.withOpacity(0.5)
-                      : AppColors.textSecondary.withOpacity(0.5),
-                ),
-                filled: true,
-                fillColor: isDark ? AppColors.darkSurfaceLight : AppColors.surfaceElevation1,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: isDark 
-                        ? AppColors.darkBorderDefined.withOpacity(0.3)
-                        : AppColors.border.withOpacity(0.3),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: isDark 
-                        ? AppColors.darkBorderDefined.withOpacity(0.3)
-                        : AppColors.border.withOpacity(0.3),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.primary,
-                    width: 2,
-                  ),
-                ),
-              ),
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Keep Request',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop(true);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            child: const Text('Cancel Request'),
-          ),
-        ],
-      ),
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: theme.colorScheme.primaryContainer,
+      checkmarkColor: theme.colorScheme.onPrimaryContainer,
     );
-
-    if (result == true) {
-      await _cancelRequest(request, type, reasonController.text.trim());
-    }
-
-    reasonController.dispose();
   }
+}
 
-  Future<void> _cancelRequest(dynamic request, RequestType type, String reason) async {
-    try {
-      bool success = false;
+class _TypeChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
-      if (type == RequestType.vehicle) {
-        success = await vehicleController.cancelRequest(request.id, reason);
-      } else if (type == RequestType.ict) {
-        success = await ictController.cancelRequest(request.id, reason);
-      } else if (type == RequestType.store) {
-        success = await storeController.cancelRequest(request.id, reason);
-      }
+  const _TypeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
-      if (success) {
-        CustomToast.success('Request cancelled successfully');
-        // Reload requests
-        await _loadAllRequests();
-      } else {
-        final errorMessage = type == RequestType.vehicle
-            ? vehicleController.error.value
-            : type == RequestType.ict
-                ? ictController.error.value
-                : storeController.error.value;
-        CustomToast.error(errorMessage.isNotEmpty ? errorMessage : 'Failed to cancel request');
-      }
-    } catch (e) {
-      CustomToast.error('Error cancelling request: ${e.toString()}');
-    }
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: theme.colorScheme.primaryContainer,
+      checkmarkColor: theme.colorScheme.onPrimaryContainer,
+    );
   }
 }

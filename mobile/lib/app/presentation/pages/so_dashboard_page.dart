@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import 'package:intl/intl.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/auth_controller.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/status_badge.dart';
 import '../../data/models/ict_request_model.dart';
 import '../../data/models/request_model.dart';
 import '../../../core/services/permission_service.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import 'ict_request_detail_page.dart';
 
 class SODashboardPage extends StatelessWidget {
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
-
   SODashboardPage({Key? key}) : super(key: key);
 
   @override
@@ -30,17 +28,10 @@ class SODashboardPage extends StatelessWidget {
       ictController.loadUnfulfilledRequests();
     });
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
-          ),
-          title: const Text('Fulfillment Queue'),
-        ),
-        body: Obx(() {
+    return AppScaffold(
+      title: 'Fulfillment Queue',
+      showBackButton: true,
+      body: Obx(() {
           final user = authController.user.value;
           if (user == null || !permissionService.canFulfillRequest(user, RequestType.ict)) {
             return const Center(
@@ -56,14 +47,14 @@ class SODashboardPage extends StatelessWidget {
               children: [
                 // Statistics Cards Skeleton
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppConstants.spacingM),
                   color: AppColors.surface,
                   child: const Row(
                     children: [
                       Expanded(
                         child: SkeletonStatCard(),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: AppConstants.spacingS),
                       Expanded(
                         child: SkeletonStatCard(),
                       ),
@@ -73,10 +64,10 @@ class SODashboardPage extends StatelessWidget {
                 // Requests List Skeleton
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(AppConstants.spacingM),
                     itemCount: 5,
                     itemBuilder: (context, index) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: AppConstants.spacingM),
                       child: SkeletonCard(),
                     ),
                   ),
@@ -91,18 +82,18 @@ class SODashboardPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.error_outline, size: 64, color: AppColors.error),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppConstants.spacingM),
                   Text(
                     'Error loading requests',
                     style: TextStyle(color: AppColors.error),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppConstants.spacingS),
                   Text(
                     ictController.error.value,
                     style: TextStyle(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppConstants.spacingM),
                   ElevatedButton(
                     onPressed: () => ictController.loadUnfulfilledRequests(),
                     child: const Text('Retry'),
@@ -120,7 +111,7 @@ class SODashboardPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
-                   SizedBox(height: 16),
+                  const SizedBox(height: AppConstants.spacingM),
                   Text(
                     'All requests fulfilled!',
                     style: TextStyle(
@@ -129,7 +120,7 @@ class SODashboardPage extends StatelessWidget {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                   SizedBox(height: 8),
+                  const SizedBox(height: AppConstants.spacingS),
                   Text(
                     'There are no unfulfilled items at this time.',
                     style: TextStyle(color: AppColors.textSecondary),
@@ -158,7 +149,7 @@ class SODashboardPage extends StatelessWidget {
             children: [
               // Statistics Cards
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppConstants.spacingM),
                 color: AppColors.surface,
                 child: Row(
                   children: [
@@ -171,7 +162,7 @@ class SODashboardPage extends StatelessWidget {
                         AppColors.warning,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppConstants.spacingS),
                     Expanded(
                       child: _buildStatCard(
                         context,
@@ -187,18 +178,20 @@ class SODashboardPage extends StatelessWidget {
               // Requests List
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppConstants.spacingM),
                   itemCount: requests.length,
                   itemBuilder: (context, index) {
                     final request = requests[index];
-                    return _buildRequestCard(context, request, ictController);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppConstants.spacingM),
+                      child: _buildRequestCard(context, request, ictController),
+                    );
                   },
                 ),
               ),
             ],
           );
         }),
-      ),
     );
   }
 
@@ -210,10 +203,10 @@ class SODashboardPage extends StatelessWidget {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppConstants.spacingM),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppConstants.radiusM),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
@@ -222,7 +215,7 @@ class SODashboardPage extends StatelessWidget {
           Row(
             children: [
               Icon(icon, color: color, size: 24),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppConstants.spacingS),
               Expanded(
                 child: Text(
                   label,
@@ -234,7 +227,7 @@ class SODashboardPage extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppConstants.spacingS),
           Text(
             value,
             style: TextStyle(
@@ -253,6 +246,8 @@ class SODashboardPage extends StatelessWidget {
     ICTRequestModel request,
     ICTRequestController controller,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     // Calculate unfulfilled items using approved quantity
     final unfulfilledItems = request.items
         .where((item) {
@@ -262,13 +257,25 @@ class SODashboardPage extends StatelessWidget {
         .toList();
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
+        side: BorderSide(
+          color: isDark
+              ? AppColors.darkBorderDefined.withOpacity(0.5)
+              : AppColors.border.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      color: isDark ? AppColors.darkSurface : AppColors.surface,
       child: InkWell(
         onTap: () {
           Get.to(() => ICTRequestDetailPage(requestId: request.id));
         },
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppConstants.spacingM),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -285,7 +292,7 @@ class SODashboardPage extends StatelessWidget {
                             fontSize: 16,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppConstants.spacingXS),
                         Text(
                           'Created: ${DateFormat('MMM dd, yyyy').format(request.createdAt)}',
                           style: TextStyle(
@@ -299,9 +306,9 @@ class SODashboardPage extends StatelessWidget {
                   StatusBadge(status: request.status),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppConstants.spacingS),
               const Divider(),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppConstants.spacingS),
               Text(
                 'Unfulfilled Items:',
                 style: TextStyle(
@@ -309,13 +316,13 @@ class SODashboardPage extends StatelessWidget {
                   fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppConstants.spacingS),
               ...unfulfilledItems.map((item) {
                 // Use approved quantity if available, otherwise requested quantity
                 final approvedQty = item.approvedQuantity ?? item.requestedQuantity;
                 final remaining = approvedQty - item.fulfilledQuantity;
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: AppConstants.spacingS),
                   child: Row(
                     children: [
                       Expanded(
@@ -336,7 +343,7 @@ class SODashboardPage extends StatelessWidget {
                   ),
                 );
               }),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppConstants.spacingS),
               Row(
                 children: [
                   Expanded(
@@ -348,7 +355,7 @@ class SODashboardPage extends StatelessWidget {
                       label: const Text('View Details'),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppConstants.spacingS),
                   if (request.workflowStage == 'FULFILLMENT')
                     Expanded(
                       child: ElevatedButton.icon(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/widgets/bottom_sheet_wrapper.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/animations/sheet_animations.dart';
 import '../../../data/models/request_model.dart';
@@ -144,7 +145,7 @@ class _ApprovalActionBottomSheetState extends State<ApprovalActionBottomSheet> {
                     Icons.check_circle_outline,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppConstants.spacingS),
                 Expanded(
                   child: _buildActionOption(
                     'reject',
@@ -195,12 +196,12 @@ class _ApprovalActionBottomSheetState extends State<ApprovalActionBottomSheet> {
         });
         SheetHaptics.selectionClick();
       },
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppConstants.radiusM),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppConstants.spacingM),
         decoration: BoxDecoration(
           color: isSelected ? color.withOpacity(0.1) : AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppConstants.radiusM),
           border: Border.all(
             color: isSelected ? color : AppColors.border.withOpacity(0.3),
             width: isSelected ? 2 : 1,
@@ -209,10 +210,10 @@ class _ApprovalActionBottomSheetState extends State<ApprovalActionBottomSheet> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppConstants.spacingS),
               decoration: BoxDecoration(
                 color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppConstants.radiusS),
               ),
               child: Icon(
                 icon,
@@ -220,7 +221,7 @@ class _ApprovalActionBottomSheetState extends State<ApprovalActionBottomSheet> {
                 size: 24,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppConstants.spacingS),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/request_controller.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/store_request_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/unified_request_card.dart';
 import 'request_detail_page.dart';
 import '../../data/models/request_model.dart';
 import '../../../core/config/request_module_config.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/app_drawer.dart';
 import '../widgets/skeleton_loader.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/constants/app_constants.dart';
 
 class ApprovalQueuePage extends StatelessWidget {
   final String? requestType;
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
+  /// When true, used as tab content in MainShellPage (no app bar).
+  final bool inShell;
 
-  ApprovalQueuePage({Key? key, this.requestType}) : super(key: key);
+  ApprovalQueuePage({Key? key, this.requestType, this.inShell = false}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -28,25 +28,17 @@ class ApprovalQueuePage extends StatelessWidget {
     final user = authController.user.value;
 
     if (user == null) {
-      return AppDrawer(
-        controller: _drawerController,
-        child: Scaffold(
-          body: const Center(child: CircularProgressIndicator()),
-        ),
+      if (inShell) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return AppScaffold(
+        title: 'Pending Approvals',
+        showBackButton: true,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
-          ),
-          title: const Text('Pending Approvals'),
-        ),
-      body: DefaultTabController(
+    final body = DefaultTabController(
         length: 3,
         child: Column(
           children: [
@@ -67,8 +59,13 @@ class ApprovalQueuePage extends StatelessWidget {
             ),
           ],
         ),
-      ),
-      ),
+    );
+
+    if (inShell) return body;
+    return AppScaffold(
+      title: 'Pending Approvals',
+      showBackButton: true,
+      body: body,
     );
   }
 

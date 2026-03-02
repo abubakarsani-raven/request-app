@@ -4,6 +4,7 @@ import '../../../core/services/websocket_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/services/permission_service.dart';
 import '../../../core/services/notification_service.dart' as local_notification_service;
+import '../../../core/services/biometric_service.dart';
 import '../../../core/services/fcm_service.dart';
 import '../../../core/services/request_fetch_service.dart';
 import '../../data/services/auth_service.dart';
@@ -32,6 +33,7 @@ class InitialBinding extends Bindings {
     Get.put(PermissionService(), permanent: true);
     Get.put(local_notification_service.LocalNotificationService(), permanent: true);
     Get.put(FCMService(), permanent: true);
+    Get.put(BiometricService(), permanent: true);
     
     // Theme Controller (already initialized in main, just ensure it exists)
     if (!Get.isRegistered<ThemeController>()) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/request_model.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// Visual workflow progress indicator showing all stages and participants
@@ -18,10 +19,10 @@ class WorkflowProgressIndicator extends StatelessWidget {
     final currentStageIndex = _getCurrentStageIndex(stages);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppConstants.spacingM),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppConstants.radiusM),
         border: Border.all(
           color: AppColors.border.withOpacity(0.3),
           width: 1,

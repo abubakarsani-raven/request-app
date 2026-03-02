@@ -1,12 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/assignment_controller.dart';
 import '../controllers/assignment_selection_controller.dart';
 import '../controllers/request_controller.dart';
 import '../controllers/notification_controller.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/loading_overlay.dart';
 import '../widgets/assignment_preview_card.dart';
@@ -35,8 +34,6 @@ class _AssignmentPageState extends State<AssignmentPage> {
   final requestController = Get.find<RequestController>();
   final settingsService = SettingsService();
   final officeService = OfficeService();
-  final _drawerController = AdvancedDrawerController();
-  
   double? _fuelMpg;
   double? _estimatedFuelLiters;
   Office? _headOffice;
@@ -166,17 +163,10 @@ class _AssignmentPageState extends State<AssignmentPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
-          ),
-          title: const Text('Assign Vehicle'),
-        ),
-        body: Obx(
+    return AppScaffold(
+      title: 'Assign Vehicle',
+      showBackButton: true,
+      body: Obx(
           () => LoadingOverlay(
             isLoading: assignmentController.isAssigning.value ||
                        requestController.isReloading.value,
@@ -221,9 +211,8 @@ class _AssignmentPageState extends State<AssignmentPage> {
                 ],
               );
             }(),
-          ),
-        ),
       ),
+    ),
     );
   }
 

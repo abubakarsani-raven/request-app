@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/driver_controller.dart';
 import '../widgets/status_badge.dart';
-import '../widgets/app_drawer.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/empty_state.dart';
 import '../../data/models/request_model.dart';
@@ -13,61 +11,52 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_icons.dart';
 import 'trip_tracking_page.dart';
 
-class DriverDashboardPage extends StatelessWidget {
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
-
-  DriverDashboardPage({Key? key}) : super(key: key);
+/// Content-only widget for the Trips tab in MainShellPage (driver). No scaffold, no drawer.
+class DriverDashboardContent extends StatelessWidget {
+  const DriverDashboardContent({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Use Get.find() - controller already registered in InitialBinding
     final driverController = Get.find<DriverController>();
     final theme = Theme.of(context);
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: Icon(
-              AppIcons.menu,
-              color: theme.colorScheme.onSurface,
-            ),
-            onPressed: () => _drawerController.showDrawer(),
-          ),
-          title: Text(
-            'Driver Dashboard',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-        ),
-        body: RefreshIndicator(
+    return RefreshIndicator(
           onRefresh: () => driverController.loadAssignedTrips(),
           color: theme.colorScheme.primary,
-          child: Obx(
-            () {
-              if (driverController.isLoading.value && driverController.assignedTrips.isEmpty) {
-                return ListView(
-                  padding: const EdgeInsets.all(AppConstants.spacingM),
-                  children: [
-                    const SkeletonCard(height: 150),
-                    const SizedBox(height: AppConstants.spacingM),
-                    const SkeletonCard(height: 150),
-                    const SizedBox(height: AppConstants.spacingM),
-                    const SkeletonCard(height: 150),
-                  ],
+          child: SafeArea(
+            child: Obx(
+              () {
+                final bottomPadding = MediaQuery.of(context).padding.bottom + AppConstants.spacingXL;
+                final listPadding = EdgeInsets.fromLTRB(
+                  AppConstants.spacingM,
+                  AppConstants.spacingM,
+                  AppConstants.spacingM,
+                  bottomPadding,
                 );
-              }
 
-              return ListView(
-                padding: const EdgeInsets.all(AppConstants.spacingM),
-                children: [
-                  // Active Trips
-                  if (driverController.activeTrips.isNotEmpty) ...[
-                    _buildSectionHeader(context, 'Active Trips'),
+                if (driverController.isLoading.value && driverController.assignedTrips.isEmpty) {
+                  return ListView(
+                    padding: listPadding,
+                    children: [
+                      _buildPageTitle(context),
+                      const SizedBox(height: AppConstants.spacingL),
+                      const SkeletonCard(height: 150),
+                      const SizedBox(height: AppConstants.spacingM),
+                      const SkeletonCard(height: 150),
+                      const SizedBox(height: AppConstants.spacingM),
+                      const SkeletonCard(height: 150),
+                    ],
+                  );
+                }
+
+                return ListView(
+                  padding: listPadding,
+                  children: [
+                    _buildPageTitle(context),
+                    const SizedBox(height: AppConstants.spacingL),
+                    // Active Trips
+                    if (driverController.activeTrips.isNotEmpty) ...[
+                      _buildSectionHeader(context, 'Active Trips'),
                     const SizedBox(height: AppConstants.spacingM),
                     ...driverController.activeTrips.asMap().entries.map((entry) {
                       final index = entry.key;
@@ -89,6 +78,7 @@ class DriverDashboardPage extends StatelessWidget {
 
                   // Pending Trips
                   if (driverController.pendingTrips.isNotEmpty) ...[
+                    SizedBox(height: driverController.activeTrips.isNotEmpty ? AppConstants.spacingL : 0),
                     _buildSectionHeader(context, 'Pending Trips'),
                     const SizedBox(height: AppConstants.spacingM),
                     ...driverController.pendingTrips.asMap().entries.map((entry) {
@@ -114,6 +104,9 @@ class DriverDashboardPage extends StatelessWidget {
 
                   // Completed Trips
                   if (driverController.completedTrips.isNotEmpty) ...[
+                    SizedBox(height: (driverController.activeTrips.isNotEmpty || driverController.pendingTrips.isNotEmpty)
+                        ? AppConstants.spacingL
+                        : 0),
                     _buildSectionHeader(context, 'Completed Trips'),
                     const SizedBox(height: AppConstants.spacingM),
                     ...driverController.completedTrips.take(5).toList().asMap().entries.map((entry) {
@@ -122,7 +115,7 @@ class DriverDashboardPage extends StatelessWidget {
                       final isLast = index == (driverController.completedTrips.take(5).length - 1);
                       return Padding(
                         padding: EdgeInsets.only(
-                          bottom: isLast ? 0 : AppConstants.spacingM,
+                          bottom: isLast ? AppConstants.spacingXL : AppConstants.spacingM,
                         ),
                         child: _buildTripCard(
                           context,
@@ -148,21 +141,30 @@ class DriverDashboardPage extends StatelessWidget {
                 ],
               );
             },
+            ),
           ),
-        ),
+        );
+  }
+
+  Widget _buildPageTitle(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      'Trips',
+      style: theme.textTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w600,
+        color: theme.colorScheme.onSurface,
       ),
     );
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     final theme = Theme.of(context);
-    
     return Text(
       title,
       style: theme.textTheme.titleLarge?.copyWith(
         fontWeight: FontWeight.bold,
         fontSize: 22,
-        color: theme.colorScheme.onSurface,
+        color: theme.colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -178,59 +180,71 @@ class DriverDashboardPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final dateFormat = DateFormat('MMM dd, yyyy');
 
-    return Card(
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDark 
-              ? AppColors.darkBorderDefined.withOpacity(0.5)
-              : AppColors.border.withOpacity(0.5),
-          width: 1.5,
+    final statusLabel = isCompleted ? 'Completed' : isActive ? 'In progress' : 'Pending';
+    return Semantics(
+      label: 'Trip to ${trip.destination}, $statusLabel. Double tap to open.',
+      button: true,
+      child: Card(
+        margin: EdgeInsets.zero,
+        color: theme.colorScheme.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppConstants.radiusL),
+          side: BorderSide(
+            color: isDark 
+                ? AppColors.darkBorderDefined.withOpacity(0.5)
+                : AppColors.border.withOpacity(0.5),
+            width: 1.5,
+          ),
         ),
-      ),
-      child: InkWell(
-        onTap: () async {
-          // Navigate to trip page and refresh when returning
-          final result = await Get.to(() => TripTrackingPage(requestId: trip.id));
-          // Refresh trips when returning from trip page (especially if trip was completed)
-          if (result == true || result == null) {
-            driverController.loadAssignedTrips();
-          }
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spacingM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Destination and Status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      trip.destination,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: isCompleted
-                            ? (isDark 
-                                ? AppColors.darkTextSecondary 
-                                : AppColors.textSecondary)
-                            : theme.colorScheme.onSurface,
+        child: InkWell(
+          onTap: () async {
+            // Navigate to trip page and refresh when returning
+            final result = await Get.to(() => TripTrackingPage(requestId: trip.id));
+            // Refresh trips when returning from trip page (especially if trip was completed)
+            if (result == true || result == null) {
+              driverController.loadAssignedTrips();
+            }
+          },
+          borderRadius: BorderRadius.circular(AppConstants.radiusL),
+          child: Padding(
+            padding: const EdgeInsets.all(AppConstants.spacingM),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Destination, Status, and tap affordance
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        trip.destination,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isCompleted
+                              ? (isDark 
+                                  ? AppColors.darkTextSecondary 
+                                  : AppColors.textSecondary)
+                              : theme.colorScheme.onSurface,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(width: AppConstants.spacingS),
-                  StatusBadge(status: trip.status),
-                ],
-              ),
+                    const SizedBox(width: AppConstants.spacingS),
+                    StatusBadge(status: trip.status),
+                    const SizedBox(width: AppConstants.spacingXS),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 24,
+                      color: isDark 
+                          ? AppColors.darkTextSecondary 
+                          : AppColors.textSecondary,
+                    ),
+                  ],
+                ),
               const SizedBox(height: AppConstants.spacingS),
               // Scheduled Date/Time
               Row(
@@ -292,7 +306,7 @@ class DriverDashboardPage extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusS),
                     border: Border.all(
                       color: AppColors.success.withOpacity(0.3),
                       width: 1,
@@ -331,7 +345,7 @@ class DriverDashboardPage extends StatelessWidget {
                     color: (isDark 
                         ? AppColors.darkTextSecondary 
                         : AppColors.textSecondary).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusS),
                     border: Border.all(
                       color: (isDark 
                           ? AppColors.darkTextSecondary 
@@ -351,7 +365,7 @@ class DriverDashboardPage extends StatelessWidget {
                       ),
                       const SizedBox(width: AppConstants.spacingXS),
                       Text(
-                        'Completed ${dateFormat.format(trip.actualReturnTime!)}',
+                        'Returned ${dateFormat.format(trip.actualReturnTime!)}',
                         style: TextStyle(
                           color: isDark 
                               ? AppColors.darkTextSecondary 
@@ -368,6 +382,7 @@ class DriverDashboardPage extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

@@ -268,7 +268,7 @@ class SkeletonGrid extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppConstants.spacingL),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../controllers/trip_controller.dart';
 import '../controllers/trip_mode_controller.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/navigation_panel.dart';
 import '../widgets/trip_progress_widget.dart';
 import '../widgets/trip_statistics_section.dart';
@@ -77,31 +78,25 @@ class _TripTrackingPageState extends State<TripTrackingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Get.back(),
-        ),
-        title: const Text('Trip Tracking'),
-        actions: [
-          // Mode Toggle Button
-          Obx(() => IconButton(
-            icon: Icon(
-              modeController.isNavigationMode
-                  ? Icons.dashboard
-                  : Icons.navigation,
-            ),
-            tooltip: modeController.isNavigationMode
-                ? 'Switch to Monitoring Mode'
-                : 'Switch to Navigation Mode',
-            onPressed: () {
-              SheetHaptics.selectionClick();
-              modeController.toggleMode();
-            },
-          )),
-        ],
-      ),
+    return AppScaffold(
+      title: 'Trip Tracking',
+      showBackButton: true,
+      actions: [
+        Obx(() => IconButton(
+          icon: Icon(
+            modeController.isNavigationMode
+                ? Icons.dashboard
+                : Icons.navigation,
+          ),
+          tooltip: modeController.isNavigationMode
+              ? 'Switch to Monitoring Mode'
+              : 'Switch to Navigation Mode',
+          onPressed: () {
+            SheetHaptics.selectionClick();
+            modeController.toggleMode();
+          },
+        )),
+      ],
       body: Obx(() {
         final trip = tripController.currentTrip.value;
         
@@ -345,23 +340,29 @@ class _TripTrackingPageState extends State<TripTrackingPage> {
 
   Widget _buildBottomPanel(dynamic trip, bool isNavigationMode) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.spacingL),
+      padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingL),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Trip Progress (with progress bar)
+          // Trip Progress: full width (no horizontal padding)
           TripProgressWidget(request: trip),
           const SizedBox(height: AppConstants.spacingL),
-          
-          // Expandable Statistics
-          TripStatisticsSection(request: trip),
+
+          // Other sections: horizontal padding for two-type layout
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingL),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TripStatisticsSection(request: trip),
+                if (trip.waypoints != null && trip.waypoints!.isNotEmpty) ...[
+                  const SizedBox(height: AppConstants.spacingL),
+                  _buildWaypointsSection(trip),
+                ],
+              ],
+            ),
+          ),
           const SizedBox(height: AppConstants.spacingL),
-          
-          // Waypoints (if multi-stop trip)
-          if (trip.waypoints != null && trip.waypoints!.isNotEmpty) ...[
-            _buildWaypointsSection(trip),
-            const SizedBox(height: AppConstants.spacingL),
-          ],
         ],
       ),
     );

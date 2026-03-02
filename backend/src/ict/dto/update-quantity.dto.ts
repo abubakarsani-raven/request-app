@@ -1,4 +1,4 @@
-import { IsNumber, IsNotEmpty, IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsNumber, IsNotEmpty, IsString, IsOptional, IsEnum, IsMongoId } from 'class-validator';
 
 export enum QuantityOperation {
   ADD = 'ADD',
@@ -35,5 +35,10 @@ export class UpdateQuantityDto {
   @IsString()
   @IsOptional()
   reference?: string;
+
+  /** Optional: link to a registered supplier (by ID) for reference number tracking */
+  @IsOptional()
+  @IsMongoId()
+  supplierId?: string;
 }
 

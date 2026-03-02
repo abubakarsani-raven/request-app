@@ -48,4 +48,8 @@ class AppConstants {
 // UI checklist for new screens: use AppConstants for spacing/radius;
 // theme.colorScheme / AppColors for colors (no Colors.white/black);
 // AppTextStyles for headings and labels; CustomButton for primary actions.
+//
+// UI conventions: List content padding = spacingM. List item gap = Padding(bottom: spacingM);
+// card margin = EdgeInsets.zero. List card radius = radiusL; small/chip radius = radiusM or radiusS.
+// Screen padding = spacingL for detail screens, spacingM for list/dashboard.
 

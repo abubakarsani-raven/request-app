@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../app/presentation/controllers/notification_controller.dart';
-import '../app/presentation/widgets/app_drawer.dart';
+import '../app/presentation/widgets/app_scaffold.dart';
 import '../app/presentation/widgets/skeleton_loader.dart';
 import '../app/presentation/pages/request_detail_page.dart';
 import '../app/data/models/notification_model.dart';
@@ -18,9 +17,8 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> 
+class _NotificationsScreenState extends State<NotificationsScreen>
     with SingleTickerProviderStateMixin {
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -55,30 +53,23 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   Widget build(BuildContext context) {
     final notificationController = Get.find<NotificationController>();
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Get.back(),
-          ),
-          title: const Text('Notifications'),
-          actions: [
-            Obx(() {
-              final unreadCount = notificationController.unreadCount.value;
-              if (unreadCount == 0) return const SizedBox();
-              return TextButton.icon(
-                onPressed: () => notificationController.markAllAsRead(),
-                icon: const Icon(Icons.done_all, size: 18),
-                label: const Text('Mark all read'),
-                style: TextButton.styleFrom(
+    return AppScaffold(
+      title: 'Notifications',
+      showBackButton: true,
+      actions: [
+        Obx(() {
+          final unreadCount = notificationController.unreadCount.value;
+          if (unreadCount == 0) return const SizedBox.shrink();
+          return TextButton.icon(
+            onPressed: () => notificationController.markAllAsRead(),
+            icon: const Icon(Icons.done_all, size: 18),
+            label: const Text('Mark all read'),
+            style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
                 ),
               );
             }),
           ],
-        ),
       body: Obx(
         () {
           if (notificationController.isLoading.value) {
@@ -191,9 +182,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 child: Container(
                   margin: const EdgeInsets.symmetric(
                     horizontal: AppConstants.spacingM,
-                    vertical: 4,
+                    vertical: AppConstants.spacingXS,
                   ),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppConstants.spacingM),
                   decoration: BoxDecoration(
                     color: notification.isRead 
                         ? (isDark 
@@ -202,7 +193,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                         : (isDark 
                             ? AppColors.darkSurfaceLight.withOpacity(0.5)
                             : AppColors.primary.withOpacity(0.05)),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusM),
                     border: Border.all(
                       color: notification.isRead
                           ? (isDark 
@@ -218,14 +209,14 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(AppConstants.spacingS),
                         decoration: BoxDecoration(
                           color: notification.isRead
                               ? (isDark 
                                   ? AppColors.darkSurfaceLight.withOpacity(0.3)
                                   : getNotificationColor().withOpacity(0.1))
                               : getNotificationColor().withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(AppConstants.radiusS),
                         ),
                         child: Icon(
                           getNotificationIcon(),
@@ -297,7 +288,6 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             },
           );
         },
-      ),
       ),
     );
   }

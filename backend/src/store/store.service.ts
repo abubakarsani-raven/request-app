@@ -472,6 +472,21 @@ export class StoreService {
     }
   }
 
+  async findApprovedByMe(userId: string): Promise<StoreRequest[]> {
+    try {
+      const requests = await this.storeRequestModel
+        .find({ 'approvals.approverId': new Types.ObjectId(userId) })
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
+        .populate('items.itemId')
+        .sort({ createdAt: -1 })
+        .exec();
+      return requests;
+    } catch (error) {
+      console.error('[Store Service] findApprovedByMe: Error:', error);
+      return [];
+    }
+  }
+
   async findOneRequest(id: string): Promise<StoreRequestDocument> {
     const request = await this.storeRequestModel
       .findById(id)

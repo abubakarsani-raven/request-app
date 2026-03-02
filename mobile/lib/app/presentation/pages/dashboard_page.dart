@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/request_controller.dart';
 import '../controllers/ict_request_controller.dart';
@@ -12,152 +11,106 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/widgets/custom_toast.dart';
-import '../widgets/app_drawer.dart';
 import '../controllers/notification_controller.dart';
 import '../widgets/bottom_sheets/create_request_bottom_sheet.dart';
 import '../widgets/bottom_sheets/create_ict_request_bottom_sheet.dart';
 import '../widgets/bottom_sheets/create_store_request_bottom_sheet.dart';
-import 'driver_dashboard_page.dart';
 import 'assign_vehicle_list_page.dart';
 
-class DashboardPage extends StatefulWidget {
-  const DashboardPage({Key? key}) : super(key: key);
+/// Content-only widget for the Home tab in MainShellPage. No scaffold, no drawer.
+class DashboardContent extends StatefulWidget {
+  const DashboardContent({Key? key}) : super(key: key);
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<DashboardContent> createState() => _DashboardContentState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
-  final AdvancedDrawerController _drawerController = AdvancedDrawerController();
-  
+class _DashboardContentState extends State<DashboardContent> {
   @override
   void initState() {
     super.initState();
-    // Controllers are now eagerly initialized in InitialBinding
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        // Controllers are already registered in InitialBinding
-        final notificationController = Get.find<NotificationController>();
-        notificationController.loadUnreadCount();
-        
-        // Load pending approvals for badge count
-        final requestController = Get.find<RequestController>();
-        final ictController = Get.find<ICTRequestController>();
-        final storeController = Get.find<StoreRequestController>();
-        
-        requestController.loadPendingApprovals();
-        ictController.loadPendingApprovals();
-        storeController.loadPendingApprovals();
+        Get.find<NotificationController>().loadUnreadCount();
+        Get.find<RequestController>().loadPendingApprovals();
+        Get.find<ICTRequestController>().loadPendingApprovals();
+        Get.find<StoreRequestController>().loadPendingApprovals();
       } catch (e) {
         print('Error initializing controllers in dashboard: $e');
-        // Controllers will be available on next build cycle
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    AuthController authController;
-    PermissionService permissionService;
-    NotificationController notificationController;
-    try {
-      authController = Get.find<AuthController>();
-      permissionService = Get.find<PermissionService>();
-      notificationController = Get.find<NotificationController>();
-    } catch (_) {
-      return AppDrawer(
-        controller: _drawerController,
-        child: const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
+    final authController = Get.find<AuthController>();
+    final permissionService = Get.find<PermissionService>();
+    final notificationController = Get.find<NotificationController>();
 
     return Obx(() {
       final user = authController.user.value;
       if (user == null) {
-        return AppDrawer(
-          controller: _drawerController,
-          child: Scaffold(
-            body: const Center(child: CircularProgressIndicator()),
-          ),
-        );
+        return const Center(child: CircularProgressIndicator());
       }
 
-      // Driver gets special dashboard
-      if (permissionService.isDriver(user)) {
-        return DriverDashboardPage();
-      }
-
-      return AppDrawer(
-        controller: _drawerController,
-        child: Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(AppIcons.menu),
-              onPressed: () => _drawerController.showDrawer(),
-            ),
-            title: const Text('Dashboard'),
-            actions: [
-              Obx(() {
-                // Access the reactive value directly - Obx will rebuild when this changes
-                final unreadCount = notificationController.unreadCount.value;
-                
-                // Debug: Print unread count to verify it's updating
-                print('🔔 Notification badge - unreadCount: $unreadCount');
-                
-                return Container(
-                  width: 48,
-                  height: 48,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      IconButton(
-                        icon: const Icon(AppIcons.notificationsOutlined),
-                        onPressed: () => Get.toNamed('/notifications'),
-                        padding: EdgeInsets.zero,
-                      ),
-                      if (unreadCount > 0)
-                        Positioned(
-                          right: 6,
-                          top: 6,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppColors.error,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.textOnPrimary, width: 2),
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 18,
-                              minHeight: 18,
-                            ),
-                            child: Center(
-                              child: Text(
-                                unreadCount > 99 ? '99+' : unreadCount.toString(),
-                                style: const TextStyle(
-                                  color: AppColors.textOnPrimary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppConstants.spacingM),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top bar: title + notification
+              Row(
+                children: [
+                  Text(
+                    'Dashboard',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const Spacer(),
+                  Obx(() {
+                    final unreadCount = notificationController.unreadCount.value;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: const Icon(AppIcons.notificationsOutlined),
+                          onPressed: () => Get.toNamed('/notifications'),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 6,
+                            top: 6,
+                            child: Container(
+                              padding: const EdgeInsets.all(AppConstants.spacingXS),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppColors.textOnPrimary, width: 2),
+                              ),
+                              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                              child: Center(
+                                child: Text(
+                                  unreadCount > 99 ? '99+' : unreadCount.toString(),
+                                  style: const TextStyle(
+                                    color: AppColors.textOnPrimary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign: TextAlign.center,
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-          body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppConstants.spacingM),
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                        // Modern Welcome Card - Flat Design
+                      ],
+                    );
+                  }),
+                ],
+              ),
+              const SizedBox(height: AppConstants.spacingM),
+              // Modern Welcome Card - Flat Design
                         Builder(
                           builder: (context) {
                             final theme = Theme.of(context);
@@ -290,10 +243,8 @@ class _DashboardPageState extends State<DashboardPage> {
               const SizedBox(height: AppConstants.spacingM),
               _buildRoleBasedActions(context, user, permissionService),
             ],
-            ),
           ),
         ),
-      ),
       );
     });
   }
@@ -343,59 +294,37 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
 
-    // Pending Approvals (for approvers including supervisors)
-    // Use canApproveAnyRequests to check if user can approve at any stage
+    // Pending Requests (for approvers including supervisors)
     if (permissionService.canApproveAnyRequests(user)) {
       actions.add(
         Obx(() {
-          // Safety check: Ensure controllers are registered before accessing
-          if (!Get.isRegistered<RequestController>() || 
-              !Get.isRegistered<ICTRequestController>() || 
+          if (!Get.isRegistered<RequestController>() ||
+              !Get.isRegistered<ICTRequestController>() ||
               !Get.isRegistered<StoreRequestController>()) {
-            // Return empty widget if controllers not ready yet
             return _buildActionCard(
               context,
-              'Pending Approvals',
+              'Pending Requests',
               Icons.pending_actions,
               AppColors.warning,
               () => Get.toNamed('/requests/pending'),
             );
           }
-          
           final requestController = Get.find<RequestController>();
           final ictController = Get.find<ICTRequestController>();
           final storeController = Get.find<StoreRequestController>();
-          
-          // Access reactive lists directly - this ensures GetX tracks them
           final vehicleRequests = requestController.vehicleRequests;
           final ictRequests = ictController.ictRequests;
           final storeRequests = storeController.storeRequests;
-          
-          // Calculate total pending approvals count
-          // Backend already filters by role, so we just count pending/corrected requests
           int totalPending = 0;
-          
-          // Count vehicle requests (backend already filtered by role)
-          totalPending += vehicleRequests.where((request) {
-            return request.status == RequestStatus.pending ||
-                request.status == RequestStatus.corrected;
-          }).length;
-          
-          // Count ICT requests (backend already filtered by role)
-          totalPending += ictRequests.where((request) {
-            return request.status == RequestStatus.pending ||
-                request.status == RequestStatus.corrected;
-          }).length;
-          
-          // Count store requests (backend already filtered by role)
-          totalPending += storeRequests.where((request) {
-            return request.status == RequestStatus.pending ||
-                request.status == RequestStatus.corrected;
-          }).length;
-          
+          totalPending += vehicleRequests.where((r) =>
+              r.status == RequestStatus.pending || r.status == RequestStatus.corrected).length;
+          totalPending += ictRequests.where((r) =>
+              r.status == RequestStatus.pending || r.status == RequestStatus.corrected).length;
+          totalPending += storeRequests.where((r) =>
+              r.status == RequestStatus.pending || r.status == RequestStatus.corrected).length;
           return _buildActionCard(
             context,
-            'Pending Approvals',
+            'Pending Requests',
             Icons.pending_actions,
             AppColors.warning,
             () => Get.toNamed('/requests/pending'),

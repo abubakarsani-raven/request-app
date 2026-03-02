@@ -28,10 +28,10 @@ class TripProgressWidget extends StatelessWidget {
       icon: Icons.play_arrow,
     ));
 
-    // Stage 2: In Progress
+    // Stage 2: In Progress (completed once we've reached destination)
     stages.add(TripStageInfo(
       name: 'In Progress',
-      isCompleted: request.tripStarted && !request.destinationReached,
+      isCompleted: request.destinationReached,
       isCurrent: request.tripStarted && !request.destinationReached && !request.tripCompleted,
       timestamp: request.tripStarted ? request.actualDepartureTime : null,
       description: 'Heading to destination',
@@ -77,6 +77,7 @@ class TripProgressWidget extends StatelessWidget {
     final stages = _getTripStages();
 
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(AppConstants.spacingL),
         child: Column(
@@ -129,7 +130,15 @@ class TripProgressWidget extends StatelessWidget {
               final index = entry.key;
               final stage = entry.value;
               final isLast = index == stages.length - 1;
-              return _buildStageItem(context, stage, isLast, progressColor, isDark);
+              final isPreviousCompleted = index > 0 && stages[index - 1].isCompleted;
+              return _buildStageItem(
+                context,
+                stage,
+                isLast,
+                isPreviousCompleted,
+                progressColor,
+                isDark,
+              );
             }),
           ],
         ),
@@ -141,13 +150,18 @@ class TripProgressWidget extends StatelessWidget {
     BuildContext context,
     TripStageInfo stage,
     bool isLast,
+    bool isPreviousCompleted,
     Color progressColor,
     bool isDark,
   ) {
     final isCompleted = stage.isCompleted;
     final isCurrent = stage.isCurrent ?? false;
+    // Connector line is green if this stage or the previous is completed (shows progress flow)
+    final connectorColor = isCompleted || isPreviousCompleted
+        ? AppColors.success
+        : AppColors.textDisabled;
 
-    return Row(
+    final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Timeline indicator
@@ -183,7 +197,7 @@ class TripProgressWidget extends StatelessWidget {
               Container(
                 width: 2,
                 height: 40,
-                color: isCompleted ? AppColors.success : AppColors.textDisabled,
+                color: connectorColor,
               ),
           ],
         ),
@@ -247,6 +261,20 @@ class TripProgressWidget extends StatelessWidget {
         ),
       ],
     );
+
+    // Subtle highlight for the current (active) stage
+    if (isCurrent) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        decoration: BoxDecoration(
+          color: progressColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: content,
+      );
+    }
+    return content;
   }
 }
 

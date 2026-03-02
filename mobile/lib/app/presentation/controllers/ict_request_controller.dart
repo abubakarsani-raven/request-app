@@ -138,10 +138,18 @@ class ICTRequestController extends GetxController {
     }
   }
 
-  Future<void> loadICTRequestsCacheFirst({bool myRequests = false, bool pending = false}) async {
-    final cached = _ictService.getICTRequestsFromCache(myRequests: myRequests, pending: pending);
+  Future<void> loadICTRequestsCacheFirst({
+    bool myRequests = false,
+    bool pending = false,
+    bool approvedByMe = false,
+  }) async {
+    final cached = _ictService.getICTRequestsFromCache(
+      myRequests: myRequests,
+      pending: pending,
+      approvedByMe: approvedByMe,
+    );
     if (cached != null) {
-      _applyICTRequests(cached, myRequests);
+      ictRequests.value = cached;
       isStale.value = false;
       error.value = '';
       isRefreshing.value = true;
@@ -149,8 +157,9 @@ class ICTRequestController extends GetxController {
         final requests = await _ictService.getICTRequests(
           myRequests: myRequests,
           pending: pending,
+          approvedByMe: approvedByMe,
         );
-        _applyICTRequests(requests, myRequests);
+        ictRequests.value = requests;
         isStale.value = false;
         error.value = '';
       } catch (e) {
@@ -161,10 +170,14 @@ class ICTRequestController extends GetxController {
       }
       return;
     }
-    await loadICTRequests(myRequests: myRequests, pending: pending);
+    await loadICTRequests(myRequests: myRequests, pending: pending, approvedByMe: approvedByMe);
   }
 
-  Future<void> loadICTRequests({bool myRequests = false, bool pending = false}) async {
+  Future<void> loadICTRequests({
+    bool myRequests = false,
+    bool pending = false,
+    bool approvedByMe = false,
+  }) async {
     isLoading.value = true;
     error.value = '';
     isStale.value = false;
@@ -174,8 +187,13 @@ class ICTRequestController extends GetxController {
       final requests = await _ictService.getICTRequests(
         myRequests: myRequests,
         pending: pending,
+        approvedByMe: approvedByMe,
       );
-      _applyICTRequests(requests, myRequests);
+      if (approvedByMe) {
+        ictRequests.value = requests;
+      } else {
+        _applyICTRequests(requests, myRequests);
+      }
     } catch (e) {
       error.value = e.toString();
     } finally {

@@ -6,9 +6,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../data/models/request_model.dart' show VehicleRequestModel, RequestType;
 import '../../controllers/request_controller.dart';
 import '../status_badge.dart';
-import '../workflow_timeline.dart';
 import '../workflow_progress_indicator.dart';
 import 'approval_action_bottom_sheet.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/permission_service.dart';
 import '../../controllers/auth_controller.dart';
 
@@ -88,10 +88,10 @@ class RequestDetailBottomSheet extends StatelessWidget {
 
   Widget _buildSummary(BuildContext context, VehicleRequestModel request) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppConstants.spacingM),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppConstants.radiusM),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,7 +112,7 @@ class RequestDetailBottomSheet extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppConstants.spacingS),
           Text(
             'Trip Date: ${DateFormat('MMM dd, yyyy').format(request.tripDate)}',
             style: TextStyle(color: AppColors.textSecondary),
@@ -143,7 +143,7 @@ class RequestDetailBottomSheet extends StatelessWidget {
             _buildDetailRow('Return Date', DateFormat('MMM dd, yyyy').format(request.returnDate)),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppConstants.spacingM),
         // Workflow Progress Indicator
         WorkflowProgressIndicator(
           request: request,
@@ -162,12 +162,12 @@ class RequestDetailBottomSheet extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppConstants.spacingS),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppConstants.spacingM),
           decoration: BoxDecoration(
             color: AppColors.surfaceLight,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
           ),
           child: Column(children: children),
         ),

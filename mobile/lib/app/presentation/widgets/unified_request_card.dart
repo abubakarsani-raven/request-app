@@ -87,7 +87,7 @@ class _GenericRequestCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       color: theme.colorScheme.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
         side: BorderSide(
           color: isDark
               ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -102,7 +102,7 @@ class _GenericRequestCard extends StatelessWidget {
           source: source,
           onReturn: onReturn,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppConstants.radiusL),
         child: Padding(
           padding: const EdgeInsets.all(AppConstants.spacingM),
           child: Column(
@@ -111,11 +111,11 @@ class _GenericRequestCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(AppConstants.spacingS),
                     decoration: BoxDecoration(
                       color: (isDark ? AppColors.primaryLight : AppColors.primary)
                           .withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusM),
                     ),
                     child: Icon(
                       RequestModuleConfig.icon(type),
@@ -136,7 +136,7 @@ class _GenericRequestCard extends StatelessWidget {
                             color: theme.colorScheme.onSurface,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: AppConstants.spacingXS),
                         StatusBadge(
                           status: status,
                           workflowStage: workflowStage,
@@ -183,7 +183,7 @@ class _GenericRequestCard extends StatelessWidget {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingS),
                       side: BorderSide(
                         color: isDark ? AppColors.primaryLight : AppColors.primary,
                       ),

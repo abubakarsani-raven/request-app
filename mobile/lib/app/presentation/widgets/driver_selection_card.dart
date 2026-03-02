@@ -93,7 +93,7 @@ class DriverSelectionCard extends StatelessWidget {
                 ),
                 if (isSelected)
                   Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(AppConstants.spacingXS),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,

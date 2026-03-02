@@ -10,7 +10,9 @@ import { ICTItem, ICTItemDocument } from './schemas/ict-item.schema';
 import { ICTRequest, ICTRequestDocument } from './schemas/ict-request.schema';
 import { StockHistory, StockHistoryDocument, StockOperation } from './schemas/stock-history.schema';
 import { ICTSupply, ICTSupplyDocument } from './schemas/ict-supply.schema';
+import { Supplier, SupplierDocument } from './schemas/supplier.schema';
 import { CreateICTRequestDto } from './dto/create-ict-request.dto';
+import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { CreateICTItemDto } from './dto/create-ict-item.dto';
 import { UpdateICTItemDto } from './dto/update-ict-item.dto';
 import { UpdateQuantityDto, QuantityOperation } from './dto/update-quantity.dto';
@@ -34,6 +36,7 @@ export class ICTService {
     @InjectModel(ICTRequest.name) private ictRequestModel: Model<ICTRequestDocument>,
     @InjectModel(StockHistory.name) private stockHistoryModel: Model<StockHistoryDocument>,
     @InjectModel(ICTSupply.name) private ictSupplyModel: Model<ICTSupplyDocument>,
+    @InjectModel(Supplier.name) private supplierModel: Model<SupplierDocument>,
     @InjectModel(Notification.name) private notificationModel: Model<NotificationDocument>,
     private workflowService: WorkflowService,
     private usersService: UsersService,
@@ -88,7 +91,7 @@ export class ICTService {
     id: string,
     updateQuantityDto: UpdateQuantityDto,
     userId: string,
-  ): Promise<ICTItem> {
+  ): Promise<{ item: ICTItem; supply?: { supplyReferenceNumber: string; supplyId: string; itemName: string; quantity: number; supplier?: string; supplierReferenceNumber?: string } }> {
     const item = await this.findOneItem(id);
     const previousQuantity = item.quantity;
     let newQuantity: number;
@@ -126,11 +129,25 @@ export class ICTService {
     await item.save();
 
     let supplyId: Types.ObjectId | undefined;
+    let supplyRef: { supplyReferenceNumber: string; supplyId: string; itemName: string; quantity: number; supplier?: string; supplierReferenceNumber?: string } | undefined;
+
     if (updateQuantityDto.operation === QuantityOperation.ADD) {
+      const supplyReferenceNumber = await this.getNextSupplyReferenceNumber();
+      let supplierName = updateQuantityDto.supplier;
+      let supplierRefNum: string | undefined;
+      if (updateQuantityDto.supplierId) {
+        const supplier = await this.supplierModel.findById(updateQuantityDto.supplierId).exec();
+        if (supplier) {
+          supplierName = supplier.name;
+          supplierRefNum = supplier.referenceNumber;
+        }
+      }
       const supply = new this.ictSupplyModel({
+        supplyReferenceNumber,
         itemId: new Types.ObjectId(id),
         quantity: updateQuantityDto.quantity,
-        supplier: updateQuantityDto.supplier,
+        supplierId: updateQuantityDto.supplierId ? new Types.ObjectId(updateQuantityDto.supplierId) : undefined,
+        supplier: supplierName ?? updateQuantityDto.supplier,
         supplierContact: updateQuantityDto.supplierContact,
         cost: updateQuantityDto.cost,
         reference: updateQuantityDto.reference,
@@ -139,6 +156,14 @@ export class ICTService {
       });
       await supply.save();
       supplyId = supply._id as Types.ObjectId;
+      supplyRef = {
+        supplyReferenceNumber,
+        supplyId: supply._id.toString(),
+        itemName: item.name,
+        quantity: updateQuantityDto.quantity,
+        supplier: supplierName,
+        supplierReferenceNumber: supplierRefNum,
+      };
     }
 
     // Create stock history entry
@@ -157,7 +182,51 @@ export class ICTService {
     // Check for low stock and send notification if needed
     await this.checkAndNotifyLowStock(item, userId);
 
-    return item;
+    return { item, supply: supplyRef };
+  }
+
+  async getNextSupplyReferenceNumber(): Promise<string> {
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const prefix = `SPL-${today}-`;
+    const last = await this.ictSupplyModel
+      .findOne({ supplyReferenceNumber: new RegExp(`^${prefix}`) })
+      .sort({ supplyReferenceNumber: -1 })
+      .select('supplyReferenceNumber')
+      .exec();
+    const nextNum = last
+      ? parseInt(last.supplyReferenceNumber.replace(prefix, ''), 10) + 1
+      : 1;
+    return `${prefix}${String(nextNum).padStart(4, '0')}`;
+  }
+
+  async getNextSupplierReferenceNumber(): Promise<string> {
+    const last = await this.supplierModel
+      .findOne({ referenceNumber: /^SVR-\d+$/ })
+      .sort({ referenceNumber: -1 })
+      .select('referenceNumber')
+      .exec();
+    const nextNum = last
+      ? parseInt(last.referenceNumber.replace('SVR-', ''), 10) + 1
+      : 1;
+    return `SVR-${String(nextNum).padStart(6, '0')}`;
+  }
+
+  async createSupplier(dto: CreateSupplierDto): Promise<Supplier> {
+    const referenceNumber = await this.getNextSupplierReferenceNumber();
+    const supplier = new this.supplierModel({ ...dto, referenceNumber });
+    return supplier.save();
+  }
+
+  async findAllSuppliers(): Promise<Supplier[]> {
+    return this.supplierModel.find().sort({ referenceNumber: 1 }).exec();
+  }
+
+  async findOneSupplier(id: string): Promise<SupplierDocument> {
+    const supplier = await this.supplierModel.findById(id).exec();
+    if (!supplier) {
+      throw new NotFoundException('Supplier not found');
+    }
+    return supplier;
   }
 
   private mapQuantityOperationToStockOperation(
@@ -180,7 +249,7 @@ export class ICTService {
       .find({ itemId: new Types.ObjectId(itemId) })
       .populate({ path: 'performedBy', select: 'name email departmentId', populate: { path: 'departmentId', select: 'name' } })
       .populate({ path: 'requestId', select: 'requesterId', populate: { path: 'requesterId', select: 'name departmentId', populate: { path: 'departmentId', select: 'name' } } })
-      .populate({ path: 'supplyId', select: 'supplier supplierContact quantity cost reference createdAt' })
+      .populate({ path: 'supplyId', select: 'supplyReferenceNumber supplier supplierContact quantity cost reference createdAt' })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -189,6 +258,7 @@ export class ICTService {
     return this.ictSupplyModel
       .find({ itemId: new Types.ObjectId(itemId) })
       .populate({ path: 'performedBy', select: 'name email' })
+      .populate({ path: 'supplierId', select: 'referenceNumber name' })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -873,6 +943,21 @@ export class ICTService {
       
       // For database errors, log and return empty array
       console.error('[ICT Service] findPendingApprovals: Database error:', error.message);
+      return [];
+    }
+  }
+
+  async findApprovedByMe(userId: string): Promise<ICTRequest[]> {
+    try {
+      const requests = await this.ictRequestModel
+        .find({ 'approvals.approverId': new Types.ObjectId(userId) })
+        .populate({ path: 'requesterId', populate: { path: 'departmentId', select: 'name' } })
+        .populate('items.itemId')
+        .sort({ createdAt: -1 })
+        .exec();
+      return requests;
+    } catch (error) {
+      console.error('[ICT Service] findApprovedByMe: Error:', error);
       return [];
     }
   }

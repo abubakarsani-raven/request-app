@@ -35,6 +35,7 @@ type RequestRef = { _id?: string; requesterId?: RequesterRef };
 
 type SupplyRef = {
   _id?: string;
+  supplyReferenceNumber?: string;
   supplier?: string;
   supplierContact?: string;
   quantity?: number;
@@ -76,9 +77,11 @@ function getReasonDisplay(entry: StockHistoryEntry): string {
   }
   if (entry.operation === "ADD" && entry.supplyId && typeof entry.supplyId === "object") {
     const supply = entry.supplyId as SupplyRef;
+    const refPart = supply.supplyReferenceNumber ? `Ref: ${supply.supplyReferenceNumber}` : "";
     const from = supply.supplier ? `From: ${supply.supplier}` : "";
     const rest = entry.reason ? ` — ${entry.reason}` : "";
-    return from ? `${from}${rest}` : (entry.reason || "-");
+    const parts = [refPart, from].filter(Boolean);
+    return parts.length ? `${parts.join(" · ")}${rest}` : (entry.reason || "-");
   }
   return entry.reason || "-";
 }
@@ -86,9 +89,11 @@ function getReasonDisplay(entry: StockHistoryEntry): string {
 export type SupplyEntry = {
   _id: string;
   itemId: string;
+  supplyReferenceNumber?: string;
   quantity: number;
   supplier?: string;
   supplierContact?: string;
+  supplierId?: { _id: string; referenceNumber: string; name: string } | string;
   cost?: number;
   reference?: string;
   unit: string;
@@ -315,6 +320,7 @@ export function ItemDetailsContent({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Supply ref</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Supplier</TableHead>
                   <TableHead>Quantity</TableHead>
@@ -325,10 +331,16 @@ export function ItemDetailsContent({
               <TableBody>
                 {supplies.map((s) => (
                   <TableRow key={s._id}>
+                    <TableCell className="font-mono text-sm whitespace-nowrap">
+                      {s.supplyReferenceNumber || "—"}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {new Date(s.createdAt).toLocaleString()}
                     </TableCell>
                     <TableCell>
+                      {typeof s.supplierId === "object" && s.supplierId?.referenceNumber && (
+                        <span className="text-muted-foreground text-xs font-mono mr-1">({s.supplierId.referenceNumber})</span>
+                      )}
                       {s.supplier || "—"}
                       {s.supplierContact && (
                         <span className="text-muted-foreground text-xs block">{s.supplierContact}</span>

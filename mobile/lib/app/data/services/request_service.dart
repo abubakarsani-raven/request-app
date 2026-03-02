@@ -13,8 +13,11 @@ class RequestService extends GetxService {
   List<VehicleRequestModel>? getVehicleRequestsFromCache({
     bool myRequests = false,
     bool pending = false,
+    bool approvedByMe = false,
   }) {
-    final key = LocalCacheService.listKey('vehicle', myRequests, pending);
+    final key = approvedByMe
+        ? LocalCacheService.listKeyApprovedByMe('vehicle')
+        : LocalCacheService.listKey('vehicle', myRequests, pending);
     final entry = LocalCacheService.readRequestList(key);
     if (entry == null) return null;
     try {
@@ -29,6 +32,7 @@ class RequestService extends GetxService {
   Future<List<VehicleRequestModel>> getVehicleRequests({
     bool myRequests = false,
     bool pending = false,
+    bool approvedByMe = false,
     String? departmentId,
     String? workflowStage,
   }) async {
@@ -36,6 +40,7 @@ class RequestService extends GetxService {
       final queryParams = <String, dynamic>{};
       if (myRequests) queryParams['myRequests'] = 'true';
       if (pending) queryParams['pending'] = 'true';
+      if (approvedByMe) queryParams['approvedByMe'] = 'true';
       if (departmentId != null) queryParams['departmentId'] = departmentId;
       if (workflowStage != null) queryParams['workflowStage'] = workflowStage;
 
@@ -48,10 +53,10 @@ class RequestService extends GetxService {
         if (response.data is! List) return [];
         final list = response.data as List;
         if (departmentId == null && workflowStage == null) {
-          await LocalCacheService.writeRequestList(
-            LocalCacheService.listKey('vehicle', myRequests, pending),
-            list,
-          );
+          final key = approvedByMe
+              ? LocalCacheService.listKeyApprovedByMe('vehicle')
+              : LocalCacheService.listKey('vehicle', myRequests, pending);
+          await LocalCacheService.writeRequestList(key, list);
         }
         return list
             .map((json) => VehicleRequestModel.fromJson(json as Map<String, dynamic>))

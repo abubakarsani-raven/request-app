@@ -35,6 +35,12 @@ class ConnectivityService extends GetxService {
         r == ConnectivityResult.other);
   }
 
+  /// Call when an API request succeeds. Corrects false "offline" from connectivity_plus
+  /// (e.g. on iOS simulator) so the UI doesn't show the offline banner when we're clearly online.
+  void markOnlineFromApiSuccess() {
+    isOnline.value = true;
+  }
+
   @override
   void onClose() {
     _subscription?.cancel();

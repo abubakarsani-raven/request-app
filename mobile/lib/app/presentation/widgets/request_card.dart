@@ -86,7 +86,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppConstants.radiusL),
           border: Border.all(
             color: isDark 
                 ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -113,9 +113,9 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                 }
               });
             },
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppConstants.radiusL),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppConstants.spacingM),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -125,10 +125,10 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                     children: [
                       // Destination Icon
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(AppConstants.spacingS),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(AppConstants.radiusM),
                         ),
                         child: Icon(
                           Icons.location_on,
@@ -136,7 +136,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                           size: 20,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppConstants.spacingS),
                       // Destination and Status
                       Expanded(
                         child: Column(
@@ -155,7 +155,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                               maxLines: _isExpanded ? null : 1,
                               overflow: _isExpanded ? null : TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: AppConstants.spacingXS),
                             StatusBadge(
                               status: widget.request.status,
                               workflowStage: widget.request.workflowStage,
@@ -163,7 +163,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppConstants.spacingS),
                       // Repeat Request button (only show in My Requests, visible in collapsed view)
                       if (widget.source == RequestDetailSource.myRequests) ...[
                         IconButton(
@@ -180,7 +180,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                             minHeight: 32,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: AppConstants.spacingXS),
                       ],
                       // Expand/Collapse Icon
                       IconButton(
@@ -210,7 +210,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppConstants.spacingM),
                         _buildExpandedContent(context, dateFormat),
                       ],
                     ),
@@ -239,7 +239,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
               size: 16, 
               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppConstants.spacingS),
             Text(
               '${dateFormat.format(widget.request.tripDate)} • ${widget.request.tripTime}',
               style: TextStyle(
@@ -249,16 +249,16 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppConstants.spacingS),
         // Driver & Vehicle Info (if assigned)
         if (widget.request.driver != null || widget.request.vehicle != null) ...[
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppConstants.spacingS),
             decoration: BoxDecoration(
               color: isDark 
                   ? AppColors.success.withOpacity(0.1)
                   : AppColors.success.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppConstants.radiusM),
               border: Border.all(
                 color: isDark 
                     ? AppColors.success.withOpacity(0.3)
@@ -270,11 +270,11 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
               children: [
                 if (widget.request.driver != null)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: AppConstants.spacingS),
                     child: Row(
                       children: [
                         Icon(Icons.person, size: 16, color: AppColors.success),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppConstants.spacingS),
                         Expanded(
                           child: Text(
                             'Driver: ${widget.request.driver!.name}',
@@ -292,7 +292,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                   Row(
                     children: [
                       Icon(Icons.directions_car, size: 16, color: AppColors.success),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppConstants.spacingS),
                         Expanded(
                           child: Text(
                             '${widget.request.vehicle!.displayName} (${widget.request.vehicle!.plateNumber})',
@@ -308,7 +308,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppConstants.spacingS),
         ],
         // Return Date and Time
         Row(
@@ -318,7 +318,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
               size: 16, 
               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppConstants.spacingS),
             Text(
               'Return: ${dateFormat.format(widget.request.returnDate)} • ${widget.request.returnTime}',
               style: TextStyle(
@@ -328,7 +328,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppConstants.spacingS),
         // Purpose
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +338,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
               size: 16, 
               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppConstants.spacingS),
             Expanded(
               child: Text(
                 widget.request.purpose,
@@ -354,12 +354,12 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
         ),
         // Priority Badge
         if (widget.request.priority) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: AppConstants.spacingS),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.warning.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppConstants.radiusS),
               border: Border.all(
                 color: AppColors.warning.withOpacity(0.3),
                 width: 1,
@@ -384,7 +384,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
         ],
         // Action buttons (only show in My Requests)
         if (widget.source == RequestDetailSource.myRequests) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: AppConstants.spacingS),
           Row(
             children: [
               // Cancel button (if callback provided)
@@ -404,7 +404,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingS),
                       side: BorderSide(
                         color: AppColors.error,
                       ),
@@ -429,7 +429,7 @@ class _RequestCardState extends State<RequestCard> with SingleTickerProviderStat
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingS),
                     side: BorderSide(
                       color: isDark ? AppColors.primaryLight : AppColors.primary,
                     ),

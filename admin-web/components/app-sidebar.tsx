@@ -58,6 +58,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: Package,
       isActive: pathname === "/ict-inventory",
     }] : []),
+    // Suppliers (reference numbers for ICT)
+    ...(permissions.canManageICT ? [{
+      title: "Suppliers",
+      url: "/suppliers",
+      icon: Building2,
+      isActive: pathname === "/suppliers",
+    }] : []),
     // Store Requests - Main Admin or Store Admin
     ...(permissions.canManageStore ? [{
       title: "Store Requests",

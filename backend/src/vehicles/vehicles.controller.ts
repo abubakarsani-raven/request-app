@@ -198,12 +198,13 @@ export class VehiclesController {
     @CurrentUser() user: any,
     @Query('myRequests') myRequests?: string,
     @Query('pending') pending?: string,
+    @Query('approvedByMe') approvedByMe?: string,
     @Query('driverId') driverId?: string,
   ) {
     const userId = user._id?.toString() || user.id?.toString() || user._id || user.id;
     const userRoles = user.roles || [];
     
-    console.log('[Vehicles Controller] findAllRequests: userId:', userId, 'roles:', userRoles, 'myRequests:', myRequests, 'pending:', pending);
+    console.log('[Vehicles Controller] findAllRequests: userId:', userId, 'roles:', userRoles, 'myRequests:', myRequests, 'pending:', pending, 'approvedByMe:', approvedByMe);
     console.log('[Vehicles Controller] findAllRequests: user._id:', user._id, 'user.id:', user.id);
     
     // Handle driverId query parameter for driver dashboard
@@ -216,6 +217,9 @@ export class VehiclesController {
     }
     if (pending === 'true') {
       return this.vehiclesService.findPendingApprovals(userId, userRoles);
+    }
+    if (approvedByMe === 'true') {
+      return this.vehiclesService.findApprovedByMe(userId);
     }
     // For "All Requests" view, use role-based filtering
     return this.vehiclesService.findAllRequestsByRole(userId, userRoles);

@@ -89,10 +89,18 @@ class StoreRequestController extends GetxController {
     }
   }
 
-  Future<void> loadStoreRequestsCacheFirst({bool myRequests = false, bool pending = false}) async {
-    final cached = _storeService.getStoreRequestsFromCache(myRequests: myRequests, pending: pending);
+  Future<void> loadStoreRequestsCacheFirst({
+    bool myRequests = false,
+    bool pending = false,
+    bool approvedByMe = false,
+  }) async {
+    final cached = _storeService.getStoreRequestsFromCache(
+      myRequests: myRequests,
+      pending: pending,
+      approvedByMe: approvedByMe,
+    );
     if (cached != null) {
-      _applyStoreRequests(cached, myRequests);
+      storeRequests.value = cached;
       isStale.value = false;
       error.value = '';
       isRefreshing.value = true;
@@ -100,8 +108,9 @@ class StoreRequestController extends GetxController {
         final requests = await _storeService.getStoreRequests(
           myRequests: myRequests,
           pending: pending,
+          approvedByMe: approvedByMe,
         );
-        _applyStoreRequests(requests, myRequests);
+        storeRequests.value = requests;
         isStale.value = false;
         error.value = '';
       } catch (e) {
@@ -112,10 +121,14 @@ class StoreRequestController extends GetxController {
       }
       return;
     }
-    await loadStoreRequests(myRequests: myRequests, pending: pending);
+    await loadStoreRequests(myRequests: myRequests, pending: pending, approvedByMe: approvedByMe);
   }
 
-  Future<void> loadStoreRequests({bool myRequests = false, bool pending = false}) async {
+  Future<void> loadStoreRequests({
+    bool myRequests = false,
+    bool pending = false,
+    bool approvedByMe = false,
+  }) async {
     isLoading.value = true;
     error.value = '';
     isStale.value = false;
@@ -125,8 +138,13 @@ class StoreRequestController extends GetxController {
       final requests = await _storeService.getStoreRequests(
         myRequests: myRequests,
         pending: pending,
+        approvedByMe: approvedByMe,
       );
-      _applyStoreRequests(requests, myRequests);
+      if (approvedByMe) {
+        storeRequests.value = requests;
+      } else {
+        _applyStoreRequests(requests, myRequests);
+      }
     } catch (e) {
       error.value = e.toString();
     } finally {

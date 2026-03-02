@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_constants.dart';
 import 'package:get/get.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import '../widgets/app_scaffold.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/custom_toast.dart';
 import 'ict_request_detail_page.dart';
@@ -89,12 +91,9 @@ class _QRScannerPageState extends State<QRScannerPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan QR Code'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
-      ),
+    return AppScaffold(
+      title: 'Scan QR Code',
+      showBackButton: true,
       body: Column(
         children: [
           Expanded(
@@ -111,7 +110,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppConstants.spacingM),
             color: Colors.black87,
             child: Column(
               children: [
@@ -124,7 +123,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppConstants.spacingM),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -153,7 +152,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
                   ],
                 ),
                 if (!isScanning) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppConstants.spacingM),
                   ElevatedButton(
                     onPressed: _resetScanner,
                     style: ElevatedButton.styleFrom(

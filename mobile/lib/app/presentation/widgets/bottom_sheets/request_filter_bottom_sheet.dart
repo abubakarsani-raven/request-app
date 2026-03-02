@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/widgets/bottom_sheet_wrapper.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/animations/sheet_animations.dart';
 
@@ -128,7 +129,7 @@ class _RequestFilterBottomSheetState extends State<RequestFilterBottomSheet> {
                   color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                 ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppConstants.spacingS),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -150,7 +151,7 @@ class _RequestFilterBottomSheetState extends State<RequestFilterBottomSheet> {
                   color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                 ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppConstants.spacingS),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -170,15 +171,15 @@ class _RequestFilterBottomSheetState extends State<RequestFilterBottomSheet> {
                   color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                 ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppConstants.spacingS),
           InkWell(
             onTap: _selectDateRange,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppConstants.radiusM),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppConstants.spacingM),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.darkSurfaceLight : AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppConstants.radiusM),
                 border: Border.all(
                   color: isDark 
                       ? AppColors.darkBorderDefined.withOpacity(0.5)
@@ -193,7 +194,7 @@ class _RequestFilterBottomSheetState extends State<RequestFilterBottomSheet> {
                     color: isDark ? AppColors.primaryLight : AppColors.primary, 
                     size: 20,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppConstants.spacingS),
                   Expanded(
                     child: Text(
                       _selectedDateRange != null

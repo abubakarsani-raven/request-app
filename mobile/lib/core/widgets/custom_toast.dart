@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../constants/app_constants.dart';
 import '../theme/app_colors.dart';
 
 enum ToastType {
@@ -165,10 +166,10 @@ class _ToastWidgetState extends State<_ToastWidget>
           child: Material(
             color: Colors.transparent,
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppConstants.spacingM),
               decoration: BoxDecoration(
                 color: _getBackgroundColor(),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppConstants.radiusL),
                 boxShadow: [
                   BoxShadow(
                     color: _getBackgroundColor().withOpacity(0.3),
@@ -187,7 +188,7 @@ class _ToastWidgetState extends State<_ToastWidget>
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppConstants.spacingS),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
@@ -198,7 +199,7 @@ class _ToastWidgetState extends State<_ToastWidget>
                       size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppConstants.spacingS),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

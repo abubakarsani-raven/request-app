@@ -63,10 +63,18 @@ class RequestController extends GetxController {
   }
 
   /// Load vehicle requests: show cache first if available, then refresh in background.
-  Future<void> loadVehicleRequestsCacheFirst({bool myRequests = false, bool pending = false}) async {
-    final cached = _requestService.getVehicleRequestsFromCache(myRequests: myRequests, pending: pending);
+  Future<void> loadVehicleRequestsCacheFirst({
+    bool myRequests = false,
+    bool pending = false,
+    bool approvedByMe = false,
+  }) async {
+    final cached = _requestService.getVehicleRequestsFromCache(
+      myRequests: myRequests,
+      pending: pending,
+      approvedByMe: approvedByMe,
+    );
     if (cached != null) {
-      _applyVehicleRequests(cached, myRequests);
+      vehicleRequests.value = cached;
       isStale.value = false;
       error.value = '';
       isRefreshing.value = true;
@@ -74,8 +82,9 @@ class RequestController extends GetxController {
         final requests = await _requestService.getVehicleRequests(
           myRequests: myRequests,
           pending: pending,
+          approvedByMe: approvedByMe,
         );
-        _applyVehicleRequests(requests, myRequests);
+        vehicleRequests.value = requests;
         isStale.value = false;
         error.value = '';
       } catch (e) {
@@ -86,10 +95,14 @@ class RequestController extends GetxController {
       }
       return;
     }
-    await loadVehicleRequests(myRequests: myRequests, pending: pending);
+    await loadVehicleRequests(myRequests: myRequests, pending: pending, approvedByMe: approvedByMe);
   }
 
-  Future<void> loadVehicleRequests({bool myRequests = false, bool pending = false}) async {
+  Future<void> loadVehicleRequests({
+    bool myRequests = false,
+    bool pending = false,
+    bool approvedByMe = false,
+  }) async {
     isLoading.value = true;
     error.value = '';
     isStale.value = false;
@@ -99,8 +112,13 @@ class RequestController extends GetxController {
       final requests = await _requestService.getVehicleRequests(
         myRequests: myRequests,
         pending: pending,
+        approvedByMe: approvedByMe,
       );
-      _applyVehicleRequests(requests, myRequests);
+      if (approvedByMe) {
+        vehicleRequests.value = requests;
+      } else {
+        _applyVehicleRequests(requests, myRequests);
+      }
     } catch (e) {
       error.value = e.toString();
     } finally {

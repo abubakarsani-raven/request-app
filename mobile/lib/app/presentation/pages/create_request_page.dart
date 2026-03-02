@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_advanced_drawer/flutter_advanced_drawer.dart';
 import '../controllers/request_controller.dart';
 import '../controllers/ict_request_controller.dart';
 import '../controllers/store_request_controller.dart';
@@ -12,7 +11,7 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/map_picker.dart';
 import '../widgets/catalog_browser.dart';
 import '../widgets/inventory_browser.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/loading_overlay.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/theme/app_colors.dart';
@@ -32,7 +31,6 @@ class CreateRequestPage extends StatefulWidget {
 
 class _CreateRequestPageState extends State<CreateRequestPage> {
   final _formKey = GlobalKey<FormState>();
-  final _drawerController = AdvancedDrawerController();
   final _tripDateController = TextEditingController();
   final _tripTimeController = TextEditingController();
   final _returnDateController = TextEditingController();
@@ -1190,62 +1188,51 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
         body = const Center(child: Text('Unknown request type'));
     }
 
-    return AppDrawer(
-      controller: _drawerController,
-      child: Obx(
-        () => LoadingOverlay(
+    return Obx(
+      () => AppScaffold(
+        title: title,
+        showBackButton: true,
+        actions: widget.type == 'ict'
+            ? [
+                Obx(
+                  () {
+                    if (!Get.isRegistered<ICTRequestController>()) {
+                      return const SizedBox.shrink();
+                    }
+                    final controller = Get.find<ICTRequestController>();
+                    final hasActiveFilter = controller.selectedCategory.value.isNotEmpty;
+                    return IconButton(
+                      icon: Stack(
+                        children: [
+                          const Icon(Icons.filter_list_rounded),
+                          if (hasActiveFilter)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const SizedBox(width: 8, height: 8),
+                              ),
+                            ),
+                        ],
+                      ),
+                      onPressed: () => _showICTFilterBottomSheet(),
+                      tooltip: 'Filter items',
+                    );
+                  },
+                ),
+              ]
+            : null,
+        body: LoadingOverlay(
           isLoading: (widget.type == 'vehicle' && requestController.isCreating.value) ||
                      (widget.type == 'ict' && ictController.isCreating.value) ||
                      (widget.type == 'store' && storeController.isCreating.value),
           message: 'Creating request...',
-          child: Scaffold(
-            appBar: AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: () => Get.back(),
-              ),
-              title: Text(title),
-              actions: widget.type == 'ict'
-                  ? [
-                      Obx(
-                        () {
-                          if (!Get.isRegistered<ICTRequestController>()) {
-                            return const SizedBox.shrink();
-                          }
-                          final controller = Get.find<ICTRequestController>();
-                          final hasActiveFilter = controller.selectedCategory.value.isNotEmpty;
-                          return IconButton(
-                            icon: Stack(
-                              children: [
-                                const Icon(Icons.filter_list_rounded),
-                                if (hasActiveFilter)
-                                  Positioned(
-                                    right: 0,
-                                    top: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const SizedBox(
-                                        width: 8,
-                                        height: 8,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            onPressed: () => _showICTFilterBottomSheet(),
-                            tooltip: 'Filter items',
-                          );
-                        },
-                      ),
-                    ]
-                  : null,
-            ),
-            body: body,
-          ),
+          child: body,
         ),
       ),
     );
